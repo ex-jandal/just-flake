@@ -1,0 +1,39 @@
+# Boot / loader / firmware evidence — dumped 2026-08-29T20:11:15+03:00
+
+== bootloader pkgs ==
+amd-ucode
+dracut
+efibootmgr
+grub
+mkinitcpio
+mkinitcpio-busybox
+plymouth
+systemd
+systemd-libs
+systemd-sysvcompat
+
+== /boot contents ==
+total 75904
+drwxr-xr-x  4 root root     4096 Jan  1  1970 .
+dr-xr-xr-x 18 root root     4096 Aug 29 17:42 ..
+-rwxr-xr-x  1 root root   307200 Jun 23 03:07 amd-ucode.img
+-rwxr-xr-x  1 root root  8701688 Jul 16 11:32 booster-linux-zen.img
+drwxr-xr-x  3 root root     4096 Aug 27  2025 EFI
+drwxr-xr-x  6 root root     4096 Feb 22  2026 grub
+-rwxr-xr-x  1 root root 50358041 Jul 16 11:34 initramfs-linux-zen.img
+-rwxr-xr-x  1 root root 18334208 Jul 16 11:33 vmlinuz-linux-zen
+
+== /boot/efi/EFI ==
+
+== mkinitcpio HOOKS/MODULES/BINARIES ==
+MODULES=()
+BINARIES=()
+HOOKS=(base udev plymouth autodetect microcode modconf kms keyboard keymap consolefont block filesystems fsck)
+
+== efibootmgr ==
+BootCurrent: 0000
+Timeout: 0 seconds
+BootOrder: 0000,2001,3000,2002,2004
+Boot0000* ARCH	HD(1,GPT,0acf51cb-0887-4009-b906-35323f6ba231,0x800,0x400000)/\EFI\ARCH\grubx64.efi
+Boot2001* EFI USB Device	RC
+Boot3000* Internal Hard Disk or Solid State Disk	RC
