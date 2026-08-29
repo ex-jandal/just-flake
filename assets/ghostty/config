@@ -1,0 +1,57 @@
+term = xterm-256color
+# --- Font ---
+font-family = "CaskaydiaCove Nerd Font"
+font-thicken = true
+font-size = 15
+
+# Set the active shader
+custom-shader = ~/.config/ghostty/shaders/cursor_blaze.glsl
+custom-shader = ~/.config/ghostty/shaders/bettercrt.glsl
+custom-shader = ~/.config/ghostty/shaders/bloom005.glsl
+#custom-shader = ~/.config/ghostty/cursor-shaders/cursor_sweep.glsl
+custom-shader = ~/.config/ghostty/cursor-shaders/ripple_cursor.glsl
+
+mouse-hide-while-typing = true
+
+
+# --- Cursor ---
+#cursor-style = beam
+#cursor-style-blink = true
+# Ghostty handles trail via 'cursor-trail' (available in newer builds)
+#cursor-trail = true
+
+# --- Window & Padding ---
+# consistency with your 10.75 margin
+window-padding-x = 11
+window-padding-y = 11
+
+window-decoration = true
+window-save-state = always
+
+#background = 050505
+#background-opacity = 0.10
+#background-blur-radius = 90
+
+#window-confirm-close-last-tab = false
+
+# --- Shell ---
+# Directly launching into fish and tmux as requested
+command = fish -c tmux
+
+# --- Keybinds ---
+# Ghostty uses 'keybind' syntax
+#keybind = ctrl+c=copy_to_clipboard
+#keybind = page_up=scroll_page_up
+#keybind = page_down=scroll_page_down
+
+# Font Resizing
+# keybind = ctrl+plus=font_size:+1
+# keybind = ctrl+equal=font_size:+1
+# keybind = ctrl+minus=font_size:-1
+# keybind = ctrl+zero=font_size:reset
+
+# --- Theme ---
+# You can use 'ghostty +list-themes' to find the exact match for Noctalia
+# or include the specific file.
+#theme = dark
+theme = noctalia
