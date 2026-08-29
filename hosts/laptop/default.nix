@@ -26,6 +26,23 @@
     inputs.noctalia-greeter.nixosModules.default
   ];
 
+  # --- Boot loader: GRUB on UEFI (matches Arch) ---
+  boot.loader = {
+    efi.canTouchEfiVariables = true;
+    grub = {
+      enable = true;
+      device = "nodev"; # EFI-only install, no legacy MBR
+      efiSupport = true;
+    };
+  };
+
+  # --- Initramfs: use the modern systemd initrd (NixOS's fast, minimal
+  #     equivalent of Arch's booster) in place of the legacy stage-1 initrd. ---
+  boot.initrd.systemd.enable = true;
+
+  # --- Boot splash (matches Arch plymouth) ---
+  boot.plymouth.enable = true;
+
   # --- GPU/driver placeholder — confirm the laptop GPU ---
   # The original Arch box used open-source AMD (amdgpu/vulkan-radeon).
   # On NixOS, amdgpu needs no extra packages (mesa ships it). For NVIDIA set
