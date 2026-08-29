@@ -1,0 +1,18 @@
+# Static information about the filesystems.
+# See fstab(5) for details.
+
+# <file system> <dir> <type> <options> <dump> <pass>
+# /dev/nvme0n1p2
+UUID=3492e124-ddde-4ec9-8073-be1541d44819	/         	ext4      	rw,relatime	0 1
+
+# /dev/nvme0n1p1
+UUID=C44E-BC6E      	/boot     	vfat      	rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro	0 2
+
+# /swapfile 
+/swapfile               none            swap            defaults     0 0
+
+# /home/abu_jandal/.config/nvim
+/home/abu_jandal/.config/nvim   /root/.config/nvim      none         rw,bind          0 0
+
+# /home/abu_jandal/.local/share/nvim
+/home/abu_jandal/.local/share/nvim      /root/.local/share/nvim none          rw,bind         0 0
