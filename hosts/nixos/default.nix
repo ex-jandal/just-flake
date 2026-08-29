@@ -1,15 +1,15 @@
-# Phase 2 — NixOS system config for the laptop host.
+# Phase 2 — NixOS system config for the nixos host.
 #
 # ACTIVE ONLY AFTER MIGRATING TO NIXOS.
 # Currently this file is a stub; home-manager (home/default.nix) is the
-# active, testable part right now (run: `home-manager build --flake .#laptop`).
+# active, testable part right now (run: `home-manager build --flake .#nixos`).
 #
 # Steps to activate on NixOS:
 #   1. Run `nixos-generate-config --root /` on the real machine and copy
-#      the generated `hardware-configuration.nix` over hosts/laptop/hardware.nix.
+#      the generated `hardware-configuration.nix` over hosts/nixos/hardware.nix.
 #   2. Confirm GPU drivers + bootloader/filesystems (from hardware.nix).
-#   3. Enable `nixosConfigurations.laptop` in flake.nix.
-#   4. `sudo nixos-rebuild switch --flake .#laptop`
+#   3. Enable `nixosConfigurations.nixos` in flake.nix.
+#   4. `sudo nixos-rebuild switch --flake .#nixos`
 
 {
   pkgs,
@@ -51,7 +51,7 @@
 
   # --- Networking (Noctalia needs NetworkManager) ---
   networking = {
-    hostName = "laptop";
+    hostName = "nixos";
     networkmanager.enable = true;
   };
   # Use iwd as the Wi-Fi backend for NetworkManager (matches Arch).

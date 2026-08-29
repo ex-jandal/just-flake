@@ -36,7 +36,7 @@
     {
       # Home-manager flake — works on Arch now (test via `home-manager build`).
       homeConfigurations = {
-        laptop = home-manager.lib.homeManagerConfiguration {
+        nixos = home-manager.lib.homeManagerConfiguration {
           inherit pkgs;
           extraSpecialArgs = {
             inherit inputs system;
@@ -48,11 +48,11 @@
       };
 
       # Phase 2 — NixOS system config.
-      nixosConfigurations.laptop = nixpkgs.lib.nixosSystem {
+      nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
         inherit system;
         specialArgs = { inherit inputs; };
         modules = [
-          ./hosts/laptop/default.nix
+          ./hosts/nixos/default.nix
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;

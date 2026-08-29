@@ -13,7 +13,7 @@ Package→NixOS mapping: `arch/pkgs-nixos-mapping.md`.
 
 | Field | Value |
 |---|---|
-| hostname | `laptop` (was `archlinux`) |
+| hostname | `nixos` (Arch was `archlinux`) |
 | OS | Arch Linux (x86_64), **not** NixOS yet |
 | kernel | `7.1.3-zen1-3-zen` (linux-zen) |
 | locale | `en_US.UTF-8` |
@@ -22,7 +22,7 @@ Package→NixOS mapping: `arch/pkgs-nixos-mapping.md`.
 | compositor | Niri (Wayland) + Noctalia shell |
 | microcode | amd-ucode |
 
-> **Gap**: libcap — `hosts/laptop/default.nix` sets no `time.timeZone`.
+> **Gap**: libcap — `hosts/nixos/default.nix` sets no `time.timeZone`.
 > Add `time.timeZone = "Asia/Aden";` and `i18n.defaultLocale = "en_US.UTF-8";`.
 
 ## 2. Hardware
@@ -38,11 +38,11 @@ Package→NixOS mapping: `arch/pkgs-nixos-mapping.md`.
 
 GPU stack on Arch: `mesa`, `vulkan-radeon`, `lib32-mesa`, `lib32-vulkan-radeon`,
 `linux-firmware-amdgpu`, `obs-vaapi`, `libva`. → NixOS: `hardware.graphics.enable`
-(+ `enable32Bit = true`). Already scaffolded in `hosts/laptop/default.nix`.
+(+ `enable32Bit = true`). Already scaffolded in `hosts/nixos/default.nix`.
 
 ## 3. Boot & filesystems
 
-> **Resolved on NixOS**: `hosts/laptop/default.nix` now uses **GRUB on UEFI**
+> **Resolved on NixOS**: `hosts/nixos/default.nix` now uses **GRUB on UEFI**
 > (`boot.loader.grub` + `efiSupport`, device `nodev`) with the **systemd initrd**
 > (`boot.initrd.systemd.enable`) — matching Arch's GRUB + booster setup.
 
@@ -66,7 +66,7 @@ Evidence: `arch/boot.txt`, `arch/fstab.txt`.
 
 - **Niri** + **Noctalia** (native Wayland shell; `uwsm` session)
 - **greetd** + **noctalia-greeter** as display manager (already wired in
-  `hosts/laptop/default.nix`)
+  `hosts/nixos/default.nix`)
 - Wayland session entry: `niri.desktop` → `Exec=uwsm start niri`
 - GTK/Qt theming: `gtk-3.0`, `gtk-4.0`, `gtkrc`, `qt5ct`, `qt6ct`, `Kvantum`, `dconf`
 - EasyEffects (audio DSP) + `xcursor` themes (whitesur)

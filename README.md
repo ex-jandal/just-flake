@@ -8,7 +8,7 @@ laptop, migrated from Arch. Full plan in [`PLAN.md`](./PLAN.md).
 - **Phase 1 (ACTIVE)** — Home-manager flake that builds on Arch without
   touching the running system (`home-manager build`, never `switch`).
 - **Phase 2 (in progress)** — Full `nixosConfigurations` system config
-  (`hosts/laptop/`) is wired and **evaluates cleanly** (`nix flake check`), but
+  (`hosts/nixos/`) is wired and **evaluates cleanly** (`nix flake check`), but
   only runs after migrating to NixOS.
 
 Migration reference: **[ARCH-INVENTORY.md](./ARCH-INVENTORY.md)** — the Arch
@@ -19,7 +19,7 @@ delta) with raw snapshots under `arch/`.
 
 ```
 flake.nix            # inputs + homeConfigurations + nixosConfigurations
-hosts/laptop/        # NixOS system config (Phase 2 stub)
+hosts/nixos/        # NixOS system config (Phase 2 stub)
 home/
   default.nix        # entry: user abu_jandal, imports
   packages.nix       # curated home.packages
@@ -37,19 +37,19 @@ ARC-INVENTORY.md     # as-built Arch reference for migration
 cd just-flake
 nix flake lock
 nix flake check
-home-manager build --flake .#laptop   # builds to /nix/store + ./result, no switch
+home-manager build --flake .#nixos   # builds to /nix/store + ./result, no switch
 ```
 
 **Apply home-manager (only when ready; on Arch would overwrite dotfiles):**
 
 ```sh
-home-manager switch --flake .#laptop
+home-manager switch --flake .#nixos
 ```
 
 **After migrating to NixOS (Phase 2):**
 
 ```sh
-sudo nixos-rebuild switch --flake .#laptop
+sudo nixos-rebuild switch --flake .#nixos
 ```
 
 ## Key facts
@@ -57,7 +57,7 @@ sudo nixos-rebuild switch --flake .#laptop
 - **Noctalia v5** is a native Wayland shell (no Qt/GTK/quickshell). Installed
   via its official home-manager module, using the `cachix` branch for
   pre-built binaries. Binary cache is configured in both `flake.nix`
-  (`nixConfig`) and `hosts/laptop/default.nix`.
+  (`nixConfig`) and `hosts/nixos/default.nix`.
 - Noctalia's **theme templates** generate foot/kitty/ghostty/gtk/niri themes
   from its palette — so no manual porting of terminal colors.
 - **nvim** (NvChad + lazy.nvim) and **tmux** (TPM) fetch their plugins at
@@ -93,11 +93,11 @@ sudo nixos-rebuild switch --flake .#laptop
    `~/.config/<name>` into `assets/<name>/`).
 2. Import it in `home/default.nix`.
 3. Add any executables it needs to `home/packages.nix`.
-4. Re-run `home-manager build --flake .#laptop`.
+4. Re-run `home-manager build --flake .#nixos`.
 
 ## Building / applying on NixOS
 
 See **[NIXOS-SETUP.md](./NIXOS-SETUP.md)** — full guide covering fresh-install
-prereqs, activating `nixosConfigurations.laptop`, day-to-day `nixos-rebuild` /
+prereqs, activating `nixosConfigurations.nixos`, day-to-day `nixos-rebuild` /
 `home-manager` apply, the noctalia binary cache, rollback, and Arch→NixOS
 breaker fixes.

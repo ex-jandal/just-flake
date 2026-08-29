@@ -39,28 +39,28 @@ sudo nixos-rebuild switch
 ## 2. Activate the system config (first time)
 
 The system config is currently a **commented stub** (`flake.nix` →
-`nixosConfigurations.laptop`). Do this once:
+`nixosConfigurations.nixos`). Do this once:
 
 1. **Generate hardware config** on the NixOS machine and copy it into the repo:
    ```sh
    nixos-generate-config --root /
    # copy /etc/nixos/hardware-configuration.nix to:
-   #   <repo>/hosts/laptop/hardware.nix
+   #   <repo>/hosts/nixos/hardware.nix
    ```
-   Replace the placeholder `hosts/laptop/hardware.nix`.
+   Replace the placeholder `hosts/nixos/hardware.nix`.
 
-2. **Review `hosts/laptop/default.nix`** — it is a fresh default. Confirm:
+2. **Review `hosts/nixos/default.nix`** — it is a fresh default. Confirm:
    - `networking.hostName`
    - GPU / `hardware.opengl` drivers (the Arch box was AMD; confirm the laptop GPU)
    - bootloader, filesystems come from `hardware.nix`
 
-3. **Uncomment `nixosConfigurations.laptop`** in `flake.nix` (it is already
-   wired to import `hosts/laptop/default.nix` + home-manager).
+3. **Uncomment `nixosConfigurations.nixos`** in `flake.nix` (it is already
+   wired to import `hosts/nixos/default.nix` + home-manager).
 
 4. **Switch:**
    ```sh
    cd <repo>
-   sudo nixos-rebuild switch --flake .#laptop --accept-flake-config
+   sudo nixos-rebuild switch --flake .#nixos --accept-flake-config
    ```
    `--accept-flake-config` trusts the `noctalia.cachix.org` substituter declared
    in `flake.nix`. It is safe (just a binary cache) but Nix asks before using a
@@ -72,11 +72,11 @@ The system config is currently a **commented stub** (`flake.nix` →
 
 ```sh
 # Full system + home-manager (user config comes from home/default.nix)
-sudo nixos-rebuild switch --flake .#laptop --accept-flake-config
+sudo nixos-rebuild switch --flake .#nixos --accept-flake-config
 
 # Update all inputs (nixpkgs, home-manager, noctalia) then rebuild
 nix flake update
-sudo nixos-rebuild switch --flake .#laptop --accept-flake-config
+sudo nixos-rebuild switch --flake .#nixos --accept-flake-config
 ```
 
 ### Home-manager only (without full system rebuild)
@@ -88,10 +88,10 @@ If you only changed `home/`, you can apply just home-manager:
 nix profile install nixpkgs#home-manager
 
 # Apply
-home-manager switch --flake .#laptop
+home-manager switch --flake .#nixos
 
 # Build without applying (dry-run to a ./result symlink)
-home-manager build --flake .#laptop
+home-manager build --flake .#nixos
 ```
 
 ---
@@ -160,10 +160,10 @@ nixConfig = {
 |---|---|
 | Validate flake (no download if inputs cached) | `nix flake check --offline` |
 | Lock inputs | `nix flake lock` |
-| Test-evaluate home config | `nix eval --raw .#homeConfigurations.laptop.activationPackage` |
-| Build home-manager (no apply) | `home-manager build --flake .#laptop` |
-| Apply home-manager | `home-manager switch --flake .#laptop` |
-| Build NixOS system | `sudo nixos-rebuild build --flake .#laptop` |
-| Apply NixOS system | `sudo nixos-rebuild switch --flake .#laptop --accept-flake-config` |
+| Test-evaluate home config | `nix eval --raw .#homeConfigurations.nixos.activationPackage` |
+| Build home-manager (no apply) | `home-manager build --flake .#nixos` |
+| Apply home-manager | `home-manager switch --flake .#nixos` |
+| Build NixOS system | `sudo nixos-rebuild build --flake .#nixos` |
+| Apply NixOS system | `sudo nixos-rebuild switch --flake .#nixos --accept-flake-config` |
 | Boot this generation once | `sudo nixos-rebuild boot` |
 | Rollback | `sudo nixos-rebuild switch --rollback` |

@@ -97,12 +97,12 @@ Legend
 
 | Arch pkg | NixOS note |
 |---|---|
-| niri / uwsm / wlroots | nixpkgs attrs `niri`, `uwsm`; **session entry must be provided** (already in hosts/laptop) |
+| niri / uwsm / wlroots | nixpkgs attrs `niri`, `uwsm`; **session entry must be provided** (already in hosts/nixos) |
 | noctalia / noctalia-greeter | flake inputs (already wired) |
 | linux-zen | `boot.kernelPackages = pkgs.linuxPackages_zen` |
 | amd-ucode | `hardware.cpu.amd.updateMicrocode = true` |
 | plymouth | `boot.plymouth.enable` |
-| grub + efibootmgr | **hosts/laptop currently uses systemd-boot — switch to `boot.loader.grub` to match Arch** |
+| grub + efibootmgr | **hosts/nixos currently uses systemd-boot — switch to `boot.loader.grub` to match Arch** |
 | mesa / vulkan-radeon / lib32-mesa | `hardware.graphics.enable = true` + `hardware.graphics.enable32Bit` |
 | tlp / tlp-rdw / tlp-pd | `services.tlp.enable`, `services.tlp.rdw`, `powerManagement` |
 | tor | `services.tor.enable` |
