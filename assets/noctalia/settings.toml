@@ -1,0 +1,347 @@
+config_version = 13
+
+[accessibility]
+ui_scale = 1.1000000089406967
+
+[bar.default]
+background_opacity = 0.0
+capsule = true
+capsule_opacity = 0.15999999642372131
+capsule_padding = 4.0
+capsule_radius = 6
+capsule_thickness = 0.69999998807907104
+center = [ "clock", "privacy" ]
+concave_edge_corners = false
+end = [
+    "widget",
+    "tray",
+    "spacer_5",
+    "media",
+    "notifications",
+    "spacer_3",
+    "dns-switcher",
+    "bluetooth",
+    "network",
+    "spacer_4",
+    "battery",
+    "status",
+    "control-center"
+]
+margin_edge = 4
+margin_ends = 5
+shadow = false
+start = [ "workspaces", "bar", "spacer_2", "cpu", "ram", "sysmon", "spacer_6", "mirror" ]
+thickness = 32
+
+[battery]
+warning_threshold = 15
+
+[calendar]
+enabled = true
+
+[desktop_widgets]
+enabled = false
+schema_version = 2
+widget_order = [
+    "desktop-widget-0000000000000001",
+    "desktop-widget-0000000000000002",
+    "desktop-widget-0000000000000003",
+    "desktop-widget-0000000000000004"
+]
+
+    [desktop_widgets.grid]
+    cell_size = 16
+    major_interval = 4
+    visible = true
+
+    [desktop_widgets.widget.desktop-widget-0000000000000001]
+    box_height = 80.0
+    box_width = 176.0
+    cx = 264.0
+    cy = 404.0
+    output = "eDP-1"
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+    type = "weather"
+
+    [desktop_widgets.widget.desktop-widget-0000000000000002]
+    box_height = 176.0
+    box_width = 176.0
+    cx = 264.0
+    cy = 268.0
+    output = "eDP-1"
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+    type = "clock"
+
+        [desktop_widgets.widget.desktop-widget-0000000000000002.settings]
+        background = true
+        background_radius = 12
+        clock_style = "analog"
+
+    [desktop_widgets.widget.desktop-widget-0000000000000003]
+    box_height = 192.0
+    box_width = 288.0
+    cx = 512.00006103515625
+    cy = 348.0
+    output = "eDP-1"
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+    type = "sysmon"
+
+        [desktop_widgets.widget.desktop-widget-0000000000000003.settings]
+        stat = "cpu_usage"
+        stat2 = "cpu_temp"
+
+    [desktop_widgets.widget.desktop-widget-0000000000000004]
+    box_height = 64.0
+    box_width = 288.0
+    cx = 512.00006103515625
+    cy = 212.0
+    output = "eDP-1"
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+    type = "audio_visualizer"
+
+        [desktop_widgets.widget.desktop-widget-0000000000000004.settings]
+        bands = 32
+        show_when_idle = true
+
+[idle]
+behavior_order = [ "lock", "screen-off", "lock-and-suspend" ]
+
+    [idle.behavior.lock]
+    action = "lock"
+    enabled = true
+    timeout = 600.0
+
+    [idle.behavior.lock-and-suspend]
+    action = "lock_and_suspend"
+    enabled = true
+    timeout = 900.0
+
+    [idle.behavior.screen-off]
+    action = "screen_off"
+    enabled = true
+    timeout = 660.0
+
+[location]
+address = "Sanaa"
+
+[lockscreen_widgets]
+enabled = true
+schema_version = 2
+widget_order = [ "lockscreen-login-box@eDP-1", "lockscreen-widget-0000000000000001", "lockscreen-widget-0000000000000002" ]
+
+    [lockscreen_widgets.grid]
+    cell_size = 16
+    major_interval = 4
+    visible = true
+
+    [lockscreen_widgets.widget."lockscreen-login-box@eDP-1"]
+    box_height = 196.0
+    box_width = 810.0
+    cx = 960.0
+    cy = 898.0
+    output = "eDP-1"
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+    type = "login_box"
+
+        [lockscreen_widgets.widget."lockscreen-login-box@eDP-1".settings]
+        background_color = "surface_variant"
+        background_opacity = 0.88
+        background_radius = 12.0
+        center_password_text = false
+        input_opacity = 1.0
+        input_radius = 6.0
+        layout = "regular"
+        show_caps_lock = true
+        show_keyboard_layout = true
+        show_login_button = true
+        show_media = true
+        show_session_buttons = true
+        show_unlock_hint = true
+        show_weather = true
+
+    [lockscreen_widgets.widget.lockscreen-widget-0000000000000001]
+    box_height = 160.0
+    box_width = 464.0
+    cx = 1048.0
+    cy = 204.0
+    output = "eDP-1"
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+    type = "clock"
+
+        [lockscreen_widgets.widget.lockscreen-widget-0000000000000001.settings]
+        background = false
+
+    [lockscreen_widgets.widget.lockscreen-widget-0000000000000002]
+    box_height = 160.0
+    box_width = 304.0
+    cx = 696.0
+    cy = 204.0
+    output = "eDP-1"
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+    type = "weather"
+
+        [lockscreen_widgets.widget.lockscreen-widget-0000000000000002.settings]
+        background = false
+
+[nightlight]
+enabled = true
+temperature_night = 3500
+
+[plugin_settings."alexander/screen-toolkit"]
+panel-legacy_open_near_click = true
+panel-legacy_placement = "attached"
+panel_open_near_click = true
+panel_placement = "attached"
+result_open_near_click = true
+result_placement = "attached"
+
+[plugin_settings."aristides/udiskie"]
+manager_open_near_click = true
+manager_placement = "attached"
+
+[plugin_settings."damian-ds7/battery-threshold"]
+panel_placement = "attached"
+
+[plugin_settings."nightwatch75/dns-switcher"]
+custom_1 = "dnsncrypt-proxy = 127.0.0.1"
+
+[plugin_settings."ycf/mawaqit"]
+city = "Sanaa"
+country = "YE"
+twelveHourFormat = true
+
+[plugins]
+auto_update = "none"
+enabled = [
+    "nightwatch75/dns-switcher",
+    "elijaharch/wl-screen-mirror",
+    "ycf/mawaqit",
+    "kenn/keybind-cheatsheet",
+    "alexander/screen-toolkit",
+    "aristides/udiskie"
+]
+
+[shell]
+external_ip_enabled = true
+font_family = "Rubik"
+niri_overview_type_to_launch_enabled = true
+password_style = "random"
+polkit_agent = true
+screen_time_enabled = true
+
+    [shell.greeter_sync]
+    auto_sync = true
+
+    [shell.launcher]
+    auto_paste = "off"
+
+    [shell.panel]
+    launcher_position = "bottom_center"
+    open_near_click_control_center = true
+    session_placement = "floating"
+    session_position = "center"
+
+    [shell.session]
+    grid = true
+
+[theme]
+builtin = "Nord"
+community_palette = "Hexa34C"
+mode = "dark"
+source = "community"
+wallpaper_scheme = "m3-fruit-salad"
+
+    [theme.templates]
+    builtin_ids = [ "btop", "foot", "gtk3", "gtk4", "ghostty", "kcolorscheme", "kitty", "niri", "qt" ]
+    community_ids = [ "opencode", "discord" ]
+
+[wallpaper]
+transition_on_startup = true
+
+    [wallpaper.default]
+    path = "/home/abu_jandal/Pictures/Wallpapers/tree-in-green-field.webp"
+
+    [wallpaper.last]
+    path = "/home/abu_jandal/Pictures/Wallpapers/tree-in-green-field.webp"
+
+    [wallpaper.monitors.eDP-1]
+    path = "/home/abu_jandal/Pictures/Wallpapers/tree-in-green-field.webp"
+
+[widget.bar]
+type = "ycf/mawaqit:bar"
+
+[widget.battery]
+display_mode = "graphic"
+show_label = false
+
+[widget.brightness]
+show_label = false
+
+[widget.clock]
+format = "{:%p %I:%M  -  %a %d %b}"
+
+[widget.cpu]
+show_value = false
+
+[widget.dns-switcher]
+show_label = false
+type = "nightwatch75/dns-switcher:dns-switcher"
+
+[widget.media]
+album_art_only = true
+
+[widget.mirror]
+type = "elijaharch/wl-screen-mirror:mirror"
+
+[widget.network]
+show_label = false
+
+[widget.privacy]
+hide_inactive = true
+
+[widget.ram]
+show_value = false
+
+[widget.spacer_2]
+type = "spacer"
+
+[widget.spacer_3]
+type = "spacer"
+
+[widget.spacer_4]
+type = "spacer"
+
+[widget.spacer_5]
+type = "spacer"
+
+[widget.spacer_6]
+type = "spacer"
+
+[widget.status]
+hide_when_empty = true
+type = "aristides/udiskie:status"
+
+[widget.sysmon]
+show_value = false
+stat = "disk_used"
+
+[widget.widget]
+type = "alexander/screen-toolkit:widget"
+
+[widget.workspaces]
+show_labels = false
+style = "focus_hint"

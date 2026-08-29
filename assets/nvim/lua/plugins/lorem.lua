@@ -1,0 +1,21 @@
+return {
+  {
+    'derektata/lorem.nvim',
+    lazy = false,
+    config = function()
+      -- require('lorem').opts {
+      --   sentence_length = "medium",
+      --   comma_chance = 0.2,
+      --   max_commas = 2,
+      -- }
+
+      -- for lorem
+      require('lorem').opts {
+        sentence_length = "mixed",  -- using a default configuration
+        comma_chance = 0.3,  -- 30% chance to insert a comma
+        max_commas = 2  -- maximum 2 commas per sentence
+      }
+
+    end,
+  },
+}

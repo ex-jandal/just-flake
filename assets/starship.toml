@@ -1,0 +1,83 @@
+add_newline = true
+command_timeout = 1000
+
+format = """
+$character\
+[█](fg:bright-black bg:black)\
+$directory\
+[█](fg:bright-black bg:black)\
+[$git_branch\
+$git_state\
+$git_status](bold bg:black fg:white)\
+$fill\
+$cmd_duration\
+[](fg:yellow bg:black)\
+[ ](fg:black bg:yellow)\
+$username\
+[](fg:green bg:bright-black)\
+[ ](fg:green bg:black inverted)\
+$hostname\
+$line_break\
+[ 󰘧 ]()"""
+
+[character]
+format = "$symbol"
+error_symbol = "[█](fg:#fb4934 bg:black)[ ERROR ](fg:#fb4934 bg:black inverted bold)[](fg:#fb4934 bg:bright-black)"
+success_symbol = "[█](fg:#ebdbb2 bg:black)[ PROMPT ](fg:#ebdbb2 bg:black inverted bold)[](fg:#ebdbb2 bg:bright-black)"
+vimcmd_symbol = "[█](fg:#83a598 bg:black)[ VIM ](fg:#83a598 bg:black inverted bold)[](fg:#83a598 bg:bright-black)"
+vimcmd_visual_symbol = "[█](fg:#fabd2f bg:black)[ VISUAL ](fg:#fabd2f bg:black inverted bold)[](fg:#fabd2f bg:bright-black)"
+
+[fill]
+symbol = ' '
+style = 'bg:black'
+
+[package]
+disabled = false
+
+[cmd_duration]
+min_time = 1000
+show_milliseconds = false
+disabled = false
+format="[󰞌 $duration ]($style)"
+style="bold bg:black"
+
+[directory]
+truncation_length = 5
+format = "[󰉋 $path]($style)[$lock_symbol]($lock_style)"
+style = "bold fg:black bg:bright-black"
+read_only = ""
+read_only_style = "bold fg:#fb4934 bg:bright-black"
+
+[username]
+show_always = true
+style_user = "fg:black bg:bright-black"
+style_root = "fg:#cc241d bg:bright-black"
+format = '[ $user ]($style)'
+
+[hostname]
+format = "[ $hostname ]($style)"
+ssh_only = false
+style = "fg:black bg:bright-black"
+
+[git_commit]
+commit_hash_length = 8
+style = "bold white"
+
+[status]
+style = "bg:transparent"
+symbol = "💥 "
+format = '($style)'
+disabled = false
+
+[git_branch]
+format = " 󰘬 $branch"
+style = "bold fg:#83a598 bg:black"
+
+[git_status]
+format = " $ahead_behind$stashed"
+style = "#fabd2f"
+stashed = "≡"
+
+[git_state]
+format = '\([$state $progress_current/$progress_total]($style)\) '
+style = "#83a598"
