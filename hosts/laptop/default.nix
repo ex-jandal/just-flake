@@ -54,6 +54,52 @@
     hostName = "laptop";
     networkmanager.enable = true;
   };
+  # Use iwd as the Wi-Fi backend for NetworkManager (matches Arch).
+  networking.networkmanager.wifi.backend = "iwd";
+  # Route the whole system's DNS through the local dnscrypt-proxy stub.
+  networking.nameservers = [ "127.0.0.1" ];
+
+  # --- DNSCrypt proxy (config ported from Arch /etc/dnscrypt-proxy/*) ---
+  services.dnscrypt-proxy = {
+    enable = true;
+    settings = {
+      server_names = [ "apple" "adnull" "quad9alpha" "envs" "v0dka" "shecan" ];
+      listen_addresses = [ "127.0.0.1:53" ];
+      max_clients = 250;
+      ipv4_servers = true;
+      ipv6_servers = false;
+      require_dnssec = true;
+      require_nolog = true;
+      require_nofilter = true;
+      force_tcp = false;
+      timeout = 5000;
+      keepalive = 30;
+      bootstrap_resolvers = [ "9.9.9.11:53" "8.8.8.8:53" ];
+      ignore_system_dns = true;
+      block_ipv6 = false;
+      block_unqualified = true;
+      block_undelegated = true;
+      cache = true;
+      cache_size = 4096;
+      cache_min_ttl = 2400;
+      cache_max_ttl = 86400;
+      cache_neg_min_ttl = 60;
+      cache_neg_max_ttl = 600;
+      # Ad/tracker blocklist + safesearch cloaking from Arch.
+      blocked_names = {
+        blocked_names_file = ../../assets/dnscrypt/blocked-names.txt;
+      };
+      blocked_ips = {
+        blocked_ips_file = ../../assets/dnscrypt/blocked-ips.txt;
+      };
+      cloaking_rules = {
+        cloaking_rules_file = ../../assets/dnscrypt/cloaking-rules.txt;
+      };
+      forwarding_rules = {
+        forwarding_rules_file = ../../assets/dnscrypt/forwarding-rules.txt;
+      };
+    };
+  };
 
   # --- Noctalia recommended services: NetworkManager + Bluetooth +
   #     UPower + power-profiles-daemon ---
@@ -118,6 +164,37 @@
     pulse.enable = true;
     jack.enable = true;
   };
+
+  # --- Power management: TLP (settings ported from Arch /etc/tlp.conf) ---
+  # Noctalia's recommendedServices enables power-profiles-daemon; we force it
+  # off because TLP and PPD fight over the same /sys power knobs.
+  services.power-profiles-daemon.enable = lib.mkForce false;
+  services.tlp = {
+    enable = true;
+    # Radio Device Wizard (tlp-rdw) — pulled in when NetworkManager is enabled.
+    package = pkgs.tlp.override {
+      enableRDW = config.networking.networkmanager.enable;
+    };
+    settings = {
+      TLP_PROFILE_BAT = "SAV";
+      CPU_SCALING_GOVERNOR_ON_AC = "performance";
+      CPU_SCALING_GOVERNOR_ON_BAT = "powersave";
+      CPU_SCALING_GOVERNOR_ON_SAV = "powersave";
+      CPU_ENERGY_PERF_POLICY_ON_AC = "balance_performance";
+      CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
+      CPU_ENERGY_PERF_POLICY_ON_SAV = "power";
+      CPU_BOOST_ON_AC = 1;
+      CPU_BOOST_ON_BAT = 0;
+      PLATFORM_PROFILE_ON_AC = "performance";
+      PLATFORM_PROFILE_ON_BAT = "low-power";
+      PLATFORM_PROFILE_ON_SAV = "low-power";
+      RADEON_DPM_PERF_LEVEL_ON_AC = "high";
+      RADEON_DPM_PERF_LEVEL_ON_BAT = "low";
+      USB_AUTOSUSPEND = 1;
+    };
+  };
+  # tlp-pd (powered devices daemon), matches Arch tlp-pd.
+  services.tlp.pd.enable = true;
 
   # --- Users ---
   users.users.abu_jandal = {
