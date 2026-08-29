@@ -54,7 +54,7 @@ just-flake/
 ├── PLAN.md
 ├── README.md
 ├── hosts/
-│   └── laptop/
+│   └── nixos/
 │       ├── default.nix          # NixOS module (Phase 2 — stub/commented now)
 │       └── hardware.nix         # placeholder; generate on real machine
 ├── home/
@@ -162,7 +162,7 @@ Groups → nixpkgs names (Arch names differ; final mapping in `home/packages.nix
 cd just-flake
 nix flake lock                      # lock inputs
 nix flake check                     # validate
-home-manager build --flake .#laptop   # build drv, NO switch, NO system change
+home-manager build --flake .#nixos   # build drv, NO switch, NO system change
 ```
 
 `home-manager build` only writes to `/nix/store` + a `result` symlink; it
@@ -170,13 +170,13 @@ never touches `~/.config` or the running system.
 
 ## Phase 2 (later, on NixOS)
 
-- Run `nixos-generate-config` on the real machine → `hosts/laptop/hardware.nix`.
-- Add `nixosConfigurations.laptop` to flake.nix.
+- Run `nixos-generate-config` on the real machine → `hosts/nixos/hardware.nix`.
+- Add `nixosConfigurations.nixos` to flake.nix.
 - Wire home-manager as a NixOS module (`useGlobalPkgs`).
 - `programs.noctalia.recommendedServices.enable` → NetworkManager + Bluetooth +
   UPower + power-profile service.
 - Boot loader, GPU drivers (hardware unknown — fill in later).
-- Rebuild: `sudo nixos-rebuild switch --flake .#laptop`.
+- Rebuild: `sudo nixos-rebuild switch --flake .#nixos`.
 
 ## Risks / known breakers
 
