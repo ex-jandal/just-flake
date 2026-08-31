@@ -11,12 +11,6 @@
     stateVersion = "25.05";
   };
 
-  # Allow unfree packages system-wide via a predicate (Decision 2).
-  nixpkgs.config.allowUnfreePredicate = _: true;
-
-  # joypixels emoji font has a separate license gate in nixpkgs.
-  nixpkgs.config.joypixels.acceptLicense = true;
-
   # Curated daily-use package list.
   imports = [
     ./packages.nix

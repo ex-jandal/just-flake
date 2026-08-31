@@ -43,6 +43,14 @@
           };
           modules = [
             ./home/default.nix
+            # Standalone config builds its own pkgs, so unfree/license gates
+            # must be set here. The NixOS path (useGlobalPkgs) inherits them
+            # from hosts/nixos/default.nix instead — never set nixpkgs.* in
+            # the shared home/default.nix.
+            ({ lib, ... }: {
+              nixpkgs.config.allowUnfreePredicate = _: true;
+              nixpkgs.config.joypixels.acceptLicense = true;
+            })
           ];
         };
       };
