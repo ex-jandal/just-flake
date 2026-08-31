@@ -90,18 +90,19 @@
       cache_neg_min_ttl = 60;
       cache_neg_max_ttl = 600;
       # Ad/tracker blocklist + safesearch cloaking from Arch.
+      # blocked_names/blocked_ips are TOML tables (keyed by *_file);
+      # cloaking_rules/forwarding_rules are TOML strings (a single file path).
+      # Nesting the later two as tables makes dnscrypt-proxy abort at startup
+      # ("...value has type map[string]any; destination has type string"),
+      # which kills all DNS (resolv.conf -> dead 127.0.0.1 stub).
       blocked_names = {
         blocked_names_file = ../../assets/dnscrypt/blocked-names.txt;
       };
       blocked_ips = {
         blocked_ips_file = ../../assets/dnscrypt/blocked-ips.txt;
       };
-      cloaking_rules = {
-        cloaking_rules_file = ../../assets/dnscrypt/cloaking-rules.txt;
-      };
-      forwarding_rules = {
-        forwarding_rules_file = ../../assets/dnscrypt/forwarding-rules.txt;
-      };
+      cloaking_rules = ../../assets/dnscrypt/cloaking-rules.txt;
+      forwarding_rules = ../../assets/dnscrypt/forwarding-rules.txt;
     };
   };
 
