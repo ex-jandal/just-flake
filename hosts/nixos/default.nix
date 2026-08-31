@@ -19,6 +19,10 @@
   ...
 }:
 {
+  # Target platform for this host. Declared here (not passed as the deprecated
+  # `system` arg to nixosSystem) per current nixpkgs guidance.
+  nixpkgs.hostPlatform = "x86_64-linux";
+
   # Hardware (filesystems, boot.initrd, GPU) — auto-generated. See hardware.nix.
   imports = [
     ./hardware.nix
@@ -120,7 +124,7 @@
 
   programs.noctalia-greeter = {
     enable = true;
-    package = inputs.noctalia-greeter.packages.${pkgs.system}.default;
+    package = inputs.noctalia-greeter.packages.${pkgs.stdenv.hostPlatform.system}.default;
     # Remember the last session; default to Niri (name shown by the picker).
     settings = {
       session.default = "niri";
