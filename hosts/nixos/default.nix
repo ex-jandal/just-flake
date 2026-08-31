@@ -60,9 +60,10 @@
   };
   # Use iwd as the Wi-Fi backend for NetworkManager (matches Arch).
   networking.networkmanager.wifi.backend = "iwd";
-  # Route the whole system's DNS through the local dnscrypt-proxy stub.
-  # TEMP: dnscrypt disabled until its config is fixed (was killing all DNS).
-  networking.nameservers = [ "127.0.0.1" ];
+  # TEMP: dnscrypt disabled until its config is fixed. Do NOT force DNS through
+  # the (dead) 127.0.0.1 stub, or resolution breaks — the dnscrypt-proxy module
+  # sets nameservers itself when enabled, so this only adds it explicitly when
+  # the proxy is on. Normal DHCP/DNS is used while dnscrypt stays disabled.
 
   # --- DNSCrypt proxy (config ported from Arch /etc/dnscrypt-proxy/*) ---
   services.dnscrypt-proxy = {
