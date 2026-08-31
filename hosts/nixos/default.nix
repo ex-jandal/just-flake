@@ -214,6 +214,8 @@
     ];
   };
 
+  services.openssh.enable = true;
+
   # fish is the user's login shell — enable it at the NixOS level so it lands
   # in /etc/shells and gets the nix dirs in PATH. Content is home-manager managed.
   programs.fish.enable = true;
