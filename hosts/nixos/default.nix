@@ -216,6 +216,11 @@
 
   services.openssh.enable = true;
 
+  # Register dconf's D-Bus activation file so the user session bus can start
+  # the dconf-service. Without it, Home Manager's dconfSettings activation
+  # fails with "ca.desrt.dconf: The name is not activatable".
+  services.dbus.packages = [ pkgs.dconf ];
+
   # fish is the user's login shell — enable it at the NixOS level so it lands
   # in /etc/shells and gets the nix dirs in PATH. Content is home-manager managed.
   programs.fish.enable = true;
