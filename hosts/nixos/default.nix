@@ -61,11 +61,12 @@
   # Use iwd as the Wi-Fi backend for NetworkManager (matches Arch).
   networking.networkmanager.wifi.backend = "iwd";
   # Route the whole system's DNS through the local dnscrypt-proxy stub.
+  # TEMP: dnscrypt disabled until its config is fixed (was killing all DNS).
   networking.nameservers = [ "127.0.0.1" ];
 
   # --- DNSCrypt proxy (config ported from Arch /etc/dnscrypt-proxy/*) ---
   services.dnscrypt-proxy = {
-    enable = true;
+    enable = lib.mkForce false;
     settings = {
       server_names = [ "apple" "adnull" "quad9alpha" "envs" "v0dka" "shecan" ];
       listen_addresses = [ "127.0.0.1:53" ];
