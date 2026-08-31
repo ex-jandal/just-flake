@@ -43,10 +43,10 @@
 
       # --- Terminals ---
       terminals = with pkgs; [
-        kitty
+        # kitty
         foot
         ghostty
-        alacritty
+        # alacritty
       ];
 
       # --- Editors / language tooling ---
@@ -64,8 +64,8 @@
         rofi
         kanshi
         nwg-displays
-        swaylock
-        swaybg
+        # swaylock
+        # swaybg
         slurp
         grim
         wl-clipboard
@@ -106,7 +106,7 @@
         pavucontrol
         gpu-screen-recorder
         ffmpegthumbnailer
-        vlc
+        # vlc
         imv
       ];
 
@@ -114,9 +114,9 @@
       browsers = with pkgs; [
         # zen-browser not in this nixpkgs snapshot — re-add if available
         chromium
-        firefox
-        qutebrowser
-        w3m
+        # firefox
+        # qutebrowser
+        # w3m
       ];
 
       # --- Dev toolchains / runtimes ---
@@ -187,8 +187,6 @@
         joypixels
         # Arch: ttf-material-design-icons-extended / material-icons-git / symbols-variable
         material-design-icons
-        # Arch: powerline-fonts
-        powerline-fonts
         # Arch: ttf-dejavu
         dejavu_fonts
         # Arch: ttf-liberation
@@ -216,10 +214,10 @@
     ++ editors
     ++ wayland
     ++ git
-    ++ media
+    # ++ media
     ++ browsers
-    ++ dev
-    ++ security
+    # ++ dev
+    # ++ security
     ++ theme
     ++ fonts;
 }
