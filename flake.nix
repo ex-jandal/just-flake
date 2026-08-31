@@ -57,7 +57,7 @@
 
       # Phase 2 — NixOS system config.
       nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
-        inherit system;
+        # system is set via `nixpkgs.hostPlatform` in hosts/nixos/default.nix.
         specialArgs = { inherit inputs; };
         modules = [
           ./hosts/nixos/default.nix
