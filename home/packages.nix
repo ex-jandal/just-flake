@@ -39,6 +39,9 @@
         lorem
         imgcat
         chafa
+        lolcat
+        fortune
+        pokego
       ];
 
       # --- Terminals ---
