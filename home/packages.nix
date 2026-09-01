@@ -1,7 +1,13 @@
 {
   pkgs,
+  lib,
   ...
 }:
+let
+  # Noctalia-baked GTK theme (colors compiled into the theme CSS so GTK4/
+  # Chromium honor them regardless of the user gtk.css overlay).
+  noctaliaGtkTheme = import ./modules/noctalia-gtk-theme.nix { inherit pkgs lib; };
+in
 # Curated daily-use package list (mapped from `pacman -Qqe`/`-Qqm` + config refs).
 #
 # NOTE:
@@ -142,6 +148,18 @@
         # w3m
       ];
 
+      # --- Apps from the Arch inventory delta (see ARCH-INVENTORY.md §8) ---
+      extras = with pkgs; [
+        obsidian
+        telegram-desktop
+        signal-desktop
+        qbittorrent
+        # waybar
+        # mako
+        # swaylock
+        # fuzzel
+      ];
+
       # --- Dev toolchains / runtimes ---
       dev = with pkgs; [
         nodejs
@@ -191,6 +209,7 @@
       theme = with pkgs; [
         matugen
         adw-gtk3
+        noctaliaGtkTheme
         # Cursor theme referenced by niri (xcursor-theme "ComixCursors-Black").
         # comixcursors is multi-output; use the .Black output (the base
         # `out` output is empty) so the cursor theme lands in the profile.
@@ -206,9 +225,10 @@
     ++ editors
     ++ wayland
     ++ git
-    # ++ media
+    ++ media
     ++ browsers
     # ++ dev
     # ++ security
-    ++ theme;
+    ++ theme
+    ++ extras;
 }

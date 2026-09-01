@@ -30,6 +30,10 @@
     ./modules/fastfetch.nix
     ./modules/gtk-qt.nix
     ./modules/fontconfig.nix
+    ./modules/zathura.nix
+    ./modules/mpv.nix
+    ./modules/cava.nix
+    ./modules/zellij.nix
   ];
 
   programs.home-manager.enable = true;
