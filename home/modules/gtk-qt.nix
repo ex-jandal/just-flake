@@ -3,11 +3,20 @@
   ...
 }:
 {
-  # GTK + Qt appearance. Noctalia owns the GTK theme + dconf color-scheme
-  # (its gtk template sets adw-gtk3-dark and gsettings/dconf color-scheme
-  # itself); here we only set the base icon/cursor themes and font override.
+  # GTK + Qt appearance. Noctalia owns the GTK theme colors + dconf color-scheme
+  # (its gtk template writes noctalia.css + sets adw-gtk3-dark and the dconf
+  # color-scheme); here we select the base dark theme, icon/cursor themes and
+  # font override. Qt/KDE apps get the Noctalia palette via qt6ct (below).
   gtk = {
     enable = true;
+    # Base dark theme for GTK apps + chromium native chrome; Noctalia's
+    # gtk3/gtk4 templates overlay noctalia.css on top of it. Name only (no
+    # package — pkgs.adw-gtk3 is already in home/packages): setting package
+    # here makes HM claim gtk-4.0/gtk.css, which Noctalia owns as a real file.
+    # HM then just writes gtk-theme-name into settings.ini.
+    theme = {
+      name = "adw-gtk3-dark";
+    };
     iconTheme = {
       name = "Papirus-Dark";
       package = pkgs.papirus-icon-theme;
@@ -45,19 +54,22 @@ font = {
 
   qt = {
     enable = true;
-    # qt6ct is the Qt platform theme; it supplies icon/cursor fonts and the
-    # default font via fontconfig (Rubik). No Noctalia palette override —
-    # Qt/KDE apps (dolphin) use the stock Qt look.
+    # qt6ct is the Qt platform theme; it applies the Noctalia palette (see
+    # qt6ct.conf below), icons, cursor and the default font via fontconfig
+    # (Rubik).
     platformTheme.name = "qt6ct";
   };
 
-  # qt6ct is the platform theme for Qt/KDE apps: it supplies the icon/cursor
-  # themes and the default font (resolved via fontconfig → Rubik). No custom
-  # palette/style is pinned here — older hand-overrides (color_scheme_path,
-  # custom_palette, style=Fusion) made dolphin render off; it now uses the
-  # stock Qt look while keeping the icon/cursor set.
+  # qt6ct is the platform theme for Qt/KDE apps: icon/cursor themes, default
+  # font (fontconfig → Rubik), and the Noctalia color scheme. color_scheme_path
+  # points at the palette Noctalia's qt template generates (~/.config/qt6ct/
+  # colors/noctalia.conf), so it stays in sync with theme changes; custom_
+  # palette=true makes Qt honor it; style=Fusion gives the flat Noctalia look.
   home.file.".config/qt6ct/qt6ct.conf".text = ''
     [Appearance]
+    color_scheme_path=/home/abu_jandal/.config/qt6ct/colors/noctalia.conf
+    custom_palette=true
+    style=Fusion
     icon_theme=Papirus-Dark
     cursor_theme=ComixCursors-Black
     cursor_size=48
