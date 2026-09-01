@@ -4,8 +4,9 @@
 }:
 {
   home.packages = with pkgs; [
-    # fisher-managed plugins (fzf.fish, pisces, git-emojis) fetched at runtime;
-    # provide the underlying tools + fish plugins dir.
+    # fisher plugins (see assets/fish/fish_plugins) are now declared below via
+    # programs.fish.plugins (HM-generated fish_plugins + vendor symlinks); here
+    # just provide the underlying tools the plugins need.
     zoxide
     fzf
     eza
@@ -51,7 +52,8 @@
       fish_vi_key_bindings
       starship init fish | source
       zoxide init fish | source
-      fzf --fish | source
+      # fzf.fish plugin owns the ctrl-cr/r/alt-c bindings; `fzf --fish` would
+      # fight it, so its raw source is omitted here.
       if command -v go-pray >/dev/null
         go-pray completion fish | source
       end
@@ -62,6 +64,39 @@
               fortune -s | lolcat -g 777777:cccccc
       end
     '';
+
+    # Mirrors the Arch fish_plugins list (assets/fish/fish_plugins): pisces
+    # (brackets/parens auto-pairing), fzf.fish (fzf keybindings + previews),
+    # fish-git-emojis (gitmoji in commit subject). Pinned declaratively.
+    plugins = [
+      {
+        name = "laughedelic/pisces";
+        src = pkgs.fetchFromGitHub {
+          owner = "laughedelic";
+          repo = "pisces";
+          rev = "e45e0869855d089ba1e628b6248434b2dfa709c4";
+          sha256 = "073wb83qcn0hfkywjcly64k6pf0d7z5nxxwls5sa80jdwchvd2rs";
+        };
+      }
+      {
+        name = "patrickf1/fzf.fish";
+        src = pkgs.fetchFromGitHub {
+          owner = "patrickf1";
+          repo = "fzf.fish";
+          rev = "6a6136998879dcc1f29a405dfdd6b92c5f229c39";
+          sha256 = "0fbir8vmkkjsdcsvpfrn3m2agz25q9bc6g9fr0ly5h66qnfi8pxa";
+        };
+      }
+      {
+        name = "gazorby/fish-git-emojis";
+        src = pkgs.fetchFromGitHub {
+          owner = "gazorby";
+          repo = "fish-git-emojis";
+          rev = "a7fb5f3483618a8b72acfdc01394be04bcf50bf6";
+          sha256 = "0mkdmdl4hifg3xvfxg267jrbqfa4rzjd2a1pzam56pdmgm5s7dw9";
+        };
+      }
+    ];
 
     shellAliases = {
       ls = "eza --icons always";
