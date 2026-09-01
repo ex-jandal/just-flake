@@ -15,7 +15,7 @@ $cmd_duration\
 [ ](fg:black bg:yellow)\
 $username\
 [](fg:green bg:bright-black)\
-[ ](fg:green bg:black inverted)\
+[ ](fg:green bg:black inverted)\
 $hostname\
 $line_break\
 [ 󰘧 ]()"""
