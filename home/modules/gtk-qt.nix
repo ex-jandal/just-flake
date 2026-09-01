@@ -15,7 +15,13 @@
     # here makes HM claim gtk-4.0/gtk.css, which Noctalia owns as a real file.
     # HM then just writes gtk-theme-name into settings.ini.
     theme = {
-      name = "adw-gtk3-dark";
+      # "noctalia" is a copy of adw-gtk3-dark with the Noctalia palette baked
+      # into the theme CSS (home/modules/noctalia-gtk-theme.nix, installed via
+      # home.packages). Chromium/GTK4 read colors from the active theme's own
+      # CSS — they do NOT reliably load the per-user ~/.config/gtk-4.0/gtk.css
+      # overlay — so baking the palette here is what makes Chromium render the
+      # Noctalia green instead of the adwaita blue (#3584e4).
+      name = "noctalia";
     };
     iconTheme = {
       name = "Papirus-Dark";
@@ -64,12 +70,13 @@ font = {
   # font (fontconfig → Rubik), and the Noctalia color scheme. color_scheme_path
   # points at the palette Noctalia's qt template generates (~/.config/qt6ct/
   # colors/noctalia.conf), so it stays in sync with theme changes; custom_
-  # palette=true makes Qt honor it; style=Fusion gives the flat Noctalia look.
+  # palette=true makes Qt honor it; style=Darkly paints widgets with the
+  # modern darkly QStyle (fork of Lightly) on top of that palette.
   home.file.".config/qt6ct/qt6ct.conf".text = ''
     [Appearance]
     color_scheme_path=/home/abu_jandal/.config/qt6ct/colors/noctalia.conf
     custom_palette=true
-    style=Fusion
+    style=Darkly
     icon_theme=Papirus-Dark
     cursor_theme=ComixCursors-Black
     cursor_size=48
