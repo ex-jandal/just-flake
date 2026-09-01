@@ -46,10 +46,56 @@
   };
   dconf.enable = true;
 
+  # Force dark color-scheme so apps that read prefers-color-scheme (e.g.
+  # Chromium's own toolbar/tabs) render dark. GTK theme+CSS alone don't flip
+  # the gsettings color-scheme that Chromium respects.
+  dconf.settings."org/gnome/desktop/interface" = {
+    color-scheme = "prefer-dark";
+  };
+
   qt = {
     enable = true;
     platformTheme.name = "gtk3";
   };
+
+  # Route XDG Desktop Portal through the GNOME backend so apps spawned in the
+  # niri session can read the portal settings (org.freedesktop.impl.portal.
+  # Settings), which is how Chromium/etc. honor prefers-color-scheme=dark.
+  # Without a running portal, Chromium stays light despite dconf=prefer-dark.
+  xdg.portal = {
+    enable = true;
+    extraPortals = [ pkgs.xdg-desktop-portal-gnome ];
+    config = {
+      common = {
+        default = [ "gnome" ];
+      };
+      niri = {
+        default = [ "gnome" ];
+      };
+    };
+    configPackages = [ pkgs.xdg-desktop-portal-gnome ];
+  };
+
+
+  # Chromium on niri/Wayland must use the ozone Wayland frontend so it queries
+  # the XDG portal for prefers-color-scheme (dark), otherwise it stays light.
+  home.file.".config/chromium-flags.conf".text = ''
+    --enable-features=UseOzonePlatform
+    --ozone-platform-hint=auto
+    --enable-features=WaylandWindowDecorations
+    --gtk-version=4
+  '';
+
+  # Dolphin (Qt/KDE) reads the KDE icon theme from [Icons] in kdeglobals, not
+  # GTK's iconTheme. Noctalia generates kdeglobals, so append the Icons section
+  # idempotently instead of owning/clobbering the whole file.
+  home.activation.setKdeIconTheme = ''
+    kdeglobals="$HOME/.config/kdeglobals"
+    if [ -f "$kdeglobals" ] && ! grep -q '^\[Icons\]' "$kdeglobals"; then
+      printf '\n[Icons]\nTheme=Papirus-Dark\n' >> "$kdeglobals"
+    fi
+  '';
+
 
   home.pointerCursor = {
     enable = true;

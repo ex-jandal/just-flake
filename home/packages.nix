@@ -76,6 +76,10 @@
         playerctl
         xdg-desktop-portal
         xdg-desktop-portal-wlr
+        # gnome portal provides org.freedesktop.impl.portal.Settings so Chromium
+        # / others read prefers-color-scheme from the portal (niri uses this,
+        # not wlroots-only.xdg portal).
+        xdg-desktop-portal-gnome
         polkit
         wlsunset
         ydotool
@@ -117,6 +121,8 @@
         # firefox
         # qutebrowser
         # w3m
+        # KDE file manager (Mod+E bind spawns dolphin).
+        pkgs.kdePackages.dolphin
       ];
 
       # --- Dev toolchains / runtimes ---
