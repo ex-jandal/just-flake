@@ -183,46 +183,8 @@
         comixcursors.Black
       ];
 
-      # --- Fonts (mirror of the Arch font installs, mapped to nixpkgs) ---
-      fonts = with pkgs; [
-        # Nerd fonts (Arch: ttf-cascadia-code-nerd, ttf-cascadia-mono-nerd,
-        # ttf-jetbrains-mono-nerd, ttf-firacode-nerd, ttf-nerd-fonts-symbols)
-        nerd-fonts.jetbrains-mono
-        nerd-fonts.caskaydia-cove
-        nerd-fonts.caskaydia-mono
-        nerd-fonts.fira-code
-        nerd-fonts.symbols-only
-        # Noto (Arch: noto-fonts, extra, emoji — noto-fonts bundles the
-        # "extra" variants in this nixpkgs snapshot; cjk not separate here)
-        noto-fonts
-        noto-fonts-color-emoji
-        # Arch: ttf-joypixels
-        joypixels
-        # Arch: ttf-material-design-icons-extended / material-icons-git / symbols-variable
-        material-design-icons
-        # Arch: ttf-dejavu
-        dejavu_fonts
-        # Arch: ttf-liberation
-        liberation_ttf
-        # Arch: terminus-font
-        terminus_font
-        # Arch: ttf-hack
-        hack-font
-        # Arch: ttf-ubuntu-font-family
-        ubuntu-classic
-        # Arch: ttf-roboto
-        roboto
-        # Arch: ttf-twemoji
-        twemoji-color-font
-        # Arch: ttf-weather-icons
-        weather-icons
-        # Arch: adwaita-fonts
-        adwaita-fonts
-        # Google Rubik font (5 weight Roman + Italic).
-        rubik
-        # NOTE: ttf-amiri, ttf-scheherazade-new, ttf-bitstream-vera,
-        # ttf-cairo, ttf-droid, ttf-cjk not available in this nixpkgs snapshot.
-      ];
+      # --- Fonts moved to NixOS fonts.packages (hosts/nixos/default.nix):
+      #     system registration fixes fontconfig rescanning of store dirs. ---
     in
     cli
     ++ terminals
@@ -233,6 +195,5 @@
     ++ browsers
     # ++ dev
     # ++ security
-    ++ theme
-    ++ fonts;
+    ++ theme;
 }
