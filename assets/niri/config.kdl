@@ -330,7 +330,7 @@ environment {
     SDL_VIDEODRIVER "wayland"
     CLUTTER_BACKEND "wayland,x11,*"
     ELECTRON_OZONE_PLATFORM_HINT "auto"
-    XDG_DATA_DIRS "/home/abu_jandal/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share:/usr/share"
+    XDG_DATA_DIRS "/run/current-system/sw/share:/home/abu_jandal/.nix-profile/share:/home/abu_jandal/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share:/usr/share"
 }
 
 cursor {
