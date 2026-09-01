@@ -30,5 +30,10 @@
     polkit_gnome
     bluez
     upower
+    # dconf CLI — lets Noctalia's gtk template persist gtk-theme +
+    # color-scheme="prefer-dark" into the dconf DB (its sync_system_appearance
+    # silently skips when neither gsettings nor dconf is available). Without it
+    # Chromium's portal Settings.Read reports light.
+    dconf
   ];
 }

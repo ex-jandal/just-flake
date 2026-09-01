@@ -3,8 +3,9 @@
   ...
 }:
 {
-  # GTK + Qt appearance. Noctalia's gtk3/gtk4/qt templates generate themes;
-  # here we set the base icon/cursor themes and font overrides.
+  # GTK + Qt appearance. Noctalia owns the GTK theme + dconf color-scheme
+  # (its gtk template sets adw-gtk3-dark and gsettings/dconf color-scheme
+  # itself); here we only set the base icon/cursor themes and font override.
   gtk = {
     enable = true;
     iconTheme = {
@@ -12,17 +13,13 @@
       package = pkgs.papirus-icon-theme;
     };
     cursorTheme = {
-      name = "Adwaita";
-      package = pkgs.adwaita-icon-theme;
+      name = "ComixCursors-Black";
+      package = pkgs.comixcursors.Black;
       size = 48;
     };
     font = {
       name = "CaskaydiaCove Nerd Font";
       size = 11;
-    };
-    theme = {
-      name = "adw-gtk3-dark";
-      package = pkgs.adw-gtk3;
     };
   };
 
@@ -46,17 +43,33 @@
   };
   dconf.enable = true;
 
-  # Force dark color-scheme so apps that read prefers-color-scheme (e.g.
-  # Chromium's own toolbar/tabs) render dark. GTK theme+CSS alone don't flip
-  # the gsettings color-scheme that Chromium respects.
-  dconf.settings."org/gnome/desktop/interface" = {
-    color-scheme = "prefer-dark";
-  };
-
   qt = {
     enable = true;
-    platformTheme.name = "gtk3";
+    # qt6ct reads Noctalia's generated color scheme so Qt/KDE apps (dolphin)
+    # take the Noctalia theme instead of falling back to GTK adw-gtk3.
+    platformTheme.name = "qt6ct";
   };
+
+  # Configure qt6ct to apply the Noctalia color scheme to Qt/KDE apps
+  # (dolphin). The palette file is written by Noctalia's qt template at
+  # ~/.config/qt6ct/colors/noctalia.conf; this only selects it and the widget
+  # style (Fusion is Qt built-in; the custom palette supplies the Noctalia
+  # colors). Mirrors the working Arch qt6ct.conf layout.
+  home.file.".config/qt6ct/qt6ct.conf".text = ''
+    [Appearance]
+    color_scheme_path=/home/abu_jandal/.config/qt6ct/colors/noctalia.conf
+    custom_palette=true
+    icon_theme=Papirus-Dark
+    cursor_theme=ComixCursors-Black
+    cursor_size=48
+    style=Fusion
+    standard_dialogs=default
+    [Fonts]
+    [Interface]
+    standard_dialogs=default
+    [IconTheme]
+    [Settings]
+  '';
 
   # Route XDG Desktop Portal through the GNOME backend so apps spawned in the
   # niri session can read the portal settings (org.freedesktop.impl.portal.
@@ -76,34 +89,10 @@
     configPackages = [ pkgs.xdg-desktop-portal-gnome ];
   };
 
-
-  # Chromium on niri/Wayland must use the ozone Wayland frontend so it queries
-  # the XDG portal for prefers-color-scheme (dark), otherwise it stays light.
-  home.file.".config/chromium-flags.conf".text = ''
-    --enable-features=UseOzonePlatform
-    --ozone-platform-hint=auto
-    --enable-features=WaylandWindowDecorations
-    --gtk-version=4
-  '';
-
-  # Dolphin (Qt/KDE) reads the KDE icon theme from [Icons] in kdeglobals, not
-  # GTK's iconTheme. Noctalia generates kdeglobals, so append the Icons section
-  # idempotently instead of owning/clobbering the whole file.
-  home.activation.setKdeIconTheme = ''
-    kdeglobals="$HOME/.config/kdeglobals"
-    if [ -f "$kdeglobals" ] && ! grep -q '^\[Icons\]' "$kdeglobals"; then
-      printf '\n[Icons]\nTheme=Papirus-Dark\n' >> "$kdeglobals"
-    fi
-  '';
-
-
   home.pointerCursor = {
     enable = true;
-    name = "Adwaita";
-    package = pkgs.adwaita-icon-theme;
+    name = "ComixCursors-Black";
+    package = pkgs.comixcursors.Black;
     size = 48;
   };
-
-  # Silence stateVersion deprecation: keep legacy gtk3 theme also on gtk4.
-  gtk.gtk4.theme = null;
 }
