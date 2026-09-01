@@ -72,13 +72,13 @@ in
         # Ships lib/qt-6/plugins/styles/darkly6.so + kdecoration3 plugin.
         darkly
         # Office / documents / archive / transfer
-        libreoffice
-        inkscape
+        # libreoffice
+        # inkscape
         evince
         pdftk
         qpdf
         mandoc
-        kew
+        # kew
         atool
         aria2
       ];
@@ -93,10 +93,10 @@ in
         nixd
       ];
 
-        # --- WM / DE / Wayland tools ---
-        wayland = with pkgs; [
-          niri
-          rofi
+      # --- WM / DE / Wayland tools ---
+      wayland = with pkgs; [
+        niri
+        rofi
         kanshi
         nwg-displays
         # swaylock
@@ -130,17 +130,17 @@ in
         wlsunset
         ydotool
         # Gnome helper apps
-        gnome-calculator
-        gnome-disk-utility
-        gnome-font-viewer
+        # gnome-calculator
+        # gnome-disk-utility
+        # gnome-font-viewer
         # Disk / USB / filesystem tools
         udiskie
         usbutils
         testdisk
-        gpart
-        gparted
-        cifs-utils
-        ntfs3g
+        # gpart
+        # gparted
+        # cifs-utils
+        # ntfs3g
       ];
 
       # --- Git / tools ---
@@ -159,11 +159,11 @@ in
         ffmpeg
         yt-dlp
         imagemagick
-        obs-studio
+        # obs-studio
         # kdenlive missing from this nixpkgs snapshot — re-add if available
-        blender
+        # blender
         # inkscape
-        audacity
+        # audacity
         # easyeffects
         pavucontrol
         gpu-screen-recorder
@@ -179,30 +179,30 @@ in
       browsers = with pkgs; [
         # zen-browser not in this nixpkgs snapshot — re-add if available
         chromium
-        firefox
-        qutebrowser
-        w3m
+        # firefox
+        # qutebrowser
+        # w3m
       ];
 
       # --- Apps from the Arch inventory delta (see ARCH-INVENTORY.md §8) ---
       extras = with pkgs; [
-        obsidian
-        telegram-desktop
+        # obsidian
+        # telegram-desktop
         signal-desktop
-        qbittorrent
+        # qbittorrent
         waybar
         mako
         swaylock
         fuzzel
         mpd
-        localsend
+        # localsend
         sioyek
-        super-productivity
-        flameshot
-        tigervnc
-        freerdp
-        xchm
-        drawio
+        # super-productivity
+        # flameshot
+        # tigervnc
+        # freerdp
+        # xchm
+        # drawio
       ];
 
       # --- Network / lab (Cisco + GNS3 + capture/monitor) ---
@@ -338,11 +338,11 @@ in
     ++ git
     ++ media
     ++ browsers
-    ++ dev
-    ++ security
-    ++ lab
-    ++ network
-    ++ game
+    # ++ dev
+    # ++ security
+    # ++ lab
+    # ++ network
+    # ++ game
     ++ theme
     ++ extras;
 }
