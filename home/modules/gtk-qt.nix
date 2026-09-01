@@ -17,8 +17,8 @@
       package = pkgs.comixcursors.Black;
       size = 48;
     };
-    font = {
-      name = "CaskaydiaCove Nerd Font";
+font = {
+      name = "Rubik";
       size = 11;
     };
   };
@@ -45,24 +45,22 @@
 
   qt = {
     enable = true;
-    # qt6ct reads Noctalia's generated color scheme so Qt/KDE apps (dolphin)
-    # take the Noctalia theme instead of falling back to GTK adw-gtk3.
+    # qt6ct is the Qt platform theme; it supplies icon/cursor fonts and the
+    # default font via fontconfig (Rubik). No Noctalia palette override —
+    # Qt/KDE apps (dolphin) use the stock Qt look.
     platformTheme.name = "qt6ct";
   };
 
-  # Configure qt6ct to apply the Noctalia color scheme to Qt/KDE apps
-  # (dolphin). The palette file is written by Noctalia's qt template at
-  # ~/.config/qt6ct/colors/noctalia.conf; this only selects it and the widget
-  # style (Fusion is Qt built-in; the custom palette supplies the Noctalia
-  # colors). Mirrors the working Arch qt6ct.conf layout.
+  # qt6ct is the platform theme for Qt/KDE apps: it supplies the icon/cursor
+  # themes and the default font (resolved via fontconfig → Rubik). No custom
+  # palette/style is pinned here — older hand-overrides (color_scheme_path,
+  # custom_palette, style=Fusion) made dolphin render off; it now uses the
+  # stock Qt look while keeping the icon/cursor set.
   home.file.".config/qt6ct/qt6ct.conf".text = ''
     [Appearance]
-    color_scheme_path=/home/abu_jandal/.config/qt6ct/colors/noctalia.conf
-    custom_palette=true
     icon_theme=Papirus-Dark
     cursor_theme=ComixCursors-Black
     cursor_size=48
-    style=Fusion
     standard_dialogs=default
     [Fonts]
     [Interface]
