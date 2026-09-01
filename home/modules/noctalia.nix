@@ -23,11 +23,14 @@
 
   # Supporting tools used by Noctalia features/services (bars, clipboard,
   # media, udisks, wallpaper). Plain home packages — NOT module options.
+  # NOTE: polkit-gnome is deliberately NOT installed: it ships an XDG autostart
+  # .desktop whose GTK agent registers first and forces Noctalia's own (themed)
+  # polkit agent to disable itself (`shell.polkit_agent = true` in
+  # assets/noctalia/settings.toml). Noctalia's built-in agent handles auth.
   home.packages = with pkgs; [
     wl-clipboard
     playerctl
     udiskie
-    polkit_gnome
     bluez
     upower
     # dconf CLI — lets Noctalia's gtk template persist gtk-theme +
