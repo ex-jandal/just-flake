@@ -58,9 +58,10 @@
         tree-sitter
       ];
 
-      # --- WM / DE / Wayland tools ---
-      wayland = with pkgs; [
-        niri
+        # --- WM / DE / Wayland tools ---
+        wayland = with pkgs; [
+          niri
+          dconf
         rofi
         kanshi
         nwg-displays
