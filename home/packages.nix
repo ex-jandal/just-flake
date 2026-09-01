@@ -39,7 +39,7 @@
         lorem
         imgcat
         chafa
-        lolcat
+        clolcat
         fortune
         pokego
       ];
@@ -56,9 +56,15 @@
         # KDE file manager (Mod+E bind spawns dolphin).
         kdePackages.dolphin
         kdePackages.ark
+        eog
+        zathura
+        mpv
         # Qt platform theme backend — applies Noctalia color scheme to Qt/KDE
         # apps (dolphin etc.). Selected via QT_QPA_PLATFORMTHEME=qt6ct.
         qt6Packages.qt6ct
+        # Modern QStyle (fork of Lightly); selected as qt6ct style=Darkly.
+        # Ships lib/qt-6/plugins/styles/darkly6.so + kdecoration3 plugin.
+        darkly
       ];
 
       # --- Editors / language tooling ---
@@ -68,6 +74,7 @@
         # codelldb (debugger) — install via NvChad/mason at runtime instead
         shellcheck
         tree-sitter
+        nixd
       ];
 
         # --- WM / DE / Wayland tools ---
