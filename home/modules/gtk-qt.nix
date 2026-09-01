@@ -26,10 +26,24 @@
     };
   };
 
-  # gtk writes its settings through DConf; enable the user dconf.service unit
-  # so the session bus can activate ca.desrt.dconf (its .service file declares
-  # SystemdService=dconf.service). Without this, Home Manager's dconfSettings
-  # activation fails with "Could not activate remote peer 'ca.desrt.dconf'".
+  # gtk writes its settings through DConf. The ca.desrt.dconf.service file
+  # shipped by dconf declares SystemdService=dconf.service, so the user session
+  # bus activates dconf through the systemd user manager. Provide that unit
+  # explicitly (dconf.enable alone doesn't install it in this HM version);
+  # without it Home Manager's dconfSettings activation fails with
+  # "Could not activate remote peer 'ca.desrt.dconf': unknown unit".
+  systemd.user.services.dconf = {
+    Unit = {
+      Description = "User preferences database";
+      Documentation = "man:dconf-service(1)";
+    };
+    Service = {
+      ExecStart = "${pkgs.dconf.lib}/libexec/dconf-service";
+      Type = "dbus";
+      BusName = "ca.desrt.dconf";
+      Restart = "on-failure";
+    };
+  };
   dconf.enable = true;
 
   qt = {
