@@ -52,11 +52,10 @@
       utils = with pkgs; [
         # KDE file manager (Mod+E bind spawns dolphin).
         kdePackages.dolphin
+        kdePackages.ark
         # Qt platform theme backend — applies Noctalia color scheme to Qt/KDE
         # apps (dolphin etc.). Selected via QT_QPA_PLATFORMTHEME=qt6ct.
         qt6Packages.qt6ct
-        gtk4
-        kdePackages.ark
       ];
 
       # --- Editors / language tooling ---
