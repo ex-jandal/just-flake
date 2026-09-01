@@ -94,6 +94,16 @@ in
         slurp
         grim
         wl-clipboard
+        # FUSE 3 userspace — required by xdg-document-portal to mount the
+        # /run/user/<uid>/doc fuse fs that backs portal FileChooser handles.
+        # Without fusermount3 on PATH, portal file pickers error out/blank.
+        fuse3
+        # XWayland server for niri (auto-integrated since 25.08): niri creates
+        # the X11 sockets, exports $DISPLAY and spawns xwayland-satellite on
+        # demand when an X11 client connects. Required by xdg-desktop-portal-gtk
+        # (GTK3), which draws the FileChooser dialog over X11/XWayland — without
+        # it the dialog never renders.
+        xwayland-satellite
         wl-mirror
         wtype
         wmenu

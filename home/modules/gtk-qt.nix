@@ -92,18 +92,33 @@ font = {
   # niri session can read the portal settings (org.freedesktop.impl.portal.
   # Settings), which is how Chromium/etc. honor prefers-color-scheme=dark.
   # Without a running portal, Chromium stays light despite dconf=prefer-dark.
+  #
+  # FileChooser is explicitly routed to the GTK portal: since xdg-desktop
+  # -portal-gnome >= 47 the GNOME backend delegates file dialogs to Nautilus,
+  # which isn't installed — so file pickers (zenity, Chromium upload/save,
+  # VS Code open) would silently never render. The GTK portal draws the themed
+  # GTK file dialog (matches the noctalia theme) and keeps the gnome backend
+  # for ScreenCast/Screenshot/Settings, which niri relies on.
   xdg.portal = {
     enable = true;
-    extraPortals = [ pkgs.xdg-desktop-portal-gnome ];
+    extraPortals = [
+      pkgs.xdg-desktop-portal-gnome
+      pkgs.xdg-desktop-portal-gtk
+    ];
     config = {
       common = {
         default = [ "gnome" ];
+        "org.freedesktop.impl.portal.FileChooser" = [ "gtk" ];
       };
       niri = {
         default = [ "gnome" ];
+        "org.freedesktop.impl.portal.FileChooser" = [ "gtk" ];
       };
     };
-    configPackages = [ pkgs.xdg-desktop-portal-gnome ];
+    configPackages = [
+      pkgs.xdg-desktop-portal-gnome
+      pkgs.xdg-desktop-portal-gtk
+    ];
   };
 
   home.pointerCursor = {
