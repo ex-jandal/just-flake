@@ -94,6 +94,7 @@ in
         slurp
         grim
         wl-clipboard
+        wl-mirror
         wtype
         wmenu
         uwsm
@@ -125,15 +126,15 @@ in
         mpv
         ffmpeg
         yt-dlp
-        imagemagick
-        obs-studio
+        # imagemagick
+        # obs-studio
         # kdenlive missing from this nixpkgs snapshot — re-add if available
-        blender
-        inkscape
-        audacity
-        easyeffects
+        # blender
+        # inkscape
+        # audacity
+        # easyeffects
         pavucontrol
-        gpu-screen-recorder
+        # gpu-screen-recorder
         ffmpegthumbnailer
         # vlc
         imv
@@ -150,10 +151,10 @@ in
 
       # --- Apps from the Arch inventory delta (see ARCH-INVENTORY.md §8) ---
       extras = with pkgs; [
-        obsidian
-        telegram-desktop
+        # obsidian
+        # telegram-desktop
         signal-desktop
-        qbittorrent
+        # qbittorrent
         # waybar
         # mako
         # swaylock
