@@ -134,9 +134,11 @@
   programs.noctalia-greeter = {
     enable = true;
     package = inputs.noctalia-greeter.packages.${pkgs.stdenv.hostPlatform.system}.default;
-    # Remember the last session; default to Niri (name shown by the picker).
     settings = {
       session.default = "niri";
+      # Reduce greeter rendering overhead (VM has no GPU — software renderer).
+      appearance.corner_radius_scale = 0;
+      appearance.hide_logo = true;
     };
   };
   services.greetd.enable = true;
