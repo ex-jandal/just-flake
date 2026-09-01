@@ -71,6 +71,16 @@ in
         # Modern QStyle (fork of Lightly); selected as qt6ct style=Darkly.
         # Ships lib/qt-6/plugins/styles/darkly6.so + kdecoration3 plugin.
         darkly
+        # Office / documents / archive / transfer
+        libreoffice
+        inkscape
+        evince
+        pdftk
+        qpdf
+        mandoc
+        kew
+        atool
+        aria2
       ];
 
       # --- Editors / language tooling ---
@@ -119,6 +129,18 @@ in
         polkit
         wlsunset
         ydotool
+        # Gnome helper apps
+        gnome-calculator
+        gnome-disk-utility
+        gnome-font-viewer
+        # Disk / USB / filesystem tools
+        udiskie
+        usbutils
+        testdisk
+        gpart
+        gparted
+        cifs-utils
+        ntfs3g
       ];
 
       # --- Git / tools ---
@@ -148,6 +170,9 @@ in
         ffmpegthumbnailer
         # vlc
         imv
+        gifski
+        resvg
+        scrcpy
       ];
 
       # --- Browsers ---
@@ -209,12 +234,26 @@ in
         cpufetch
       ];
 
+      # --- Network / infra (DNS, VPN, proxy, VM browsers) ---
+      network = with pkgs; [
+        bind
+        whois
+        ipcalc
+        dnscrypt-proxy
+        cloudflared
+        openvpn
+        tinyproxy
+        virt-manager
+        virt-viewer
+      ];
+
       # --- Games / Windows compat ---
       game = with pkgs; [
         wine
         wine64
         winetricks
         lutris
+        mangohud
       ];
 
       # --- Dev toolchains / runtimes ---
@@ -246,6 +285,14 @@ in
         sqls
         sqlfluff
         glab
+        gdb
+        valgrind
+        nasm
+        mdbook
+        c3c
+        neovide
+        ollama
+        calc
       ];
 
       # --- Security / CTF ---
@@ -263,6 +310,10 @@ in
         ida-free
         ettercap
         yersinia
+        crunch
+        rockyou
+        exiftool
+        showmethekey
       ];
 
       # --- Noctalia ecosystem (theme plugin templates) ---
@@ -290,6 +341,7 @@ in
     ++ dev
     ++ security
     ++ lab
+    ++ network
     ++ game
     ++ theme
     ++ extras;
