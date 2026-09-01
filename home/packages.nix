@@ -49,6 +49,16 @@
         # alacritty
       ];
 
+      utils = with pkgs; [
+        # KDE file manager (Mod+E bind spawns dolphin).
+        kdePackages.dolphin
+        # Qt platform theme backend — applies Noctalia color scheme to Qt/KDE
+        # apps (dolphin etc.). Selected via QT_QPA_PLATFORMTHEME=qt6ct.
+        qt6Packages.qt6ct
+        gtk4
+        kdePackages.ark
+      ];
+
       # --- Editors / language tooling ---
       editors = with pkgs; [
         neovim
@@ -121,11 +131,6 @@
         # firefox
         # qutebrowser
         # w3m
-        # KDE file manager (Mod+E bind spawns dolphin).
-        pkgs.kdePackages.dolphin
-        # Qt platform theme backend — applies Noctalia color scheme to Qt/KDE
-        # apps (dolphin etc.). Selected via QT_QPA_PLATFORMTHEME=qt6ct.
-        pkgs.qt6Packages.qt6ct
       ];
 
       # --- Dev toolchains / runtimes ---
@@ -188,6 +193,7 @@
     in
     cli
     ++ terminals
+    ++ utils
     ++ editors
     ++ wayland
     ++ git
