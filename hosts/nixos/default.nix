@@ -138,25 +138,16 @@
   services.greetd.settings.default_session.user = "greeter";
 
   # Provide a Wayland session entry so the greeter can offer Niri.
-  # Uses uwsm so Niri runs under a proper systemd user session (needed for the
-  # noctalia systemd user service wired through home-manager).
+  # pkgs.niri ships its own share/wayland-sessions/niri.desktop; adding it to
+  # environment.systemPackages links it into /run/current-system/sw/share so the
+  # greeter's session picker can list it.
   environment.systemPackages = with pkgs; [
     # --- Base tooling ---
     git
     curl
     vim
     fish
-
-    # --- Niri Wayland session entry (picked up by the greeter) ---
-    (pkgs.writeTextDir "share/wayland-sessions/niri.desktop" ''
-      [Desktop Entry]
-      Type=Application
-      Name=niri
-      Comment=Niri Wayland compositor
-      Exec=uwsm start niri
-      X-Session-Type=wayland
-      DesktopNames=niri
-    '')
+    niri
   ];
 
   # --- Bluetooth ---
