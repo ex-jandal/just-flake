@@ -168,6 +168,10 @@
       theme = with pkgs; [
         matugen
         adw-gtk3
+        # Cursor theme referenced by niri (xcursor-theme "ComixCursors-Black").
+        # comixcursors is multi-output; use the .Black output (the base
+        # `out` output is empty) so the cursor theme lands in the profile.
+        comixcursors.Black
       ];
 
       # --- Fonts (mirror of the Arch font installs, mapped to nixpkgs) ---
@@ -205,6 +209,8 @@
         weather-icons
         # Arch: adwaita-fonts
         adwaita-fonts
+        # Google Rubik font (5 weight Roman + Italic).
+        rubik
         # NOTE: ttf-amiri, ttf-scheherazade-new, ttf-bitstream-vera,
         # ttf-cairo, ttf-droid, ttf-cjk not available in this nixpkgs snapshot.
       ];

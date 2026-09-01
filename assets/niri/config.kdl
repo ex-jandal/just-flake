@@ -79,6 +79,20 @@ debug {
   honor-xdg-activation-with-invalid-serial
 }
 
+// output "Virtual-1" {
+//   mode "1280x800@74.994"
+//   scale 1
+//   transform "normal"
+//   position x=0 y=0
+// }
+//
+// output "eDP-1" {
+//   mode "1920x1080@60.06"
+//   scale 1
+//   transform "normal"
+//   position x=0 y=0
+// }
+
 // Settings that influence how windows are positioned and sized.
 // Find more information on the wiki:
 // https://yalter.github.io/niri/Configuration:-Layout
