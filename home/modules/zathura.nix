@@ -10,6 +10,10 @@
     zathura
     zathuraPkgs.zathura_pdf_mupdf
     zathuraPkgs.zathura_pdf_poppler
+    # comic-book (cb), djvu and postscript backends to round out document types.
+    zathuraPkgs.zathura_cb
+    zathuraPkgs.zathura_djvu
+    zathuraPkgs.zathura_ps
   ];
 
   # zathurarc — vi-style bindings + Noctalia palette baked in (dark #101510 bg,
