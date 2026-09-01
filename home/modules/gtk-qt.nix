@@ -26,6 +26,12 @@
     };
   };
 
+  # gtk writes its settings through DConf; enable the user dconf.service unit
+  # so the session bus can activate ca.desrt.dconf (its .service file declares
+  # SystemdService=dconf.service). Without this, Home Manager's dconfSettings
+  # activation fails with "Could not activate remote peer 'ca.desrt.dconf'".
+  dconf.enable = true;
+
   qt = {
     enable = true;
     platformTheme.name = "gtk3";

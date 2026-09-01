@@ -61,7 +61,6 @@
         # --- WM / DE / Wayland tools ---
         wayland = with pkgs; [
           niri
-          dconf
         rofi
         kanshi
         nwg-displays
