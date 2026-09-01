@@ -63,13 +63,15 @@
   networking = {
     hostName = "nixos";
     networkmanager.enable = true;
+    # The dnscrypt-proxy module sets networking.nameservers = 127.0.0.1 when
+    # enabled, which would route ALL system DNS through the proxy. Neutralize
+    # with mkForce: dnscrypt-proxy runs in the background on 127.0.0.1:53 only,
+    # and system DNS keeps using DHCP (192.168.122.1) until the Noctalia
+    # dns-switcher plugin points it at the proxy on demand.
+    nameservers = lib.mkForce [ ];
   };
   # Use iwd as the Wi-Fi backend for NetworkManager (matches Arch).
   networking.networkmanager.wifi.backend = "iwd";
-  # TEMP: dnscrypt disabled until its config is fixed. Do NOT force DNS through
-  # the (dead) 127.0.0.1 stub, or resolution breaks — the dnscrypt-proxy module
-  # sets nameservers itself when enabled, so this only adds it explicitly when
-  # the proxy is on. Normal DHCP/DNS is used while dnscrypt stays disabled.
 
   # --- DNSCrypt proxy (config ported from Arch /etc/dnscrypt-proxy/*) ---
   services.dnscrypt-proxy = {
