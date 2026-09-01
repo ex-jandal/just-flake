@@ -73,7 +73,7 @@
 
   # --- DNSCrypt proxy (config ported from Arch /etc/dnscrypt-proxy/*) ---
   services.dnscrypt-proxy = {
-    enable = lib.mkForce false;
+    enable = true;
     settings = {
       server_names = [ "apple" "adnull" "quad9alpha" "envs" "v0dka" "shecan" ];
       listen_addresses = [ "127.0.0.1:53" ];
