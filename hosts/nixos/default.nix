@@ -23,6 +23,12 @@
   # `system` arg to nixosSystem) per current nixpkgs guidance.
   nixpkgs.hostPlatform = "x86_64-linux";
 
+  # Link Wayland session .desktop files into /run/current-system/sw/share so
+  # the Noctalia greeter's session picker can enumerate them. system.path's
+  # default pathsToLink omits /share/wayland-sessions, so without this no
+  # session (incl. niri above) is ever visible to the greeter.
+  environment.pathsToLink = [ "/share/wayland-sessions" ];
+
   # Hardware (filesystems, boot.initrd, GPU) — auto-generated. See hardware.nix.
   imports = [
     ./hardware.nix
