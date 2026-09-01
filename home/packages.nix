@@ -136,15 +136,15 @@ in
         mpv
         ffmpeg
         yt-dlp
-        # imagemagick
-        # obs-studio
+        imagemagick
+        obs-studio
         # kdenlive missing from this nixpkgs snapshot — re-add if available
-        # blender
+        blender
         # inkscape
-        # audacity
+        audacity
         # easyeffects
         pavucontrol
-        # gpu-screen-recorder
+        gpu-screen-recorder
         ffmpegthumbnailer
         # vlc
         imv
@@ -154,21 +154,67 @@ in
       browsers = with pkgs; [
         # zen-browser not in this nixpkgs snapshot — re-add if available
         chromium
-        # firefox
-        # qutebrowser
-        # w3m
+        firefox
+        qutebrowser
+        w3m
       ];
 
       # --- Apps from the Arch inventory delta (see ARCH-INVENTORY.md §8) ---
       extras = with pkgs; [
-        # obsidian
-        # telegram-desktop
+        obsidian
+        telegram-desktop
         signal-desktop
-        # qbittorrent
-        # waybar
-        # mako
-        # swaylock
-        # fuzzel
+        qbittorrent
+        waybar
+        mako
+        swaylock
+        fuzzel
+        mpd
+        localsend
+        sioyek
+        super-productivity
+        flameshot
+        tigervnc
+        freerdp
+        xchm
+        drawio
+      ];
+
+      # --- Network / lab (Cisco + GNS3 + capture/monitor) ---
+      lab = with pkgs; [
+        # Cisco Packet Tracer (unfree) — network simulator, crypto/generic
+        cisco-packet-tracer_9
+        # GNS3 stack — shown from GUI, it spawns gns3-server locally.
+        gns3-gui
+        gns3-server
+        dynamips
+        vpcs
+        ubridge
+        # QEMU full — GNS3/QEMU VMs (dev block uses qemu_full too).
+        qemu_full
+        # Capture / monitor / infra
+        wireshark
+        tcpdump
+        traceroute
+        netcat-openbsd
+        nethogs
+        ostinato
+        sniffnet
+        dnsmasq
+        hostapd
+        iw
+        linux-wifi-hotspot
+        haguichi
+        bmon
+        cpufetch
+      ];
+
+      # --- Games / Windows compat ---
+      game = with pkgs; [
+        wine
+        wine64
+        winetricks
+        lutris
       ];
 
       # --- Dev toolchains / runtimes ---
@@ -190,10 +236,9 @@ in
         odin
         docker
         docker-compose
-        qemu
+        # qemu_full listed in the lab block (QEMU for GNS3/VMs)
         mitmproxy
         nmap
-        wireshark
         mariadb
         postgresql
         redis
@@ -214,6 +259,10 @@ in
         ghidra
         # r2ghidra not in this nixpkgs snapshot — re-add if available
         nmap
+        burpsuite
+        ida-free
+        ettercap
+        yersinia
       ];
 
       # --- Noctalia ecosystem (theme plugin templates) ---
@@ -238,8 +287,10 @@ in
     ++ git
     ++ media
     ++ browsers
-    # ++ dev
-    # ++ security
+    ++ dev
+    ++ security
+    ++ lab
+    ++ game
     ++ theme
     ++ extras;
 }
