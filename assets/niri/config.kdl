@@ -290,7 +290,10 @@ environment {
     XCURSOR_SIZE "48"
     ELECTRON_OZONE_PLATFORM_HINT "auto"
     QT_QPA_PLATFORM "wayland"
-    QT_QPA_PLATFORMTHEME "gtk3"
+    QT_QPA_PLATFORMTHEME "qt6ct"
+    // Nixpkgs chromium auto-adds --ozone-platform-hint=auto only when this is
+    // set, giving native Wayland (parity with the Arch chrome-flags.conf).
+    NIXOS_OZONE_WL "1"
     // XDG_CURRENT_DESKTOP "KDE"
     XDG_CURRENT_DESKTOP "GNOME"
     XDG_MENU_PREFIX "plasma-"

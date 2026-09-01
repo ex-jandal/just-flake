@@ -61,7 +61,7 @@
         # --- WM / DE / Wayland tools ---
         wayland = with pkgs; [
           niri
-        rofi
+          rofi
         kanshi
         nwg-displays
         # swaylock
@@ -123,6 +123,9 @@
         # w3m
         # KDE file manager (Mod+E bind spawns dolphin).
         pkgs.kdePackages.dolphin
+        # Qt platform theme backend — applies Noctalia color scheme to Qt/KDE
+        # apps (dolphin etc.). Selected via QT_QPA_PLATFORMTHEME=qt6ct.
+        pkgs.qt6Packages.qt6ct
       ];
 
       # --- Dev toolchains / runtimes ---
