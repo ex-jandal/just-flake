@@ -47,12 +47,19 @@
     enable = true;
     # vi keybindings
     interactiveShellInit = ''
+      set fish_greeting ""
       fish_vi_key_bindings
       starship init fish | source
       zoxide init fish | source
       fzf --fish | source
       if command -v go-pray >/dev/null
         go-pray completion fish | source
+      end
+      if set -q TMUX && not set -q NVIM && status is-interactive
+          pokego --random 5 --no-title
+          # Show a random fortune cookie on terminal start
+          echo &&
+              fortune -s | lolcat -g 777777:cccccc
       end
     '';
 
