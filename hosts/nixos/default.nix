@@ -59,6 +59,12 @@
   # hardware.nvidia.* + services.xserver.videoDrivers = [ "nvidia" ];
   hardware.graphics.enable = true;
 
+  # --- Kernel: linux-zen (matches Arch linux-zen + linux-zen-headers) ---
+  # Zen = mainline + desktop-latency/CPU-scheduler tweaks. 7.1.10 is the
+  # newest Zen in this nixpkgs snapshot; NixOS otherwise defaults to the LTS
+  # stable kernel.
+  boot.kernelPackages = pkgs.linuxPackages_zen;
+
   # --- Networking (Noctalia needs NetworkManager) ---
   networking = {
     hostName = "nixos";
