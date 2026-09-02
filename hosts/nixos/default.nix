@@ -236,6 +236,36 @@
   # --- Bluetooth ---
   hardware.bluetooth.enable = true;
 
+  # --- Optional services (installed, but DISABLED at boot) ---
+  # Docker/DBs/libvirt/ollama ship with their daemons present so the tools
+  # "just work" once the user starts them; they're not auto-started to keep the
+  # VM idle-memory low. Start manually with:
+  #   systemctl start docker redis mariadb postgresql libvirtd ollama mpd
+  # or `sudo systemctl enable --now <unit>` to persist across reboots.
+  virtualisation.docker.enable = false;
+  virtualisation.libvirtd = { enable = false; qemu.enable = false; };
+  services.redis.servers."".enable = false;
+  # Music player daemon (mpd installed) — disabled by default.
+  services.mpd.enable = false;
+  # MariaDB/MySQL in nixpkgs lives under services.mysql.
+  services.mysql = {
+    enable = false;
+    package = pkgs.mariadb;
+  };
+  services.postgresql.enable = false;
+  # ollama has no NixOS module in this snapshot — provide a (disabled) systemd
+  # unit so `systemctl start ollama` works.
+  systemd.services.ollama = {
+    description = "Ollama local LLM server";
+    wantedBy = [ ];
+    after = [ "network.target" ];
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = "${pkgs.ollama}/bin/ollama serve";
+      Restart = "on-failure";
+    };
+  };
+
   # --- Audio: PipeWire ---
   security.rtkit.enable = true;
   services.pipewire = {
