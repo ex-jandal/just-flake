@@ -305,7 +305,7 @@ in
         bettercap
         hashcat
         john
-        proxychains
+        proxychains-ng
         radare2
         ghidra
         # r2ghidra not in this nixpkgs snapshot — re-add if available
@@ -318,6 +318,10 @@ in
         rockyou
         exiftool
         showmethekey
+        # Anonymous overlay network + tooling (Tor config in hosts/nixos).
+        tor
+        torsocks
+        tor-browser
       ];
 
       # --- Noctalia ecosystem (theme plugin templates) ---

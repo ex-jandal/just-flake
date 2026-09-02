@@ -34,6 +34,7 @@
     ./modules/mpv.nix
     ./modules/cava.nix
     ./modules/zellij.nix
+    ./modules/proxychains.nix
   ];
 
   programs.home-manager.enable = true;
