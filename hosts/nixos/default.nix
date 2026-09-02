@@ -272,6 +272,24 @@
     };
   };
 
+  # --- Tor (ENABLED) — anonymous SOCKS proxy + HTTP via Privoxy ---
+  # services.tor.enable alone exposes a "slow" SOCKS proxy on 127.0.0.1:9050
+  # (new circuit per destination). client.enable keeps that 9050 listener.
+  # Privoxy (enableTor) adds an 8118 HTTP proxy that forwards to Tor's "fast"
+  # SOCKS on 9063 (new circuit every 10 min) — see the NixOS wiki. No relay /
+  # exit / bridge: client only. proxychains' ProxyList (home/modules/
+  # proxychains.nix) and torsocks use the same 9050/9063/8118 ports.
+  services.tor = {
+    enable = true;
+    client.enable = true;
+  };
+  # Privoxy HTTP proxy -> Tor fast SOCKS. enableTor wires forward-socks5 to
+  # 127.0.0.1:9063 and extends tor SOCKSPort accordingly.
+  services.privoxy = {
+    enable = true;
+    enableTor = true;
+  };
+
   # --- Audio: PipeWire ---
   security.rtkit.enable = true;
   services.pipewire = {
