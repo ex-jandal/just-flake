@@ -210,8 +210,26 @@
       adwaita-fonts
       # Google Rubik font (5 weight Roman + Italic).
       rubik
-      # NOTE: ttf-amiri, ttf-scheherazade-new, ttf-bitstream-vera,
-      # ttf-cairo, ttf-droid, ttf-cjk not available in this nixpkgs snapshot.
+      # Arabic (Arch: ttf-amiri, ttf-scheherazade-new).
+      amiri
+      scheherazade-new
+      # CJK (Arch: noto-fonts-cjk). Large (~200MB) — bundled here per request.
+      noto-fonts-cjk-sans
+      # Arch: ttf-opensans
+      open-sans
+      # Arch: ttf-roboto-flex (variable-width Roboto family).
+      roboto-flex
+      # Arch: ttf-droid — Droid Sans Mono via the nerd-fonts set.
+      nerd-fonts.droid-sans-mono
+      # Arch: powerline-fonts (Powerline glyph set for prompt integrations).
+      powerline-fonts
+      # Arch: woff2-font-awesome — OTF Font Awesome icon set (waybar/rofi glyphs).
+      font-awesome
+      # Extra: Inter (clean UI sans, nice complement to Rubik).
+      inter
+      # Unavailable in this nixpkgs snapshot: ttf-bitstream-vera, ttf-cairo
+      # (no font pkg), ttf-droid-sans (non-mono), ttf-gabarito, ttf-sil-lateef,
+      # ttf-gnu-free-fonts, otf-space-grotesk, separate rubik-vf.
     ];
   };
 
