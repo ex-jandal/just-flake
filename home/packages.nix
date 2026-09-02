@@ -74,7 +74,7 @@ in
         # Office / documents / archive / transfer
         # libreoffice
         # inkscape
-        evince
+        # evince
         pdftk
         qpdf
         mandoc
@@ -184,11 +184,15 @@ in
         # w3m
       ];
 
+      social = with pkgs; [
+        telegram-desktop
+        signal-desktop
+        legcord
+      ];
+
       # --- Apps from the Arch inventory delta (see ARCH-INVENTORY.md §8) ---
       extras = with pkgs; [
         # obsidian
-        # telegram-desktop
-        signal-desktop
         # qbittorrent
         waybar
         mako
@@ -337,6 +341,7 @@ in
     ++ wayland
     ++ git
     ++ media
+    # ++ social
     ++ browsers
     # ++ dev
     # ++ security
