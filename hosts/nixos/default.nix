@@ -246,7 +246,7 @@
   # Docker/DBs/libvirt/ollama ship with their daemons present so the tools
   # "just work" once the user starts them; they're not auto-started to keep the
   # VM idle-memory low. Start manually with:
-  #   systemctl start docker redis mariadb postgresql libvirtd ollama mpd
+  #   systemctl start docker redis mariadb postgresql libvirtd ollama mpd avahi
   # or `sudo systemctl enable --now <unit>` to persist across reboots.
   virtualisation.docker.enable = false;
   virtualisation.libvirtd = { enable = false; qemu.enable = false; };
@@ -271,6 +271,11 @@
       Restart = "on-failure";
     };
   };
+  # avahi-daemon — Arch had this enabled (mDNS/DNS-SD). Disabled for now;
+  # enable once systemd-resolved (Avahi) integration is decided.
+  services.avahi.enable = false;
+  # NOTE: Arch also had rusbmux.service enabled — not packaged in this
+  # nixpkgs snapshot; add as an overlay/derivation when needed.
 
   # --- Tor (ENABLED) — anonymous SOCKS proxy + HTTP via Privoxy ---
   # services.tor.enable alone exposes a "slow" SOCKS proxy on 127.0.0.1:9050
