@@ -64,7 +64,6 @@ in
         kdePackages.ark
         eog
         zathura
-        mpv
         # Qt platform theme backend — applies Noctalia color scheme to Qt/KDE
         # apps (dolphin etc.). Selected via QT_QPA_PLATFORMTHEME=qt6ct.
         qt6Packages.qt6ct
@@ -155,7 +154,6 @@ in
 
       # --- Media / graphical ---
       media = with pkgs; [
-        mpv
         ffmpeg
         yt-dlp
         imagemagick
