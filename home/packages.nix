@@ -55,13 +55,16 @@ in
         # kitty
         foot
         ghostty
-        # alacritty
+        # Needed by qutebrowser config (editor + file-select spawn alacritty).
+        alacritty
       ];
 
       utils = with pkgs; [
         # KDE file manager (Mod+E bind spawns dolphin).
         kdePackages.dolphin
         kdePackages.ark
+        # File selector for qutebrowser fileselect.* (choosefile/choosedir).
+        ranger
         eog
         zathura
         # Qt platform theme backend — applies Noctalia color scheme to Qt/KDE
@@ -178,7 +181,6 @@ in
         # zen-browser not in this nixpkgs snapshot — re-add if available
         chromium
         # firefox
-        # qutebrowser
         # w3m
       ];
 

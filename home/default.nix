@@ -35,6 +35,7 @@
     ./modules/cava.nix
     ./modules/zellij.nix
     ./modules/proxychains.nix
+    ./modules/qutebrowser.nix
   ];
 
   programs.home-manager.enable = true;

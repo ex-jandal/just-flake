@@ -1,0 +1,9 @@
+#!/usr/bin/env node
+const qutejs = require("qutejs");
+
+const haha = "haha";
+const script = function () {
+  alert(haha);
+};
+
+qutejs.jseval([], script);
