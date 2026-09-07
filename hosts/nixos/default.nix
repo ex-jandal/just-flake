@@ -34,6 +34,7 @@
     ./hardware.nix
     inputs.noctalia.nixosModules.default
     inputs.noctalia-greeter.nixosModules.default
+    inputs.helium-flake.nixosModules.default
   ];
 
   # --- Boot loader: GRUB on UEFI (matches Arch) ---
@@ -165,6 +166,8 @@
     fish
     niri
   ];
+
+  programs.helium.enable = true;
 
   # --- Fonts (moved here from home/packages.nix) ---
   # System-level registration: NixOS writes each font package into the

@@ -296,31 +296,32 @@ in
         neovide
         ollama
         calc
+        zigPackages."0.16"
       ];
 
       # --- Security / CTF ---
       security = with pkgs; [
-        aircrack-ng
-        bettercap
-        hashcat
-        john
+        # aircrack-ng
+        # bettercap
+        # hashcat
+        # john
         proxychains-ng
-        radare2
-        ghidra
+        # radare2
+        # ghidra
         # r2ghidra not in this nixpkgs snapshot — re-add if available
-        nmap
-        burpsuite
-        ida-free
-        ettercap
-        yersinia
-        crunch
-        rockyou
-        exiftool
-        showmethekey
+        # nmap
+        # burpsuite
+        # ida-free
+        # ettercap
+        # yersinia
+        # crunch
+        # rockyou
+        # exiftool
+        # showmethekey
         # Anonymous overlay network + tooling (Tor config in hosts/nixos).
-        tor
+        # tor
         torsocks
-        tor-browser
+        # tor-browser
       ];
 
       # --- Noctalia ecosystem (theme plugin templates) ---
@@ -347,7 +348,7 @@ in
     ++ social
     ++ browsers
     # ++ dev
-    # ++ security
+    ++ security
     # ++ lab
     # ++ network
     # ++ game

@@ -18,6 +18,11 @@
       url = "github:noctalia-dev/noctalia-greeter";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    helium-flake =  {
+      url = "github:oxcl/nix-flake-helium-browser";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   nixConfig = {
@@ -28,7 +33,7 @@
   };
 
   outputs =
-    { self, nixpkgs, home-manager, noctalia, ... }@inputs:
+    { self, nixpkgs, home-manager, noctalia, helium-flake, ... }@inputs:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
