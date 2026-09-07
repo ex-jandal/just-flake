@@ -4,10 +4,12 @@
 {
   programs.git = {
     enable = true;
-    userName = "abu_jandal";
-    userEmail = "me.abujandal@gmail.com";
-    
+
     settings = {
+      user = {
+        name = "abu_jandal";
+        email = "me.abujandal@gmail.com";
+      };
       init.defaultBranch = "main";
       core.editor = "nvim";
     };
