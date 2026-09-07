@@ -82,6 +82,7 @@ in
         # kew
         atool
         aria2
+        opencode
       ];
 
       # --- Editors / language tooling ---
