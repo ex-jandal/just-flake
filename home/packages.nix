@@ -79,7 +79,6 @@ in
         # evince
         pdftk
         qpdf
-        mandoc
         # kew
         atool
         aria2
@@ -185,9 +184,9 @@ in
       ];
 
       social = with pkgs; [
-        telegram-desktop
+        # telegram-desktop
         signal-desktop
-        legcord
+        # legcord
       ];
 
       # --- Apps from the Arch inventory delta (see ARCH-INVENTORY.md §8) ---
@@ -345,7 +344,7 @@ in
     ++ wayland
     ++ git
     ++ media
-    # ++ social
+    ++ social
     ++ browsers
     # ++ dev
     # ++ security
