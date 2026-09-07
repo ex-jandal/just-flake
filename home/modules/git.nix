@@ -4,10 +4,12 @@
 {
   programs.git = {
     enable = true;
-    userName = "Sultan Majed";
-    userEmail = "sultan.m.alsalahi@gmail.com";
-    
+
     settings = {
+      user = {
+        name = "Sultan Majed";
+        email = "sultan.m.alsalahi@gmail.com";
+      };
       init.defaultBranch = "main";
       core.editor = "nvim";
     };
