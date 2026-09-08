@@ -106,6 +106,7 @@ in
         rofi
         kanshi
         nwg-displays
+        flameshot
         # swaylock
         # swaybg
         slurp
