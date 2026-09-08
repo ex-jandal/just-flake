@@ -397,7 +397,10 @@
     ];
   };
 
-  security.polkit.enable = true;
+  security.polkit = {
+    enable = true;
+    enablePkexecWrapper = true;
+  };
 
   services.openssh.enable = true;
 
