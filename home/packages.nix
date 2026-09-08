@@ -220,7 +220,7 @@ in
         # cisco-packet-tracer_9
         # GNS3 stack — shown from GUI, it spawns gns3-server locally.
         gns3-gui
-        gns3-server
+        # gns3-server
         dynamips
         vpcs
         ubridge
