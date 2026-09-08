@@ -1,5 +1,6 @@
 {
   pkgs,
+  inputs,
   lib,
   ...
 }:
@@ -48,6 +49,8 @@ in
         clolcat
         fortune
         pokego
+        wget
+        curl
       ];
 
       # --- Terminals ---
@@ -65,6 +68,7 @@ in
         kdePackages.ark
         # File selector for qutebrowser fileselect.* (choosefile/choosedir).
         ranger
+        nautilus
         eog
         zathura
         # Qt platform theme backend — applies Noctalia color scheme to Qt/KDE
@@ -132,17 +136,17 @@ in
         wlsunset
         ydotool
         # Gnome helper apps
-        # gnome-calculator
-        # gnome-disk-utility
-        # gnome-font-viewer
+        gnome-calculator
+        gnome-disk-utility
+        gnome-font-viewer
         # Disk / USB / filesystem tools
         udiskie
         usbutils
         testdisk
-        # gpart
-        # gparted
-        # cifs-utils
-        # ntfs3g
+        gpart
+        gparted
+        cifs-utils
+        ntfs3g
       ];
 
       # --- Git / tools ---
@@ -165,7 +169,7 @@ in
         # blender
         # inkscape
         # audacity
-        # easyeffects
+        easyeffects
         pavucontrol
         gpu-screen-recorder
         ffmpegthumbnailer
@@ -185,7 +189,7 @@ in
       ];
 
       social = with pkgs; [
-        # telegram-desktop
+        telegram-desktop
         signal-desktop
         # legcord
       ];
@@ -212,27 +216,21 @@ in
       # --- Network / lab (Cisco + GNS3 + capture/monitor) ---
       lab = with pkgs; [
         # Cisco Packet Tracer (unfree) — network simulator, crypto/generic
-        cisco-packet-tracer_9
+        # cisco-packet-tracer_9
         # GNS3 stack — shown from GUI, it spawns gns3-server locally.
         gns3-gui
-        gns3-server
         dynamips
         vpcs
         ubridge
         # QEMU full — GNS3/QEMU VMs (dev block uses qemu_full too).
-        qemu_full
+        # qemu_full
         # Capture / monitor / infra
-        wireshark
+        # wireshark
         tcpdump
         traceroute
         netcat-openbsd
         nethogs
-        ostinato
-        sniffnet
-        dnsmasq
-        hostapd
-        iw
-        linux-wifi-hotspot
+        # ostinato
         haguichi
         bmon
         cpufetch
@@ -249,15 +247,22 @@ in
         tinyproxy
         virt-manager
         virt-viewer
+        dnsmasq
+        hostapd
+        iw
+        sniffnet
+        linux-wifi-hotspot
       ];
 
       # --- Games / Windows compat ---
       game = with pkgs; [
-        wine
-        wine64
-        winetricks
-        lutris
-        mangohud
+        # wine
+        # wine64
+        # winetricks
+        # lutris
+        # mangohud
+        inputs.xmcl.packages."${stdenv.hostPlatform.system}".default
+        jre
       ];
 
       # --- Dev toolchains / runtimes ---
@@ -267,35 +272,36 @@ in
         pnpm
         go
         rustup
-        dotnet-sdk
+        meson
+        # dotnet-sdk
         jdk
-        maven
+        # maven
         gradle
-        kotlin
-        php
+        # kotlin
+        # php
         python3
         uv
-        zig
-        odin
-        docker
-        docker-compose
+        # zig
+        # odin
+        # docker
+        # docker-compose
         # qemu_full listed in the lab block (QEMU for GNS3/VMs)
-        mitmproxy
+        # mitmproxy
         nmap
-        mariadb
-        postgresql
-        redis
-        sqlite
-        sqls
-        sqlfluff
-        glab
+        # mariadb
+        # postgresql
+        # redis
+        # sqlite
+        # sqls
+        # sqlfluff
+        # glab
         gdb
-        valgrind
+        # valgrind
         nasm
-        mdbook
-        c3c
+        # mdbook
+        # c3c
         neovide
-        ollama
+        # ollama
         calc
         zigPackages."0.16"
       ];
@@ -311,10 +317,10 @@ in
         # ghidra
         # r2ghidra not in this nixpkgs snapshot — re-add if available
         # nmap
-        # burpsuite
+        burpsuite
         # ida-free
-        # ettercap
-        # yersinia
+        ettercap
+        yersinia
         # crunch
         # rockyou
         # exiftool
@@ -348,11 +354,11 @@ in
     ++ media
     ++ social
     ++ browsers
-    # ++ dev
+    ++ dev
     ++ security
-    # ++ lab
+    ++ lab
     # ++ network
-    # ++ game
+    ++ game
     ++ theme
     ++ extras;
 }

@@ -37,34 +37,47 @@
     inputs.helium-flake.nixosModules.default
   ];
 
-  # --- Boot loader: GRUB on UEFI (matches Arch) ---
-  boot.loader = {
-    efi.canTouchEfiVariables = true;
-    grub = {
-      enable = true;
-      device = "nodev"; # EFI-only install, no legacy MBR
-      efiSupport = true;
+  boot = {
+     # --- Boot loader: GRUB on UEFI (matches Arch) ---
+    loader = {
+      efi.canTouchEfiVariables = true;
+      grub = {
+        enable = true;
+        device = "nodev"; # EFI-only install, no legacy MBR
+        efiSupport = true;
+      };
     };
+
+    # --- Boot splash (matches Arch plymouth) ---
+    plymouth.enable = true;
+
+    # --- Initramfs: use the modern systemd initrd (NixOS's fast, minimal
+    #     equivalent of Arch's booster) in place of the legacy stage-1 initrd. ---
+    initrd.systemd.enable = true;
+
+    # Enable silent boot to hide text spam behind the splash
+    consoleLogLevel = 3;
+    initrd.verbose = false;
+    kernelParams = [
+      "quiet"
+      "splash"
+      "rd.udev.log_level=3"
+      "sysv.enabled=0"
+    ];
+
+    # --- Kernel: linux-zen (matches Arch linux-zen + linux-zen-headers) ---
+    # Zen = mainline + desktop-latency/CPU-scheduler tweaks. 7.1.10 is the
+    # newest Zen in this nixpkgs snapshot; NixOS otherwise defaults to the LTS
+    # stable kernel.
+    kernelPackages = pkgs.linuxPackages_zen;
   };
 
-  # --- Initramfs: use the modern systemd initrd (NixOS's fast, minimal
-  #     equivalent of Arch's booster) in place of the legacy stage-1 initrd. ---
-  boot.initrd.systemd.enable = true;
-
-  # --- Boot splash (matches Arch plymouth) ---
-  boot.plymouth.enable = true;
 
   # --- GPU/driver placeholder — confirm the laptop GPU ---
   # The original Arch box used open-source AMD (amdgpu/vulkan-radeon).
   # On NixOS, amdgpu needs no extra packages (mesa ships it). For NVIDIA set
   # hardware.nvidia.* + services.xserver.videoDrivers = [ "nvidia" ];
   hardware.graphics.enable = true;
-
-  # --- Kernel: linux-zen (matches Arch linux-zen + linux-zen-headers) ---
-  # Zen = mainline + desktop-latency/CPU-scheduler tweaks. 7.1.10 is the
-  # newest Zen in this nixpkgs snapshot; NixOS otherwise defaults to the LTS
-  # stable kernel.
-  boot.kernelPackages = pkgs.linuxPackages_zen;
 
   # --- Networking (Noctalia needs NetworkManager) ---
   networking = {
@@ -84,7 +97,11 @@
   services.dnscrypt-proxy = {
     enable = true;
     settings = {
-      server_names = [ "apple" "adnull" "quad9alpha" "envs" "v0dka" "shecan" ];
+      server_names = [
+        "quad9-dnscrypt-ip4-nofilter-pri"
+        "quad9-dnscrypt-ip4-nofilter-ecs-pri"
+        "cloudflare"
+      ];
       listen_addresses = [ "127.0.0.1:53" ];
       max_clients = 250;
       ipv4_servers = true;
@@ -96,7 +113,11 @@
       timeout = 5000;
       keepalive = 30;
       bootstrap_resolvers = [ "9.9.9.11:53" "8.8.8.8:53" ];
-      ignore_system_dns = true;
+      # When the bootstrap resolvers are unreachable (e.g. UDP/53 is
+      # firewalled on this network), fall back to the system/DHCP resolver
+      # to fetch the server list. Only the list hostname is exposed, never
+      # real queries.
+      ignore_system_dns = false;
       block_ipv6 = false;
       block_unqualified = true;
       block_undelegated = true;
@@ -252,7 +273,30 @@
   #   systemctl start docker redis mariadb postgresql libvirtd ollama mpd avahi
   # or `sudo systemctl enable --now <unit>` to persist across reboots.
   virtualisation.docker.enable = false;
-  virtualisation.libvirtd = { enable = false; qemu.enable = false; };
+
+  programs.virt-manager.enable = true;
+  virtualisation.libvirtd = { 
+    enable = true; 
+    qemu = {
+      package = pkgs.qemu_full;
+    };
+  };
+  virtualisation.spiceUSBRedirection.enable = true;
+  users.groups.libvirtd.members = ["abu_jandal"];
+
+
+  programs.wireshark.enable = true;
+  users.groups.wireshark.members = ["abu_jandal"];
+
+  services.gns3-server = {
+    enable = true;
+    dynamips.enable = true;
+    ubridge.enable = true;
+    vpcs.enable = true;
+  };
+
+  programs.java.enable = true;
+
   services.redis.servers."".enable = false;
   # Music player daemon (mpd installed) — disabled by default.
   services.mpd.enable = false;
@@ -359,6 +403,14 @@
   # the dconf-service. Without it, Home Manager's dconfSettings activation
   # fails with "ca.desrt.dconf: The name is not activatable".
   services.dbus.packages = [ pkgs.dconf ];
+
+  # Swap file in nixos
+  swapDevices = [
+    {
+      device = "/var/lib/swapfile";
+      size = 8 * 1024; # 8 GiB
+    }
+  ];
 
   # fish is the user's login shell — enable it at the NixOS level so it lands
   # in /etc/shells and gets the nix dirs in PATH. Content is home-manager managed.
