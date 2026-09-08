@@ -34,6 +34,7 @@
     ./hardware.nix
     inputs.noctalia.nixosModules.default
     inputs.noctalia-greeter.nixosModules.default
+    inputs.rusbmux.nixosModules.default
     inputs.helium-flake.nixosModules.default
   ];
 
@@ -93,6 +94,7 @@
   # Use iwd as the Wi-Fi backend for NetworkManager (matches Arch).
   networking.networkmanager.wifi.backend = "iwd";
 
+  services.rusbmux.enable = true;
   # --- DNSCrypt proxy (config ported from Arch /etc/dnscrypt-proxy/*) ---
   services.dnscrypt-proxy = {
     enable = true;
