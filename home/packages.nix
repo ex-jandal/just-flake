@@ -132,7 +132,7 @@ in
         # / others read prefers-color-scheme from the portal (niri uses this,
         # not wlroots-only.xdg portal).
         xdg-desktop-portal-gnome
-        polkit
+
         wlsunset
         ydotool
         # Gnome helper apps
@@ -219,13 +219,15 @@ in
         # cisco-packet-tracer_9
         # GNS3 stack — shown from GUI, it spawns gns3-server locally.
         gns3-gui
+        gns3-server
         dynamips
         vpcs
         ubridge
+        inetutils
         # QEMU full — GNS3/QEMU VMs (dev block uses qemu_full too).
         # qemu_full
         # Capture / monitor / infra
-        # wireshark
+        wireshark
         tcpdump
         traceroute
         netcat-openbsd
@@ -238,20 +240,21 @@ in
 
       # --- Network / infra (DNS, VPN, proxy, VM browsers) ---
       network = with pkgs; [
-        bind
-        whois
-        ipcalc
-        dnscrypt-proxy
-        cloudflared
-        openvpn
-        tinyproxy
-        virt-manager
+        # bind
+        # whois
+        # ipcalc
+        # dnscrypt-proxy
+        # cloudflared
+        # openvpn
+        # tinyproxy
+        # virt-manager
         virt-viewer
         dnsmasq
         hostapd
         iw
-        sniffnet
-        linux-wifi-hotspot
+        haveged
+        # sniffnet
+        # linux-wifi-hotspot
       ];
 
       # --- Games / Windows compat ---
@@ -357,7 +360,7 @@ in
     ++ dev
     ++ security
     ++ lab
-    # ++ network
+    ++ network
     ++ game
     ++ theme
     ++ extras;
