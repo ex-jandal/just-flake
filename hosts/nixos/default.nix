@@ -397,6 +397,8 @@
     ];
   };
 
+  security.polkit.enable = true;
+
   services.openssh.enable = true;
 
   # Register dconf's D-Bus activation file so the user session bus can start
