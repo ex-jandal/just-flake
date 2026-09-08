@@ -114,7 +114,28 @@
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs",
         "noctalia": "noctalia",
-        "noctalia-greeter": "noctalia-greeter"
+        "noctalia-greeter": "noctalia-greeter",
+        "xmcl": "xmcl"
+      }
+    },
+    "xmcl": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1788782735,
+        "narHash": "sha256-t4NWE4KJF/viBRFng+V3r7YDTo/75fQAPSfvn0hjC8E=",
+        "owner": "x45iq",
+        "repo": "xmcl-nix",
+        "rev": "b52bd8f3516d52680e3526764fcfced885ac644e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "x45iq",
+        "repo": "xmcl-nix",
+        "type": "github"
       }
     }
   },
