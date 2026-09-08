@@ -108,9 +108,8 @@
       current_time = "date +\"Today is %A, %B %d, %Y and the time is %I:%M:%S %p\"";
       surreal-start = "surreal start --log debug --user root --pass root file://$HOME/project/surrealdb-database/main";
       surreal-sql = "surreal sql --user root --pass root --namespace test --database test --pretty";
-      run-hotspot = ''
-        nix-shell -p iw dnsmasq hostapd haveged iproute2 --run "sudo ~/linuxrouter --ap wlan0 'abu_jandal - archlinux' -g 137 --freq-band 2.4 -6 -p '86400051'"
-      '';
+      run-hotspot = "sudo ~/linuxrouter --ap wlan0 'abu_jandal - archlinux' -g 137 --freq-band 2.4 -6 -p '86400051'";
+      run-hotspot5 = "sudo ~/linuxrouter --ap wlan0 'abu_jandal - archlinux' -g 137 --freq-band 5 -6 -p '86400051'";
     };
 
     shellInit = ''
