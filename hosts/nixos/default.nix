@@ -188,6 +188,10 @@
     vim
     fish
     niri
+
+    # GNS3 server — system-level (installed here for gns3-server daemon; the
+    # GUI lives in home/packages.nix and spawns the server locally).
+    gns3-server
   ];
 
   programs.helium.enable = true;
