@@ -51,6 +51,7 @@ in
         pokego
         wget
         curl
+        rusbmux
       ];
 
       # --- Terminals ---

@@ -28,6 +28,10 @@
       url = "github:x45iq/xmcl-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    rusbmux = {
+      url = "github:ex-jandal/rusbmux/ex-jandal/nix-flake";
+    };
   };
 
   nixConfig = {
@@ -38,7 +42,7 @@
   };
 
   outputs =
-    { self, nixpkgs, home-manager, noctalia, helium-flake, ... }@inputs:
+    { self, nixpkgs, home-manager, noctalia, rusbmux, helium-flake, ... }@inputs:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
