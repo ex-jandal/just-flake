@@ -19,14 +19,14 @@
     EDITOR = "nvim";
     PAGER = "bat";
     MANPAGER = "nvim -c +Man!";
-    # --- Dev environments (Arch-specific paths — parametrize before NixOS) ---
-    JAVA_HOME = "/usr/lib/jvm/java-26-openjdk";
+    # --- Dev environments (NixOS: resolved from the flake's nixpkgs) ---
+    JAVA_HOME = "${pkgs.jdk.home}";
     ANDROID_HOME = "$HOME/Android/Sdk";
     ANDROID_EMULATOR_HOME = "$HOME/.android";
     ANDROID_AVD_HOME = "$ANDROID_EMULATOR_HOME/avd";
     ANDROID_EMU_OPTIONS = "-gpu host -no-snapshot -accel on -qemu -enable-kvm";
     PNPM_HOME = "$HOME/.local/share/pnpm";
-    fish_lsp_server_path = "/usr/bin/fish-lsp";
+    fish_lsp_server_path = "${pkgs.fish-lsp}/bin/fish-lsp";
   };
 
   # User-authored fish functions from the original config (git helpers, nipe).
