@@ -213,8 +213,11 @@
 
       # --- Network / lab (Cisco + GNS3 + capture/monitor) ---
       lab = with pkgs; [
-        # Cisco Packet Tracer (unfree) — network simulator, crypto/generic
-        # cisco-packet-tracer_9
+        # Cisco Packet Tracer 9.0.1 (unfree) — built from the official deb in
+        # ~/Downloads; newer than nixpkgs's cisco-packet-tracer_9 (9.0.0).
+        # Requires the deb registered once: nix-store --add-fixed sha256
+        # ~/Downloads/CiscoPacketTracer_901_Ubuntu_64bit.deb
+        (pkgs.callPackage ./packages/packet-tracer-901.nix { })
         # GNS3 stack — shown from GUI, it spawns gns3-server locally.
         gns3-gui
         # gns3-server
