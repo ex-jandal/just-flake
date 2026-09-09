@@ -29,6 +29,12 @@
   # session (incl. niri above) is ever visible to the greeter.
   environment.pathsToLink = [ "/share/wayland-sessions" ];
 
+  # Keep the X session + Wayland dir through sudo so root GUI apps (gparted,
+  # etc.) can open a display under niri. sudo's default env_reset keeps only a
+  # minimal env; without DISPLAY/XAUTHORITY/XDG_RUNTIME_DIR a root GUI app
+  # dies with "cannot open display".
+  security.sudo.extraConfig = "Defaults env_keep += \"DISPLAY XAUTHORITY XDG_RUNTIME_DIR\"";
+
   # Hardware (filesystems, boot.initrd, GPU) — auto-generated. See hardware.nix.
   imports = [
     ./hardware.nix
@@ -192,6 +198,28 @@
     vim
     fish
     niri
+    jre
+
+    # Apps that self-elevate via pkexec live in the SYSTEM profile (not
+    # home.packages) because their polkit actions must register with the system
+    # polkitd daemon — only systemProfile/share/polkit-1/actions is searched.
+    # Without the action, pkexec falls back to the default action, strips
+    # DISPLAY, and root GUI apps die with "cannot open display". The matched
+    # action's allow_gui annotation then lets pkexec forward DISPLAY/XAUTHORITY.
+    # (gparted: org.gnome.gparted; ettercap: org.pkexec.ettercap; meson:
+    # com.mesonbuild.install.)
+    gparted
+    ettercap
+    meson
+
+    # System-wide copies of the theme stack so root pkexec GTK apps (gparted,
+    # ettercap) resolve the same look: adw-gtk3-dark base + Papirus-Dark icons
+    # + ComixCursors cursor. User-profile installs (~/.nix-profile) are outside
+    # root's XDG_DATA_DIRS; these land in /run/current-system/sw/share, which
+    # every user (incl. root) searches. See system-level gtk settings below.
+    adw-gtk3
+    papirus-icon-theme
+    comixcursors.Black
 
     # GNS3 server — system-level (installed here for gns3-server daemon; the
     # GUI lives in home/packages.nix and spawns the server locally).
