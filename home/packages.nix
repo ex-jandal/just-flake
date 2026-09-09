@@ -4,11 +4,6 @@
   lib,
   ...
 }:
-let
-  # Noctalia-baked GTK theme (colors compiled into the theme CSS so GTK4/
-  # Chromium honor them regardless of the user gtk.css overlay).
-  noctaliaGtkTheme = import ./modules/noctalia-gtk-theme.nix { inherit pkgs lib; };
-in
 # Curated daily-use package list (mapped from `pacman -Qqe`/`-Qqm` + config refs).
 #
 # NOTE:
@@ -341,7 +336,6 @@ in
       theme = with pkgs; [
         matugen
         adw-gtk3
-        noctaliaGtkTheme
         # Cursor theme referenced by niri (xcursor-theme "ComixCursors-Black").
         # comixcursors is multi-output; use the .Black output (the base
         # `out` output is empty) so the cursor theme lands in the profile.
