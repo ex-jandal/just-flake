@@ -54,15 +54,19 @@
       zoxide init fish | source
       # fzf.fish plugin owns the ctrl-cr/r/alt-c bindings; `fzf --fish` would
       # fight it, so its raw source is omitted here.
+
       if command -v go-pray >/dev/null
         go-pray completion fish | source
       end
+
       if set -q TMUX && not set -q NVIM && status is-interactive
           pokego --random 5 --no-title
           # Show a random fortune cookie on terminal start
           echo &&
               fortune -s # | lolcat -g 777777:cccccc
       end
+
+      ${pkgs.nix-your-shell}/bin/nix-your-shell fish | source
     '';
 
     # Mirrors the Arch fish_plugins list (assets/fish/fish_plugins): pisces
