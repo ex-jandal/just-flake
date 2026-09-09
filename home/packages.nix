@@ -142,7 +142,6 @@
         usbutils
         testdisk
         gpart
-        gparted
         cifs-utils
         ntfs3g
       ];
@@ -189,7 +188,7 @@
       social = with pkgs; [
         telegram-desktop
         signal-desktop
-        # legcord
+        legcord
       ];
 
       # --- Apps from the Arch inventory delta (see ARCH-INVENTORY.md §8) ---
@@ -201,7 +200,7 @@
         swaylock
         fuzzel
         mpd
-        # localsend
+        localsend
         sioyek
         # super-productivity
         # flameshot
@@ -266,7 +265,6 @@
         # lutris
         # mangohud
         inputs.xmcl.packages."${stdenv.hostPlatform.system}".default
-        jre
       ];
 
       # --- Dev toolchains / runtimes ---
@@ -276,7 +274,6 @@
         pnpm
         go
         rustup
-        meson
         # dotnet-sdk
         jdk
         # maven
@@ -285,13 +282,12 @@
         # php
         python3
         uv
-        # zig
         # odin
         # docker
         # docker-compose
         # qemu_full listed in the lab block (QEMU for GNS3/VMs)
         # mitmproxy
-        nmap
+        # nmap
         # mariadb
         # postgresql
         # redis
@@ -323,12 +319,15 @@
         # nmap
         burpsuite
         # ida-free
-        ettercap
         yersinia
         # crunch
         # rockyou
         # exiftool
         # showmethekey
+        # polkit GUI auth agent — pkexec as root needs a running agent to show
+        # an auth dialog outside a terminal (e.g. from the Noctalia launcher);
+        # spawned in assets/niri/config.kdl.
+        polkit_gnome
         # Anonymous overlay network + tooling (Tor config in hosts/nixos).
         # tor
         torsocks
@@ -338,7 +337,8 @@
       # --- Noctalia ecosystem (theme plugin templates) ---
       theme = with pkgs; [
         matugen
-        adw-gtk3
+        # adw-gtk3 moved to environment.systemPackages (hosts/nixos) so root
+        # pkexec GTK apps can resolve the theme via the system XDG_DATA_DIRS.
         # Cursor theme referenced by niri (xcursor-theme "ComixCursors-Black").
         # comixcursors is multi-output; use the .Black output (the base
         # `out` output is empty) so the cursor theme lands in the profile.
