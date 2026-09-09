@@ -4,9 +4,10 @@
 }:
 {
   # GTK + Qt appearance. Noctalia owns the GTK theme colors + dconf color-scheme
-  # (its gtk template writes noctalia.css + sets adw-gtk3-dark and the dconf
-  # color-scheme); here we select the base dark theme, icon/cursor themes and
-  # font override. Qt/KDE apps get the Noctalia palette via qt6ct (below).
+  # (its gtk template writes noctalia.css + overlays it via gtk-{3,4}.0/gtk.css,
+  # and syncs adw-gtk3(-dark) + the dconf color-scheme); here we select the base
+  # dark theme, icon/cursor themes and font override. Qt/KDE apps get the
+  # Noctalia palette via the KColorScheme template picked up by qt6ct (below).
   gtk = {
     enable = true;
     # Base dark theme for GTK apps + chromium native chrome; Noctalia's
@@ -15,13 +16,12 @@
     # here makes HM claim gtk-4.0/gtk.css, which Noctalia owns as a real file.
     # HM then just writes gtk-theme-name into settings.ini.
     theme = {
-      # "noctalia" is a copy of adw-gtk3-dark with the Noctalia palette baked
-      # into the theme CSS (home/modules/noctalia-gtk-theme.nix, installed via
-      # home.packages). Chromium/GTK4 read colors from the active theme's own
-      # CSS — they do NOT reliably load the per-user ~/.config/gtk-4.0/gtk.css
-      # overlay — so baking the palette here is what makes Chromium render the
-      # Noctalia green instead of the adwaita blue (#3584e4).
-      name = "noctalia";
+      # Plain adw-gtk3-dark base. Noctalia's gtk template (builtin_ids =
+      # ["gtk3" "gtk4"]) renders the active palette into
+      # ~/.config/gtk-{3,4}.0/noctalia.css and imports it from gtk.css, so
+      # GTK apps that honor the overlay take on the Noctalia palette over the
+      # adwaita base.
+      name = "adw-gtk3-dark";
     };
     iconTheme = {
       name = "Papirus-Dark";
@@ -68,13 +68,16 @@ font = {
 
   # qt6ct is the platform theme for Qt/KDE apps: icon/cursor themes, default
   # font (fontconfig → Rubik), and the Noctalia color scheme. color_scheme_path
-  # points at the palette Noctalia's qt template generates (~/.config/qt6ct/
-  # colors/noctalia.conf), so it stays in sync with theme changes; custom_
-  # palette=true makes Qt honor it; style=Darkly paints widgets with the
-  # modern darkly QStyle (fork of Lightly) on top of that palette.
+  # points at the KColorScheme Noctalia's kcolorscheme template generates
+  # (~/.local/share/color-schemes/noctalia.colors), which qt6ct picks up as the
+  # "noctalia (KColorScheme)" entry. Using the KColorScheme (rather than a
+  # qt6ct custom palette) keeps KDE apps like Dolphin/Ark in sync with the
+  # active palette; custom_palette=true makes Qt honor it; style=Darkly paints
+  # widgets with the modern darkly QStyle (fork of Lightly) on top of that
+  # palette.
   home.file.".config/qt6ct/qt6ct.conf".text = ''
     [Appearance]
-    color_scheme_path=/home/abu_jandal/.config/qt6ct/colors/noctalia.conf
+    color_scheme_path=/home/abu_jandal/.local/share/color-schemes/noctalia.colors
     custom_palette=true
     style=Darkly
     icon_theme=Papirus-Dark
