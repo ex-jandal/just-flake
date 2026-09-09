@@ -23,6 +23,14 @@
   # `system` arg to nixosSystem) per current nixpkgs guidance.
   nixpkgs.hostPlatform = "x86_64-linux";
 
+  nix.optimise.automatic = true;
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 7d";
+  };
+
+
   # Link Wayland session .desktop files into /run/current-system/sw/share so
   # the Noctalia greeter's session picker can enumerate them. system.path's
   # default pathsToLink omits /share/wayland-sessions, so without this no
