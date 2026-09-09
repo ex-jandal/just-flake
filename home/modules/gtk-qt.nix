@@ -24,6 +24,11 @@
       # adwaita base.
       name = "adw-gtk3-dark";
     };
+    # gtk4.theme (26.05 default is null; pre-26.05 it silently fell back to
+    # config.gtk.theme). adw-gtk3-dark is a GTK3-only theme, and GTK4 apps are
+    # colored by Noctalia's gtk-4.0/gtk.css overlay + dconf prefer-dark anyway,
+    # so there's no base theme to write for GTK4 — keep the explicit null.
+    gtk4.theme = null;
     iconTheme = {
       name = "Papirus-Dark";
       package = pkgs.papirus-icon-theme;
