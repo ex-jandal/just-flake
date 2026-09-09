@@ -273,6 +273,7 @@
 
       # --- Dev toolchains / runtimes ---
       dev = with pkgs; [
+        devenv # is one is spacial
         nodejs
         bun
         pnpm
