@@ -302,7 +302,7 @@
   users.groups.wireshark.members = ["abu_jandal"];
 
   services.gns3-server = {
-    enable = true;
+    enable = false;
     dynamips.enable = true;
     ubridge.enable = true;
     vpcs.enable = true;
