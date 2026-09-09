@@ -71,6 +71,11 @@
     # newest Zen in this nixpkgs snapshot; NixOS otherwise defaults to the LTS
     # stable kernel.
     kernelPackages = pkgs.linuxPackages_zen;
+    kernelModules = [
+      "vhci-hcd"
+      "usbip-core"
+      "usbip-host"
+    ];
   };
 
 
@@ -94,7 +99,6 @@
   # Use iwd as the Wi-Fi backend for NetworkManager (matches Arch).
   networking.networkmanager.wifi.backend = "iwd";
 
-  services.rusbmux.enable = true;
   # --- DNSCrypt proxy (config ported from Arch /etc/dnscrypt-proxy/*) ---
   services.dnscrypt-proxy = {
     enable = true;
@@ -192,6 +196,8 @@
     # GNS3 server — system-level (installed here for gns3-server daemon; the
     # GUI lives in home/packages.nix and spawns the server locally).
     gns3-server
+
+    linuxPackages.usbip
   ];
 
   programs.helium.enable = true;
@@ -290,6 +296,7 @@
   virtualisation.spiceUSBRedirection.enable = true;
   users.groups.libvirtd.members = ["abu_jandal"];
 
+  services.tailscale.enable = true;
 
   programs.wireshark.enable = true;
   users.groups.wireshark.members = ["abu_jandal"];
@@ -326,9 +333,9 @@
   };
   # avahi-daemon — Arch had this enabled (mDNS/DNS-SD). Disabled for now;
   # enable once systemd-resolved (Avahi) integration is decided.
-  services.avahi.enable = false;
-  # NOTE: Arch also had rusbmux.service enabled — not packaged in this
-  # nixpkgs snapshot; add as an overlay/derivation when needed.
+  services.avahi.enable = true;
+
+  services.rusbmux.enable = true;
 
   # --- Tor (ENABLED) — anonymous SOCKS proxy + HTTP via Privoxy ---
   # services.tor.enable alone exposes a "slow" SOCKS proxy on 127.0.0.1:9050
@@ -357,6 +364,10 @@
     pulse.enable = true;
     jack.enable = true;
   };
+ 
+  # 1. Enable the Core GVfs Service (Includes MTP and network backends by default)
+  services.gvfs.enable = true;
+  services.udisks2.enable = true; # Handles disk mounting
 
   # --- Power management: TLP (settings ported from Arch /etc/tlp.conf) ---
   # Noctalia's recommendedServices enables power-profiles-daemon; we force it

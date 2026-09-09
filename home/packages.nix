@@ -87,6 +87,7 @@ in
         # kew
         atool
         aria2
+        libimobiledevice
         opencode
       ];
 
