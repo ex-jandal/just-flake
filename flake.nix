@@ -32,6 +32,11 @@
     rusbmux = {
       url = "github:ex-jandal/rusbmux/ex-jandal/nix-flake";
     };
+
+    nix-index-database = {
+      url = "github:nix-community/nix-index-database";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   nixConfig = {
@@ -42,7 +47,15 @@
   };
 
   outputs =
-    { self, nixpkgs, home-manager, noctalia, rusbmux, helium-flake, ... }@inputs:
+    { 
+      self, 
+      nixpkgs, 
+      home-manager, 
+      noctalia, 
+      rusbmux, 
+      helium-flake, 
+      ...
+    }@inputs:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
