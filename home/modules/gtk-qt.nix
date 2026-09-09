@@ -1,5 +1,6 @@
 {
   pkgs,
+  lib,
   ...
 }:
 {
@@ -134,4 +135,20 @@ font = {
     package = pkgs.comixcursors.Black;
     size = 48;
   };
+
+  # KDE apps (Dolphin/Ark) resolve their icon theme from KConfig, NOT from
+  # qt6ct's platform theme: kiconthemes reads it from kdeglobals under
+  # [Icons] Theme. Without it they fall back to a minimal theme (hicolor)
+  # → most icons missing even though qt6ct.conf sets icon_theme=Papirus-Dark
+  # (that only affects non-KDE Qt apps). kdeglobals is a real file Noctalia
+  # owns and merges into on every theme run (it preserves unrelated groups
+  # like [PreviewSettings]), so instead of symlinking over it (which would
+  # read-lock the file) we append the [Icons] group at activation if no
+  # Theme= choice is present yet — idempotent, respects a manual override,
+  # and survives Noctalia's rewrites.
+  home.activation.ensureKdeIconTheme = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    if [ -e "$HOME/.config/kdeglobals" ] && ! grep -Eq '^\s*Theme=[^\s]*$' "$HOME/.config/kdeglobals"; then
+      printf '\n[Icons]\nTheme=Papirus-Dark\n' >> "$HOME/.config/kdeglobals"
+    fi
+  '';
 }
