@@ -38,7 +38,7 @@
       package = pkgs.comixcursors.Black;
       size = 48;
     };
-font = {
+    font = {
       name = "Rubik";
       size = 11;
     };

@@ -45,6 +45,8 @@
         wget
         curl
         rusbmux
+        file
+        nix-your-shell
       ];
 
       # --- Terminals ---
@@ -59,6 +61,10 @@
       utils = with pkgs; [
         # KDE file manager (Mod+E bind spawns dolphin).
         kdePackages.dolphin
+        # Thumbnails for Dolphin (videos via ffmpegthumbs, extra image formats
+        # via kimageformats).
+        kdePackages.ffmpegthumbs
+        kdePackages.kimageformats
         kdePackages.ark
         # File selector for qutebrowser fileselect.* (choosefile/choosedir).
         ranger

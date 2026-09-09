@@ -45,7 +45,7 @@
   ];
 
   boot = {
-     # --- Boot loader: GRUB on UEFI (matches Arch) ---
+    # --- Boot loader: GRUB on UEFI (matches Arch) ---
     loader = {
       efi.canTouchEfiVariables = true;
       grub = {
@@ -83,7 +83,6 @@
       "usbip-host"
     ];
   };
-
 
   # --- GPU/driver placeholder — confirm the laptop GPU ---
   # The original Arch box used open-source AMD (amdgpu/vulkan-radeon).
@@ -124,7 +123,10 @@
       force_tcp = false;
       timeout = 5000;
       keepalive = 30;
-      bootstrap_resolvers = [ "9.9.9.11:53" "8.8.8.8:53" ];
+      bootstrap_resolvers = [
+        "9.9.9.11:53"
+        "8.8.8.8:53"
+      ];
       # When the bootstrap resolvers are unreachable (e.g. UDP/53 is
       # firewalled on this network), fall back to the system/DHCP resolver
       # to fetch the server list. Only the list hostname is exposed, never
@@ -211,6 +213,14 @@
     ettercap
     meson
 
+    # MTP kioslave + kmtpd so Dolphin can open phones via Solid (the worker
+    # ships in kio-extras, which dolphin only pulls into its closure — it
+    # must be a profile entry so the plugins land on QT_PLUGIN_PATH/XDG).
+    kdePackages.kio-extras
+    # admin:/ worker — browse/edit root-owned files from Dolphin with a
+    # polkit prompt.
+    kdePackages.kio-admin
+
     # System-wide copies of the theme stack so root pkexec GTK apps (gparted,
     # ettercap) resolve the same look: adw-gtk3-dark base + Papirus-Dark icons
     # + ComixCursors cursor. User-profile installs (~/.nix-profile) are outside
@@ -228,6 +238,7 @@
   ];
 
   programs.helium.enable = true;
+  programs.kdeconnect.enable = true;
 
   # --- Fonts (moved here from home/packages.nix) ---
   # System-level registration: NixOS writes each font package into the
@@ -314,19 +325,19 @@
   virtualisation.docker.enable = false;
 
   programs.virt-manager.enable = true;
-  virtualisation.libvirtd = { 
-    enable = true; 
+  virtualisation.libvirtd = {
+    enable = true;
     qemu = {
       package = pkgs.qemu_full;
     };
   };
   virtualisation.spiceUSBRedirection.enable = true;
-  users.groups.libvirtd.members = ["abu_jandal"];
+  users.groups.libvirtd.members = [ "abu_jandal" ];
 
   services.tailscale.enable = true;
 
   programs.wireshark.enable = true;
-  users.groups.wireshark.members = ["abu_jandal"];
+  users.groups.wireshark.members = [ "abu_jandal" ];
 
   services.gns3-server = {
     enable = false;
@@ -391,7 +402,7 @@
     pulse.enable = true;
     jack.enable = true;
   };
- 
+
   # 1. Enable the Core GVfs Service (Includes MTP and network backends by default)
   services.gvfs.enable = true;
   services.udisks2.enable = true; # Handles disk mounting
@@ -474,7 +485,10 @@
 
   nix = {
     settings = {
-      experimental-features = [ "nix-command" "flakes" ];
+      experimental-features = [
+        "nix-command"
+        "flakes"
+      ];
       # Noctalia binary cache (kept separate from the flake's nixConfig).
       extra-substituters = [ "https://noctalia.cachix.org" ];
       extra-trusted-public-keys = [
