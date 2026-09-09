@@ -322,10 +322,6 @@
         # rockyou
         # exiftool
         # showmethekey
-        # polkit GUI auth agent — pkexec as root needs a running agent to show
-        # an auth dialog outside a terminal (e.g. from the Noctalia launcher);
-        # spawned in assets/niri/config.kdl.
-        polkit_gnome
         # Anonymous overlay network + tooling (Tor config in hosts/nixos).
         # tor
         torsocks
