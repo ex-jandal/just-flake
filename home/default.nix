@@ -35,6 +35,7 @@
     ./modules/cava.nix
     ./modules/zellij.nix
     ./modules/proxychains.nix
+    ./modules/xmcl.nix
     # ./modules/qutebrowser.nix
   ];
 

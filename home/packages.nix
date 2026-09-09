@@ -1,7 +1,5 @@
 {
   pkgs,
-  inputs,
-  lib,
   ...
 }:
 # Curated daily-use package list (mapped from `pacman -Qqe`/`-Qqm` + config refs).
@@ -94,6 +92,7 @@
         shellcheck
         tree-sitter
         nixd
+        fish-lsp
       ];
 
       # --- WM / DE / Wayland tools ---
@@ -264,7 +263,6 @@
         # winetricks
         # lutris
         # mangohud
-        inputs.xmcl.packages."${stdenv.hostPlatform.system}".default
       ];
 
       # --- Dev toolchains / runtimes ---
