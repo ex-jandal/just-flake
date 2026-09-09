@@ -68,16 +68,20 @@ font = {
 
   # qt6ct is the platform theme for Qt/KDE apps: icon/cursor themes, default
   # font (fontconfig → Rubik), and the Noctalia color scheme. color_scheme_path
-  # points at the KColorScheme Noctalia's kcolorscheme template generates
-  # (~/.local/share/color-schemes/noctalia.colors), which qt6ct picks up as the
-  # "noctalia (KColorScheme)" entry. Using the KColorScheme (rather than a
-  # qt6ct custom palette) keeps KDE apps like Dolphin/Ark in sync with the
-  # active palette; custom_palette=true makes Qt honor it; style=Darkly paints
-  # widgets with the modern darkly QStyle (fork of Lightly) on top of that
-  # palette.
+  # points at the palette Noctalia's qt template generates (~/.config/qt6ct/
+  # colors/noctalia.conf) — qt6ct 0.11's loadColorScheme only parses its own
+  # native format ([ColorScheme] group with active/inactive/disabled_colors),
+  # which is exactly what that template writes; custom_palette=true makes Qt
+  # honor it. Do NOT point it at the KColorScheme .colors file (~/.local/share/
+  # color-schemes/noctalia.colors): qt6ct can't parse that (KDE [Colors:*])
+  # format and silently falls back to the default system palette → wrong text
+  # colors. KDE apps (Dolphin/Ark) still get the KColorScheme natively via
+  # ~/.config/kdeglobals, which Noctalia's kcolorscheme template also writes.
+  # style=Darkly paints widgets with the modern darkly QStyle (fork of Lightly)
+  # on top of that palette.
   home.file.".config/qt6ct/qt6ct.conf".text = ''
     [Appearance]
-    color_scheme_path=/home/abu_jandal/.local/share/color-schemes/noctalia.colors
+    color_scheme_path=/home/abu_jandal/.config/qt6ct/colors/noctalia.conf
     custom_palette=true
     style=Darkly
     icon_theme=Papirus-Dark
