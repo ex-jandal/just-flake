@@ -175,11 +175,11 @@
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1788885422,
-        "narHash": "sha256-saMJvgplkLtlz4pFmJrhYHfi9UAuCInD+ecDi3H2/TQ=",
+        "lastModified": 1788955668,
+        "narHash": "sha256-HRDynp8BKgFLQ6gxvvZq4sBSUbSA4SwVOr3UWqvYaAo=",
         "owner": "ex-jandal",
         "repo": "rusbmux",
-        "rev": "73777cdd9f2537196bdd0ec5e1164ef68655a12d",
+        "rev": "a709cfd7b9ffcabec43b418b7d3f6b4fbc36d1da",
         "type": "github"
       },
       "original": {
