@@ -1,8 +1,15 @@
 {
   pkgs,
+  inputs,
   ...
 }:
 {
+  imports = [
+    inputs.nix-index-database.homeModules.default
+  ];
+  programs.nix-index-database.comma.enable = true;
+  programs.command-not-found.enable = false;
+
   home.packages = with pkgs; [
     # fisher plugins (see assets/fish/fish_plugins) are now declared below via
     # programs.fish.plugins (HM-generated fish_plugins + vendor symlinks); here
