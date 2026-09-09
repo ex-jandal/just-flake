@@ -198,7 +198,6 @@
     vim
     fish
     niri
-    jre
 
     # Apps that self-elevate via pkexec live in the SYSTEM profile (not
     # home.packages) because their polkit actions must register with the system
