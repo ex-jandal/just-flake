@@ -67,6 +67,7 @@ local M = {
         "java-debug-adapter",
         "java-test",
         "roslyn",
+        "ruff",
       },
     },
   },

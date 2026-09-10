@@ -7,9 +7,12 @@ require("mason").setup({
   },
 })
 
-local servers = { "marksman", "html", "cssls", "ts_ls", "vue-language-server", "tailwindcss-language-server", "svelte",
-  "pyright", "texlab", "taplo", "yamlls", "intelephense", "laravel-ls", "gopls", "dcm", "bashls", "shellcheck", "fish-lsp",
-  "asm-lsp", "tailwindcss", "dockerls", "docker_compose_language_service", "zls", "nim_langserver", "roslyn", "kulala-fmt",
+local servers = {
+  "marksman", "html", "cssls", "ts_ls", "vue-language-server", "tailwindcss-language-server", "svelte",
+  "pyright", "texlab", "taplo", "yamlls", "intelephense", "laravel-ls", "gopls", "dcm", "bashls", "shellcheck",
+  "fish-lsp",
+  "asm-lsp", "tailwindcss", "dockerls", "docker_compose_language_service", "zls", "nim_langserver", "roslyn",
+  "kulala-fmt",
   "vala_ls", "mesonlsp", "qmlls", "ols", "just", "kotlin_language_server", "jdtls", "c3_lsp", "slint_lsp",
 }
 vim.lsp.enable(servers)
@@ -134,12 +137,13 @@ vim.lsp.enable('fish_lsp')
 -- nix libstdc++/glibc include dirs) instead of the generic mason binary,
 -- which only knows /usr/include. Reads the meson build/compile_commands.json.
 vim.lsp.config['clangd'] = {
-  cmd = {
-    '/run/current-system/sw/bin/clangd',
-    '--background-index',
-    '--query-driver=/nix/store/*/bin/gcc',
-    '--query-driver=/nix/store/*/bin/g++',
-  },
+  cmd = { 'clangd' },
+  -- cmd = {
+  --   '/run/current-system/sw/bin/clangd',
+  --   '--background-index',
+  --   '--query-driver=/nix/store/*/bin/gcc',
+  --   '--query-driver=/nix/store/*/bin/g++',
+  -- },
 }
 vim.lsp.enable('clangd')
 
@@ -156,9 +160,9 @@ vim.lsp.config['asm_lsp'] = {
 vim.lsp.enable('asm_lsp')
 
 vim.lsp.config["qmlls"] = {
-    cmd = { "qmlls6" }, -- Change "qmlls6" to "qmlls" or the correct executable name if necessary
-    filetypes = { "qml" },
-    -- Optional: additional settings for project management, see Qt documentation for details
+  cmd = { "qmlls6" }, -- Change "qmlls6" to "qmlls" or the correct executable name if necessary
+  filetypes = { "qml" },
+  -- Optional: additional settings for project management, see Qt documentation for details
 }
 vim.lsp.enable('qmlls')
 
