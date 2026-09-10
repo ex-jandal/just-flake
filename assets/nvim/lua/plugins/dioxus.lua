@@ -20,11 +20,12 @@ vim.keymap.set('n', '<leader>dxc', '<cmd>DxCheckBuffer<cr>',
 return {
   {
     "mrxiaozhuox/dioxus.nvim",
+    ft = "rust",
+    init = function() vim.env.USERPROFILE = vim.env.HOME or "" end,
     opts = {
       format = {
         split_line_attributes = true,
       },
     },
-    ft = "rust",
   },
 }
