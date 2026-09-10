@@ -30,7 +30,6 @@
     options = "--delete-older-than 7d";
   };
 
-
   # Link Wayland session .desktop files into /run/current-system/sw/share so
   # the Noctalia greeter's session picker can enumerate them. system.path's
   # default pathsToLink omits /share/wayland-sessions, so without this no
@@ -220,6 +219,12 @@
     gparted
     ettercap
     meson
+    # related to meson
+    ninja
+    gcc
+    clang-tools
+    clang
+    pkg-config
 
     # MTP kioslave + kmtpd so Dolphin can open phones via Solid (the worker
     # ships in kio-extras, which dolphin only pulls into its closure — it

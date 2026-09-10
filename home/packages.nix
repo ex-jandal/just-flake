@@ -97,8 +97,10 @@
         # codelldb (debugger) — install via NvChad/mason at runtime instead
         shellcheck
         tree-sitter
+        # LSPs
         nixd
         fish-lsp
+        mesonlsp
       ];
 
       # --- WM / DE / Wayland tools ---
@@ -166,7 +168,7 @@
         ffmpeg
         yt-dlp
         imagemagick
-        # obs-studio
+        obs-studio
         # kdenlive missing from this nixpkgs snapshot — re-add if available
         # blender
         # inkscape
@@ -201,7 +203,7 @@
         # obsidian
         # qbittorrent
         waybar
-        mako
+        # mako
         swaylock
         fuzzel
         mpd
