@@ -8,7 +8,7 @@ require("mason").setup({
 })
 
 local servers = { "marksman", "html", "cssls", "ts_ls", "vue-language-server", "tailwindcss-language-server", "svelte",
-  "pyright", "texlab", "taplo", "yamlls", "clangd", "intelephense", "laravel-ls", "gopls", "dcm", "bashls", "shellcheck", "fish-lsp",
+  "pyright", "texlab", "taplo", "yamlls", "intelephense", "laravel-ls", "gopls", "dcm", "bashls", "shellcheck", "fish-lsp",
   "asm-lsp", "tailwindcss", "dockerls", "docker_compose_language_service", "zls", "nim_langserver", "roslyn", "kulala-fmt",
   "vala_ls", "mesonlsp", "qmlls", "ols", "just", "kotlin_language_server", "jdtls", "c3_lsp", "slint_lsp",
 }
