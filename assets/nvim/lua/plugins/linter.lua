@@ -25,6 +25,7 @@ return {
       -- Merge your opts with custom asm config
       lint.linters_by_ft = vim.tbl_extend("force", opts.linters_by_ft or {}, {
         asm = { "nasm" },
+        python = { "ruff" },
       })
 
       -- Define nasm linter

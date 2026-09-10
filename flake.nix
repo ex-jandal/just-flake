@@ -103,6 +103,7 @@
 
       devShells.${system} = {
         cc = import ./shells/cc.nix { inherit pkgs; };
+        py = import ./shells/python.nix { inherit pkgs; };
       };
     };
 }
