@@ -18,7 +18,6 @@
     nodejs
     python3
     lazygit
-    marksman
     nil
     basedpyright
   ];
