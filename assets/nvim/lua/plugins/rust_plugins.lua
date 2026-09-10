@@ -1,19 +1,8 @@
 local M = {
   {
     "saecki/crates.nvim",
-    ft = { "toml" },
-    config = function()
-      require("crates").setup {
-        completion = {
-          cmp = {
-            enabled = true,
-          },
-        },
-      }
-      require("lua.plugins.acmp").setup.buffer {
-        sources = { { name = "crates" } },
-      }
-    end,
+    lazy = false,
+    opts = {},
   },
 
   {
