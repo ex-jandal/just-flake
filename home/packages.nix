@@ -101,6 +101,8 @@
         nixd
         fish-lsp
         mesonlsp
+        # LSP multiplexer — shares one language-server instance across editors
+        lspmux
       ];
 
       # --- WM / DE / Wayland tools ---
@@ -281,6 +283,7 @@
         pnpm
         go
         rustup
+        dioxus-cli
         # dotnet-sdk
         jdk
         # maven
