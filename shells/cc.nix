@@ -1,27 +1,46 @@
 { pkgs }:
 pkgs.mkShell {
+  # Compile with clang by default so clangd parses the exact same
+  # include/flag set (best LSP fidelity). gcc stays explicitly available.
   packages = with pkgs; [
-    # Compilers + build tools
-    gcc gnumake cmake pkg-config
-    meson ninja
+    # Clang ecosystem + LSP
+    clang-tools
+    gcc
 
-    # Clang ecosystem
-    clang clang-tools
+    # Build tools
+    cmake meson ninja gnumake pkg-config
+    ccache bear
 
-    # Debuggers + profilers
-    gdb lldb valgrind strace
+    # Debugging + profiling + coverage
+    gdb lldb valgrind strace lcov
 
-    # Linting
-    cppcheck
+    # Linting / formatting
+    cppcheck codespell cmake-format
 
-    # Common C++ libraries (headers + pkg-config files)
-    gtest catch2 spdlog fmt nlohmann_json
+    # Testing
+    gtest catch2
+
+    # Common C++ libraries
+    fmt spdlog nlohmann_json
   ];
 
+  # Kill the classic fortify + -O0 glibc warning on debug builds.
+  hardeningDisable = [ "fortify" ];
+
+  env = {
+    CC = "clang";
+    CXX = "clang++";
+    CMAKE_EXPORT_COMPILE_COMMANDS = "ON";
+  };
+
   shellHook = ''
-    echo "C/C++ devShell active"
-    echo "  gcc:   $(gcc --version | head -1)"
-    echo "  clang: $(clang --version | head -1)"
-    echo "  cmake: $(cmake --version | head -1)"
+    echo "C/C++ devShell (clang-based)"
+    echo "  gcc:    $(gcc --version | head -1)"
+    echo "  clang:  $(clang --version | head -1)"
+    echo "  cmake:  $(cmake --version | head -1)"
+    echo "  meson:  $(meson --version | head -1)"
+    echo "clangd LSP: compile_commands.json auto-exports —"
+    echo "  meson in build/, cmake via CMAKE_EXPORT_COMPILE_COMMANDS=ON,"
+    echo "  make via \`bear -- make\`."
   '';
 }
