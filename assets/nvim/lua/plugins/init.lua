@@ -58,7 +58,6 @@ local M = {
         "pyright",
         "texlab",
         "rust-analyzer",
-        "clangd",
         "intelephense",
         "nil_ls",
         "dcm",
