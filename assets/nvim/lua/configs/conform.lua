@@ -10,6 +10,7 @@ local options = {
     json = { "prettier" },
     yaml = { "prettier" },
     markdown = { "prettier" },
+    python = { "ruff_format", "ruff_organize_imports" },
     rust = { "rustfmt" },
     assembly = { "asmfmt" }
   },
