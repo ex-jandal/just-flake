@@ -36,6 +36,7 @@
     ./modules/zellij.nix
     ./modules/proxychains.nix
     ./modules/xmcl.nix
+    ./modules/lspmux.nix
     # ./modules/qutebrowser.nix
   ];
 
