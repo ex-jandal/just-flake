@@ -20,53 +20,55 @@ local M = {
       liblldb_path = liblldb_path .. (this_os == "Linux" and ".so")
 
       local cfg = require('rustaceanvim.config')
-      return {
+      vim.g.rustaceanvim = {
+        server = {
+          init_options = {
+            lspMux = {
+              version = "1",
+              method = "connect",
+              server = "rust-analyzer",
+            },
+          },
+          default_settings = {
+            ["rust-analyzer"] = {
+              cargo = {
+                imports = {
+                  granularity = {
+                    group = "module",
+                  },
+                  prefix = "self",
+                },
+                buildScripts = {
+                  enable = true,
+                },
+                allFeatures = true,
+              },
+              checkOnSave = {
+                enable = false,
+                command = "clippy",
+              },
+              procMacro = {
+                enable = true,
+                ignored = {
+                  leptos_macro = {
+                    "server",
+                  },
+                },
+              },
+              checkOnType = {
+                enable = true,
+              },
+              diagnostics = {
+                experimental = true,
+              },
+            },
+          },
+        },
         dap = {
           adapter = cfg.get_codelldb_adapter(codelldb_path, liblldb_path),
         },
       }
     end,
-    ["rust-analyzer"] = {
-      init_options = {
-        lspMux = {
-          enable = true,
-          method = "connect",
-          server = "rust-analyzer",
-        },
-      },
-      cargo = {
-        imports = {
-          granularity = {
-            group = "module",
-          },
-          prefix = "self",
-        },
-        buildScripts = {
-          enable = true,
-        },
-        allFeatures = true,
-      },
-      checkOnSave = {
-        enable = false,
-        command = "clippy",
-      },
-      procMacro = {
-        enable = true,
-        ignored = {
-          leptos_macro = {
-            "server",
-          },
-        },
-      },
-      checkOnType = {
-        enable = true,
-      },
-      {
-        diagnostics = {
-          experimental = true,
-        },
-      },
-    },
   },
 
   {
