@@ -130,13 +130,19 @@ vim.lsp.enable('fish_lsp')
 --   }
 -- )
 
--- vim.lsp.config['clangd'] = {
---   init_options = {
---
---   }
--- }
--- vim.lsp.enable('clangd')
---
+-- C/C++: use the system clangd from nixpkgs clang-tools (auto-detects the
+-- nix libstdc++/glibc include dirs) instead of the generic mason binary,
+-- which only knows /usr/include. Reads the meson build/compile_commands.json.
+vim.lsp.config['clangd'] = {
+  cmd = {
+    '/run/current-system/sw/bin/clangd',
+    '--background-index',
+    '--query-driver=/nix/store/*/bin/gcc',
+    '--query-driver=/nix/store/*/bin/g++',
+  },
+}
+vim.lsp.enable('clangd')
+
 vim.lsp.config['asm_lsp'] = {
   cmd = { "asm-lsp" },
   filetypes = { "asm", "s", "S", "vmasm", "nasm" },
