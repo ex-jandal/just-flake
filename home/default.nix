@@ -37,6 +37,7 @@
     ./modules/proxychains.nix
     ./modules/xmcl.nix
     ./modules/lspmux.nix
+    ./modules/obs-studio.nix
     # ./modules/qutebrowser.nix
   ];
 

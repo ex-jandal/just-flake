@@ -170,7 +170,6 @@
         ffmpeg
         yt-dlp
         imagemagick
-        obs-studio
         # kdenlive missing from this nixpkgs snapshot — re-add if available
         # blender
         # inkscape
