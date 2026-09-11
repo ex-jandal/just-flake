@@ -85,5 +85,5 @@ style = "#83a598"
 
 [nix_shell]
 format = "[ $symbol $state ]($style)"
-symbol = '❄ '
+symbol = ' '
 style = 'bold fg:blue bg:black'
