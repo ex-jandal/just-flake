@@ -100,7 +100,19 @@
   # --- Networking (Noctalia needs NetworkManager) ---
   networking = {
     hostName = "nixos";
-    networkmanager.enable = true;
+    networkmanager = {
+      enable = true;
+      plugins = with pkgs; [
+        networkmanager-l2tp
+        # networkmanager-fortisslvpn
+        # networkmanager-iodine
+        # networkmanager-openconnect
+        # networkmanager-openvpn
+        # networkmanager-sstp
+        # networkmanager-strongswan
+        # networkmanager-vpnc
+      ];
+    };
     # The dnscrypt-proxy module sets networking.nameservers = 127.0.0.1 when
     # enabled, which would route ALL system DNS through the proxy. Neutralize
     # with mkForce: dnscrypt-proxy runs in the background on 127.0.0.1:53 only,
