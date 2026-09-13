@@ -4,11 +4,7 @@
   ...
 }:
 {
-  # NeoVim — NvChad-based (lazy.nvim). Config copied verbatim; plugins fetch
-  # at runtime via lazy.nvim (approved: runtime network fetch, not nix-pinned).
   home.packages = with pkgs; [
-    neovim
-    # lazy.nvim plugin system deps + formatters often invoked from within nvim
     git
     curl
     unzip
@@ -37,6 +33,4 @@
 
   # Set nvim as default editor system-wide in home-manager.
   home.sessionVariables.EDITOR = "nvim";
-
-  programs.neovim.enable = false;
 }

@@ -1,21 +1,5 @@
-# Phase 2 — NixOS system config for the nixos host.
-#
-# ACTIVE ONLY AFTER MIGRATING TO NIXOS.
-# Currently this file is a stub; home-manager (home/default.nix) is the
-# active, testable part right now (run: `home-manager build --flake .#nixos`).
-#
-# Steps to activate on NixOS:
-#   1. Run `nixos-generate-config --root /` on the real machine and copy
-#      the generated `hardware-configuration.nix` over hosts/nixos/hardware.nix.
-#   2. Confirm GPU drivers + bootloader/filesystems (from hardware.nix).
-#   3. Enable `nixosConfigurations.nixos` in flake.nix.
-#   4. `sudo nixos-rebuild switch --flake .#nixos`
-
 {
   pkgs,
-  inputs,
-  lib,
-  config,
   ...
 }:
 {

@@ -55,6 +55,8 @@
     # GUI lives in home/packages.nix and spawns the server locally).
     gns3-server
 
+    networkmanagerapplet
+
     linuxPackages.usbip
   ];
 
