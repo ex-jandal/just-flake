@@ -112,7 +112,7 @@
     shellAliases = {
       ls = "eza --icons always";
       clear = "printf '\\033[2J\\033[3J\\033[1;1H'";
-      lazyvim = "NVIM_APPNAME=lazyvim nvim";
+      # lazyvim = "NVIM_APPNAME=lazyvim ${pkgs.neovim}/bin/nvim";
       onefetch = "onefetch --nerd-fonts";
       ssh-kali = "ssh kali@192.168.122.60";
       ssh-parrot = "ssh parrot@192.168.122.99";

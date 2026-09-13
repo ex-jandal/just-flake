@@ -3,7 +3,7 @@
   # --- Bluetooth ---
   hardware.bluetooth.enable = true;
 
-  # --- Networking (Noctalia needs NetworkManager) ---
+  # --- Networking ---
   networking = {
     hostName = "nixos";
     networkmanager = {
@@ -28,6 +28,9 @@
   };
   # Use iwd as the Wi-Fi backend for NetworkManager (matches Arch).
   networking.networkmanager.wifi.backend = "iwd";
+
+  services.xl2tpd.enable = true;
+  services.strongswan.enable = true;
 
   # --- DNSCrypt proxy (config ported from Arch /etc/dnscrypt-proxy/*) ---
   services.dnscrypt-proxy = {
