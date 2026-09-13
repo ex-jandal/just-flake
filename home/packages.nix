@@ -47,6 +47,7 @@
         rusbmux
         file
         nix-your-shell
+        ghostscript
       ];
 
       # --- Terminals ---
@@ -66,6 +67,7 @@
         kdePackages.ffmpegthumbs
         kdePackages.kimageformats
         kdePackages.ark
+        kdePackages.systemsettings
         # File selector for qutebrowser fileselect.* (choosefile/choosedir).
         ranger
         nautilus
@@ -78,7 +80,7 @@
         # Ships lib/qt-6/plugins/styles/darkly6.so + kdecoration3 plugin.
         darkly
         # Office / documents / archive / transfer
-        # libreoffice
+        libreoffice
         # inkscape
         # evince
         pdftk
@@ -145,6 +147,7 @@
         # Gnome helper apps
         gnome-calculator
         gnome-disk-utility
+        gnome-text-editor
         gnome-font-viewer
         # Disk / USB / filesystem tools
         udiskie
@@ -173,7 +176,7 @@
         # kdenlive missing from this nixpkgs snapshot — re-add if available
         # blender
         # inkscape
-        # audacity
+        audacity
         easyeffects
         pavucontrol
         gpu-screen-recorder
@@ -211,9 +214,8 @@
         localsend
         sioyek
         # super-productivity
-        # flameshot
         # tigervnc
-        # freerdp
+        freerdp
         # xchm
         # drawio
       ];
