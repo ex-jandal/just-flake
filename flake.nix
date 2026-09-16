@@ -10,8 +10,8 @@
     };
 
     noctalia = {
+      # - do NOT follow nixpkgs here — it would break the binary cache.
       url = "github:noctalia-dev/noctalia/cachix";
-      # NOTE: do NOT follow nixpkgs here — it would break the binary cache.
     };
 
     noctalia-greeter = {
@@ -19,7 +19,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    helium-flake =  {
+    helium-flake = {
       url = "github:oxcl/nix-flake-helium-browser";
       inputs.nixpkgs.follows = "nixpkgs";
     };
@@ -37,11 +37,6 @@
       url = "github:nix-community/nix-index-database";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    nixvim = {
-      url = "github:nix-community/nixvim";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   nixConfig = {
@@ -52,37 +47,29 @@
   };
 
   outputs =
-    { 
-      self, 
-      nixpkgs, 
-      home-manager, 
-      noctalia, 
-      rusbmux, 
-      helium-flake, 
-      nixvim,
+    {
+      self,
+      nixpkgs,
+      home-manager,
+      noctalia,
+      rusbmux,
+      helium-flake,
       ...
     }@inputs:
     let
-      system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
+      pkgs = nixpkgs.legacyPackages.x86_64-linux;
     in
     {
-      # Home-manager flake — works on Arch now (test via `home-manager build`).
       homeConfigurations = {
         nixos = home-manager.lib.homeManagerConfiguration {
           inherit pkgs;
           extraSpecialArgs = {
-            inherit inputs system;
+            inherit inputs;
+            system = pkgs.stdenv.hostPlatform.system;
           };
           modules = [
             ./home/default.nix
-            # nixvim home-manager module — provides programs.nixvim.
-            nixvim.homeModules.default
-            # Standalone config builds its own pkgs, so unfree/license gates
-            # must be set here. The NixOS path (useGlobalPkgs) inherits them
-            # from hosts/nixos/default.nix instead — never set nixpkgs.* in
-            # the shared home/default.nix.
-            ({ lib, ... }: {
+            ({ ... }: {
               nixpkgs.config.allowUnfreePredicate = _: true;
               nixpkgs.config.joypixels.acceptLicense = true;
             })
@@ -90,28 +77,29 @@
         };
       };
 
-      # Phase 2 — NixOS system config.
       nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
-        # system is set via `nixpkgs.hostPlatform` in hosts/nixos/default.nix.
+        # - system set via `nixpkgs.hostPlatform` in hosts/nixos/default.nix.
         specialArgs = { inherit inputs; };
         modules = [
           ./hosts/nixos/default.nix
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
-            # home/default.nix needs the same inputs/system it gets via
-            # extraSpecialArgs in the standalone home-manager flake above.
-            home-manager.extraSpecialArgs = { inherit inputs system; };
+            # - home/default.nix needs the same inputs/system it gets via
+            #   extraSpecialArgs in the standalone home-manager flake above.
+            home-manager.extraSpecialArgs = {
+              inherit inputs;
+              system = pkgs.stdenv.hostPlatform.system;
+            };
             home-manager.users.abu_jandal = import ./home/default.nix;
-            # nixvim home-manager module — provides programs.nixvim.
-            home-manager.sharedModules = [ nixvim.homeModules.default ];
           }
         ];
       };
 
-      formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;
+      formatter.${pkgs.stdenv.hostPlatform.system} =
+        nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system}.nixfmt-rfc-style;
 
-      devShells.${system} = {
+      devShells.${pkgs.stdenv.hostPlatform.system} = {
         cc = import ./shells/cc.nix { inherit pkgs; };
         py = import ./shells/python.nix { inherit pkgs; };
       };

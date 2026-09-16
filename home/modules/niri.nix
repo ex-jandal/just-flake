@@ -3,11 +3,10 @@
   ...
 }:
 {
-  # Niri window manager — faithful copy of config.kdl + mirroring script.
-  # noctalia.kdl / monitor.kdl are NOT shipped as store symlinks (Noctalia
-  # must be able to overwrite them); they are seeded as real writable files
-  # (seed-if-absent) so niri's includes never dangle on a fresh install while
-  # Noctalia's re-rendered themes survive rebuilds.
+  # - niri window manager — faithful copy of config.kdl + mirroring script.
+  #   noctalia.kdl / monitor.kdl are NOT shipped as store symlinks (Noctalia
+  #   must be able to overwrite them); seeded as real writable files so niri's
+  #   includes never dangle while Noctalia's re-rendered themes survive rebuilds.
   home.packages = [ pkgs.niri ];
 
   xdg.configFile."niri/config.kdl".source = ../../assets/niri/config.kdl;

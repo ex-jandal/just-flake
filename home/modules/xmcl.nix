@@ -1,7 +1,7 @@
-{ 
+{
   pkgs,
-  inputs, 
-  ... 
+  inputs,
+  ...
 }:
 {
   imports = [
@@ -19,5 +19,5 @@
       jre8
       temurin-jre-bin-17
     ];
-  }; 
+  };
 }

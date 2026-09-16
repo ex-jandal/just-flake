@@ -1,12 +1,18 @@
-{ lib, config, pkgs, ... }:
 {
-  # --- Power management: TLP (settings ported from Arch /etc/tlp.conf) ---
-  # Noctalia's recommendedServices enables power-profiles-daemon; we force it
-  # off because TLP and PPD fight over the same /sys power knobs.
+  lib,
+  config,
+  pkgs,
+  ...
+}:
+{
+  # - TLP (settings ported from Arch /etc/tlp.conf). Noctalia's
+  #   recommendedServices enables power-profiles-daemon; force it off because
+  #   TLP and PPD fight over the same /sys power knobs.
   services.power-profiles-daemon.enable = lib.mkForce false;
   services.tlp = {
     enable = true;
-    # Radio Device Wizard (tlp-rdw) — pulled in when NetworkManager is enabled.
+    # - tlp-rdw (Radio Device Wizard) — pulled in when NetworkManager is
+    #   enabled
     package = pkgs.tlp.override {
       enableRDW = config.networking.networkmanager.enable;
     };
@@ -28,6 +34,6 @@
       USB_AUTOSUSPEND = 1;
     };
   };
-  # tlp-pd (powered devices daemon), matches Arch tlp-pd.
+  # - tlp-pd (powered devices daemon), matches Arch tlp-pd.
   services.tlp.pd.enable = true;
 }

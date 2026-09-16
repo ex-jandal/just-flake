@@ -3,7 +3,6 @@
   ...
 }:
 {
-  # yazi — terminal file manager (git + full-border plugins).
   programs.yazi = {
     enable = true;
     shellWrapperName = "y";

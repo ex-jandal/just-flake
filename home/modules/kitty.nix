@@ -3,8 +3,8 @@
   ...
 }:
 {
-  # kitty — copy config verbatim (uses noctalia theme include + kittens).
-  # The Noctalia theme file is owned/rendered by Noctalia (seeded if-absent).
+  # - kitty: config copied verbatim (uses noctalia theme include + kittens).
+  #   Noctalia theme file is owned/rendered by Noctalia (seeded if-absent).
   home.packages = [ pkgs.kitty ];
 
   xdg.configFile."kitty/kitty.conf".source = ../../assets/kitty/kitty.conf;
