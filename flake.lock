@@ -196,16 +196,15 @@
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1788961540,
-        "narHash": "sha256-tdIsJ7eU8xSkKXpCCHU338Vp4Z1jyUCY3G7Upp3aEJo=",
-        "owner": "ex-jandal",
+        "lastModified": 1789569985,
+        "narHash": "sha256-3PhpQbcvioGkHmyA5uqO6ucscrKOloWb2PvkXXjPtP0=",
+        "owner": "abdullah-albanna",
         "repo": "rusbmux",
-        "rev": "76fff41e22cf4c4a85a2f42cf9988f0139d10d21",
+        "rev": "fb48e156271ed676ad12e80134db256176c5a47f",
         "type": "github"
       },
       "original": {
-        "owner": "ex-jandal",
-        "ref": "ex-jandal/nix-flake",
+        "owner": "abdullah-albanna",
         "repo": "rusbmux",
         "type": "github"
       }

@@ -30,7 +30,7 @@
     };
 
     rusbmux = {
-      url = "github:ex-jandal/rusbmux/ex-jandal/nix-flake";
+      url = "github:abdullah-albanna/rusbmux";
     };
 
     nix-index-database = {
