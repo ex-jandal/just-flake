@@ -1,17 +1,12 @@
-# Cisco Packet Tracer 9.0.1 from the official Ubuntu .deb — newer than
-# nixpkgs's cisco-packet-tracer_9 (9.0.0), so we build our own following the
-# exact same recipe (requireFile -> unpack deb -> extract AppImage ->
-# appimageTools.wrapType2).
-#
-# The deb must be registered in the Nix store once (requireFile flow, same as
-# nixpkgs):
-#
+# - Cisco Packet Tracer 9.0.1 from the official Ubuntu .deb — newer than
+#   nixpkgs's cisco-packet-tracer_9 (9.0.0), so we build our own following the
+#   same recipe (requireFile -> unpack deb -> extract AppImage ->
+#   appimageTools.wrapType2).
+# - the deb must be registered in the Nix store once (requireFile flow):
 #   nix-store --add-fixed sha256 ~/Downloads/CiscoPacketTracer_901_Ubuntu_64bit.deb
-#   # or: nix-prefetch-url file:///home/abu_jandal/Downloads/CiscoPacketTracer_901_Ubuntu_64bit.deb
-#
-# The deb ships a single AppImage at opt/pt/packettracer.AppImage. The wrapper
-# adds libpng/libxkbfile and forces QT_QPA_PLATFORM=xcb (Wayland/niri launch
-# fix); it then runs under XWayland themed via qt6ct.
+# - the deb ships a single AppImage at opt/pt/packettracer.AppImage; the
+#   wrapper adds libpng/libxkbfile and forces QT_QPA_PLATFORM=xcb (Wayland/niri
+#   launch fix); it then runs under XWayland themed via qt6ct.
 {
   pkgs,
   lib,
@@ -54,8 +49,8 @@ pkgs.appimageTools.wrapType2 rec {
   ];
 
   extraBwrapArgs = [
-    # fixes launch on wayland when the user sets QT_QPA_PLATFORM=wayland:
-    # "Fatal: This application failed to start because no Qt platform plugin could be initialized."
+    # - fixes launch on wayland when QT_QPA_PLATFORM=wayland is set
+    #   ("Fatal: no Qt platform plugin could be initialized")
     "--setenv QT_QPA_PLATFORM xcb"
   ];
 

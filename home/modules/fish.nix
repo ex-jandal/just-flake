@@ -11,9 +11,9 @@
   programs.command-not-found.enable = false;
 
   home.packages = with pkgs; [
-    # fisher plugins (see assets/fish/fish_plugins) are now declared below via
-    # programs.fish.plugins (HM-generated fish_plugins + vendor symlinks); here
-    # just provide the underlying tools the plugins need.
+    # - fisher plugins (see assets/fish/fish_plugins) are declared below via
+    #   programs.fish.plugins (HM-generated fish_plugins + vendor symlinks);
+    #   here we just provide the underlying tools the plugins need.
     zoxide
     fzf
     eza
@@ -21,12 +21,12 @@
     lazygit
   ];
 
-  # Env vars (in `home.sessionVariables` so they apply to fish and other shells).
+  # - env vars in `home.sessionVariables` so they apply to fish and other shells
   home.sessionVariables = {
     EDITOR = "nvim";
     PAGER = "bat";
     MANPAGER = "nvim -c +Man!";
-    # --- Dev environments (NixOS: resolved from the flake's nixpkgs) ---
+    # - dev environments resolved from the flake's nixpkgs
     JAVA_HOME = "${pkgs.jdk.home}";
     ANDROID_HOME = "$HOME/Android/Sdk";
     ANDROID_EMULATOR_HOME = "$HOME/.android";
@@ -36,9 +36,9 @@
     fish_lsp_server_path = "${pkgs.fish-lsp}/bin/fish-lsp";
   };
 
-  # User-authored fish functions from the original config (git helpers, nipe).
-  # Plugin-provided functions (fisher/fzf/pisces) are fetched at runtime and
-  # deliberately NOT copied to avoid clobbering the runtime plugin installs.
+  # - user-authored fish functions from the original config (git helpers, nipe).
+  #   Plugin-provided functions (fisher/fzf/pisces) are fetched at runtime and
+  #   deliberately NOT copied to avoid clobbering the runtime plugin installs.
   home.file.".config/fish/functions/gbuild.fish".source = ../../assets/fish/functions/gbuild.fish;
   home.file.".config/fish/functions/_gc.fish".source = ../../assets/fish/functions/_gc.fish;
   home.file.".config/fish/functions/gci.fish".source = ../../assets/fish/functions/gci.fish;
@@ -53,7 +53,6 @@
 
   programs.fish = {
     enable = true;
-    # vi keybindings
     interactiveShellInit = ''
       set fish_greeting ""
       fish_vi_key_bindings
@@ -76,9 +75,9 @@
       ${pkgs.nix-your-shell}/bin/nix-your-shell fish | source
     '';
 
-    # Mirrors the Arch fish_plugins list (assets/fish/fish_plugins): pisces
-    # (brackets/parens auto-pairing), fzf.fish (fzf keybindings + previews),
-    # fish-git-emojis (gitmoji in commit subject). Pinned declaratively.
+    # - mirrors the Arch fish_plugins list (assets/fish/fish_plugins): pisces
+    #   (brackets/parens auto-pairing), fzf.fish (fzf keybindings + previews),
+    #   fish-git-emojis (gitmoji in commit subject). Pinned declaratively.
     plugins = [
       {
         name = "laughedelic/pisces";
@@ -149,6 +148,38 @@
       big-upgrade-packages = ''
         sudo pacman -Su | awk '{printf("Package: %s -> %s %s\n", $1, $6, $7)}' | sort -k4,4n -rh | tail -n +17
       '';
+      convert_social = {
+        description = "Compress and convert video for social media compatibility";
+        body = ''
+          if test (count $argv) -lt 2
+              echo "Error: Missing arguments."
+              echo "Usage: convert_social <input_file> <output_file> [crf]"
+              return 1
+          end
+
+          set -l input $argv[1]
+          set -l output $argv[2]
+          set -l crf 26
+          if test (count $argv) -ge 3
+              set crf $argv[3]
+          end
+
+          if not test -f "$input"
+              echo "Error: Input file '$input' does not exist."
+              return 1
+          end
+
+          ${pkgs.ffmpeg}/bin/ffmpeg -i "$input" \
+              -c:v libx264 \
+              -crf $crf \
+              -preset slow \
+              -pix_fmt yuv420p \
+              -c:a aac \
+              -b:a 128k \
+              -movflags +faststart \
+              "$output"
+        '';
+      };
     };
   };
 }

@@ -1,19 +1,29 @@
 { pkgs }:
 pkgs.mkShell {
   packages = with pkgs; [
-    (python3.withPackages (ps: with ps; [
-      numpy pandas requests
-      fastapi uvicorn rich pydantic
-      pytest pytest-cov
-    ]))
+    (python3.withPackages (
+      ps: with ps; [
+        numpy
+        pandas
+        requests
+        fastapi
+        uvicorn
+        rich
+        pydantic
+        pytest
+        pytest-cov
+      ]
+    ))
 
-    # Python project tooling
-    uv pipx rye
+    uv
+    pipx
+    rye
 
-    # Linting / formatting / type checking
-    ruff black mypy pyright
+    ruff
+    black
+    mypy
+    pyright
 
-    # Build tool interop
     pkg-config
   ];
 

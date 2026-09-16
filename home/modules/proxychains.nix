@@ -1,14 +1,14 @@
 {
   ...
-}: {
-  # proxychains-ng per-user config. proxychains-ng walks several candidate
-  # paths in order ($PROXYCHAINS_CONF_FILE, ~/.proxychains/proxychains.conf,
-  # /etc/proxychains4.conf, ...); dropping this file at the per-user location
-  # is picked up automatically without touching system config.
-  #
-  # dynamic_chain -> walk the ProxyList and use the first live proxy; doesn't
-  # hard-fail if a later entry (e.g. fast SOCKS 9063 or Privoxy 8118) isn't up.
-  # proxy_dns     -> resolve names through the proxy chain (keeps lookups on Tor).
+}:
+{
+  # - proxychains-ng per-user config: walks several candidate paths in order
+  #   ($PROXYCHAINS_CONF_FILE, ~/.proxychains/proxychains.conf,
+  #   /etc/proxychains4.conf, ...); dropping the file at the per-user location
+  #   is picked up automatically without touching system config.
+  #   - dynamic_chain: walk the ProxyList and use the first live proxy; doesn't
+  #     hard-fail if a later entry (e.g. fast SOCKS 9063 or Privoxy 8118) isn't up.
+  #   - proxy_dns: resolve names through the proxy chain (keeps lookups on Tor).
   home.file.".proxychains/proxychains.conf".text = ''
     # dynamic_chain
     #

@@ -11,7 +11,7 @@
     stateVersion = "25.05";
   };
 
-  # Curated daily-use package list.
+  # - curated daily-use package list.
   imports = [
     ./packages.nix
     ./modules/niri.nix
@@ -38,7 +38,7 @@
     ./modules/xmcl.nix
     ./modules/lspmux.nix
     ./modules/obs-studio.nix
-    # ./modules/qutebrowser.nix
+    # - ./modules/qutebrowser.nix
   ];
 
   programs.home-manager.enable = true;

@@ -1,24 +1,24 @@
 { pkgs, ... }:
 {
   boot = {
-    # --- Boot loader: GRUB on UEFI (matches Arch) ---
+    # - boot loader: GRUB on UEFI (matches Arch); EFI-only, no legacy MBR
     loader = {
       efi.canTouchEfiVariables = true;
       grub = {
         enable = true;
-        device = "nodev"; # EFI-only install, no legacy MBR
+        device = "nodev";
         efiSupport = true;
       };
     };
 
-    # --- Boot splash (matches Arch plymouth) ---
+    # - plymouth boot splash (matches Arch plymouth)
     plymouth.enable = true;
 
-    # --- Initramfs: use the modern systemd initrd (NixOS's fast, minimal
-    #     equivalent of Arch's booster) in place of the legacy stage-1 initrd. ---
+    # - systemd initrd — NixOS's fast, minimal equivalent of Arch's booster,
+    #   in place of the legacy stage-1 initrd
     initrd.systemd.enable = true;
 
-    # Enable silent boot to hide text spam behind the splash
+    # - silent boot: hide text spam behind the splash
     consoleLogLevel = 3;
     initrd.verbose = false;
     kernelParams = [
@@ -28,10 +28,9 @@
       "sysv.enabled=0"
     ];
 
-    # --- Kernel: linux-zen (matches Arch linux-zen + linux-zen-headers) ---
-    # Zen = mainline + desktop-latency/CPU-scheduler tweaks. 7.1.10 is the
-    # newest Zen in this nixpkgs snapshot; NixOS otherwise defaults to the LTS
-    # stable kernel.
+    # - linux-zen kernel (matches Arch linux-zen + linux-zen-headers) —
+    #   mainline + desktop-latency/CPU-scheduler tweaks; NixOS otherwise
+    #   defaults to the LTS stable kernel
     kernelPackages = pkgs.linuxPackages_zen;
     kernelModules = [
       "vhci-hcd"

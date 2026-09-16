@@ -1,9 +1,10 @@
 {
   pkgs,
   ...
-}: {
-  # Terminal multiplexer (zellij) + AMD GPU monitor (amdgpu_top — nvtop absent
-  # from this nixpkgs snapshot). Config.kdl ported verbatim from Arch.
+}:
+{
+  # - terminal multiplexer (zellij) + AMD GPU monitor (amdgpu_top — nvtop absent
+  #   from this snapshot). Config.kdl ported verbatim from Arch.
   home.packages = with pkgs; [
     zellij
     amdgpu_top
