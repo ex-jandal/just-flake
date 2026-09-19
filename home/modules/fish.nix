@@ -34,6 +34,10 @@
     ANDROID_EMU_OPTIONS = "-gpu host -no-snapshot -accel on -qemu -enable-kvm";
     PNPM_HOME = "$HOME/.local/share/pnpm";
     fish_lsp_server_path = "${pkgs.fish-lsp}/bin/fish-lsp";
+    # - Java AWT/Swing GUI apps (Ghidra, etc.) render a blank window under niri
+    #   + xwayland-satellite (non-reparenting WM) unless AWT is told not to
+    #   assume reparenting. See xwayland-satellite README + niri wiki.
+    _JAVA_AWT_WM_NONREPARENTING = "1";
   };
 
   # - user-authored fish functions from the original config (git helpers, nipe).

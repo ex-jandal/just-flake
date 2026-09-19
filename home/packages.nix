@@ -45,6 +45,7 @@
         file
         nix-your-shell
         ghostscript
+        tesseract
       ];
 
       terminals = with pkgs; [
@@ -158,7 +159,7 @@
         ffmpeg
         yt-dlp
         imagemagick
-        # - kdenlive missing from this snapshot — re-add if available
+        kdePackages.kdenlive
         # - blender
         # - inkscape
         audacity
@@ -184,11 +185,12 @@
         telegram-desktop
         signal-desktop
         legcord
+        zapzap
       ];
 
       extras = with pkgs; [
         # - apps from the Arch inventory delta (see ARCH-INVENTORY.md §8)
-        # - obsidian
+        obsidian
         # - qbittorrent
         waybar
         # - mako
@@ -197,7 +199,8 @@
         mpd
         localsend
         sioyek
-        # - super-productivity
+        # -  super-productivity
+        anki
         # - tigervnc
         freerdp
         # - xchm
@@ -231,7 +234,6 @@
 
       network = with pkgs; [
         # - bind
-        # - whois
         # - ipcalc
         # - dnscrypt-proxy
         # - cloudflared
@@ -251,7 +253,7 @@
         # - wine
         # - wine64
         # - winetricks
-        # - lutris
+        # lutris
         # - mangohud
       ];
 
@@ -302,7 +304,6 @@
         # - john
         proxychains-ng
         # - radare2
-        # - ghidra
         # - r2ghidra not in this snapshot — re-add if available
         # - nmap
         burpsuite
@@ -315,7 +316,7 @@
         # - anonymous overlay network + tooling (Tor config in hosts/nixos)
         # - tor
         torsocks
-        # - tor-browser
+        tor-browser
       ];
 
       theme = with pkgs; [

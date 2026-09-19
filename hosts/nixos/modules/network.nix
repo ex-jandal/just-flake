@@ -66,11 +66,37 @@
   # - dnscrypt-proxy (config ported from Arch /etc/dnscrypt-proxy/*)
   services.dnscrypt-proxy = {
     enable = true;
-    settings = {
+settings = {
+      static = {
+        quad9alpha = {
+          stamp = "sdns://AgcAAAAAAAAAAAATYWxwaGEtZG5zLnF1YWQ5Lm5ldAovZG5zLXF1ZXJ5";
+        };
+        adnull = {
+          stamp = "sdns://AgcAAAAAAAAAAAAOZG5zLmFkbnVsbC5jb20KL2Rucy1xdWVyeQ";
+        };
+        envs = {
+          stamp = "sdns://AgcAAAAAAAAAAAAMZG5zLmVudnMubmV0Ci9kbnMtcXVlcnk";
+        };
+        apple = {
+          stamp = "sdns://AgcAAAAAAAAAAAARZG9oLmRucy5hcHBsZS5jb20KL2Rucy1xdWVyeQ";
+        };
+        shecan = {
+          stamp = "sdns://AgcAAAAAAAAAAAANcHJvLnNoZWNhbi5pcgovZG5zLXF1ZXJ5";
+        };
+        v0dka = {
+          stamp = "sdns://AgcAAAAAAAAAAAAIdjBka2EucnUKL2Rucy1xdWVyeQ";
+        };
+      };
       server_names = [
         "quad9-dnscrypt-ip4-nofilter-pri"
         "quad9-dnscrypt-ip4-nofilter-ecs-pri"
         "cloudflare"
+        "quad9alpha"
+        "adnull"
+        "envs"
+        "apple"
+        "shecan"
+        "v0dka"
       ];
       listen_addresses = [ "127.0.0.1:53" ];
       max_clients = 250;

@@ -31,6 +31,7 @@
     ./modules/services.nix
     ./modules/power-management.nix
     ./modules/fonts.nix
+    ./modules/audio.nix
     ./packages.nix
   ];
 
@@ -38,16 +39,6 @@
   #   (amdgpu/vulkan-radeon). On NixOS amdgpu needs no extra packages (mesa
   #   ships it); for NVIDIA set hardware.nvidia.* + videoDrivers = ["nvidia"].
   hardware.graphics.enable = true;
-
-  # - Audio: PipeWire
-  security.rtkit.enable = true;
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-    jack.enable = true;
-  };
 
   # - Enable the Core GVfs Service (includes MTP and network backends by default)
   services.gvfs.enable = true;
