@@ -66,4 +66,10 @@
 
   programs.helium.enable = true;
   programs.kdeconnect.enable = true;
+
+  programs.ghidra = {
+    enable = true;
+    package = pkgs.ghidra;
+    gdb = true;
+  };
 }
