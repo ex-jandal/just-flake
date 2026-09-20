@@ -130,12 +130,12 @@ settings = {
       #   cloaking_rules/forwarding_rules are TOML strings (single file path).
       #   Nesting the latter as tables makes dnscrypt-proxy abort at startup,
       #   killing all DNS (resolv.conf -> dead 127.0.0.1 stub).
-      blocked_names = {
-        blocked_names_file = ../../../assets/dnscrypt/blocked-names.txt;
-      };
-      blocked_ips = {
-        blocked_ips_file = ../../../assets/dnscrypt/blocked-ips.txt;
-      };
+      # blocked_names = {
+      #   blocked_names_file = ../../../assets/dnscrypt/blocked-names.txt;
+      # };
+      # blocked_ips = {
+      #   blocked_ips_file = ../../../assets/dnscrypt/blocked-ips.txt;
+      # };
       cloaking_rules = ../../../assets/dnscrypt/cloaking-rules.txt;
       forwarding_rules = ../../../assets/dnscrypt/forwarding-rules.txt;
     };
