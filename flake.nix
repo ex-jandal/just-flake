@@ -39,12 +39,9 @@
     };
   };
 
-  nixConfig = {
-    extra-substituters = [ "https://noctalia.cachix.org" ];
-    extra-trusted-public-keys = [
-      "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
-    ];
-  };
+  # - Noctalia binary cache lives in hosts/nixos/default.nix (nix.settings).
+  #   A flake-level nixConfig.extra-trusted-public-keys would be ignored for
+  #   untrusted users ("restricted setting") and just spam a warning.
 
   outputs =
     {
@@ -102,6 +99,7 @@
       devShells.${pkgs.stdenv.hostPlatform.system} = {
         cc = import ./shells/cc.nix { inherit pkgs; };
         py = import ./shells/python.nix { inherit pkgs; };
+        tex = import ./shells/latex.nix { inherit pkgs; };
       };
     };
 }

@@ -46,6 +46,7 @@
         nix-your-shell
         ghostscript
         tesseract
+        pdfminer
       ];
 
       terminals = with pkgs; [
