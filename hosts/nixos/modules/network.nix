@@ -66,7 +66,7 @@
   # - dnscrypt-proxy (config ported from Arch /etc/dnscrypt-proxy/*)
   services.dnscrypt-proxy = {
     enable = true;
-settings = {
+    settings = {
       static = {
         quad9alpha = {
           stamp = "sdns://AgcAAAAAAAAAAAATYWxwaGEtZG5zLnF1YWQ5Lm5ldAovZG5zLXF1ZXJ5";
