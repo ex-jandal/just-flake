@@ -99,6 +99,7 @@
       devShells.${pkgs.stdenv.hostPlatform.system} = {
         cc = import ./shells/cc.nix { inherit pkgs; };
         py = import ./shells/python.nix { inherit pkgs; };
+        term-browser = import ./shells/term-browser.nix { inherit pkgs; };
         tex = import ./shells/latex.nix { inherit pkgs; };
       };
     };
