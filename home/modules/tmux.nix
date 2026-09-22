@@ -11,7 +11,7 @@
   # - provide TPM so the copied config resolves its plugins at runtime.
   #   Pinned to v3.1.0. fetchFromGitHub (hermetic, build-time, cached) instead
   #   of builtins.fetchGit (non-hermetic full clone at eval, broke builds).
-  home.file.".tmux/plugins/tpm" = {
+  home.file.".config/tmux/plugins/tpm" = {
     source = pkgs.fetchFromGitHub {
       owner = "tmux-plugins";
       repo = "tpm";
