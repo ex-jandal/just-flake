@@ -1,8 +1,13 @@
 {
+  lib,
   pkgs,
   inputs,
   ...
 }:
+let
+  # - single source of truth for the plugin list; fed to ~/.config/fish/fish_plugins.
+  fishPluginsFile = builtins.toFile "fish_plugins" (builtins.readFile ../../assets/fish/fish_plugins);
+in
 {
   imports = [
     inputs.nix-index-database.homeModules.default
@@ -11,9 +16,9 @@
   programs.command-not-found.enable = false;
 
   home.packages = with pkgs; [
-    # - fisher plugins (see assets/fish/fish_plugins) are declared below via
-    #   programs.fish.plugins (HM-generated fish_plugins + vendor symlinks);
-    #   here we just provide the underlying tools the plugins need.
+    # - tools the fisher plugins below depend on. The plugins themselves are
+    #   pinned in `programs.fish.plugins`; the fish-side plugin list
+    #   (assets/fish/fish_plugins) is bootstrapped by `home.activation`.
     zoxide
     fzf
     eza
@@ -40,19 +45,12 @@
     _JAVA_AWT_WM_NONREPARENTING = "1";
   };
 
-  # - user-authored fish functions from the original config (git helpers, nipe).
-  #   Plugin-provided functions (fisher/fzf/pisces) are fetched at runtime and
-  #   deliberately NOT copied to avoid clobbering the runtime plugin installs.
-  home.file.".config/fish/functions/gbuild.fish".source = ../../assets/fish/functions/gbuild.fish;
-  home.file.".config/fish/functions/_gc.fish".source = ../../assets/fish/functions/_gc.fish;
-  home.file.".config/fish/functions/gci.fish".source = ../../assets/fish/functions/gci.fish;
-  home.file.".config/fish/functions/gdocs.fish".source = ../../assets/fish/functions/gdocs.fish;
-  home.file.".config/fish/functions/gfeat.fish".source = ../../assets/fish/functions/gfeat.fish;
-  home.file.".config/fish/functions/gfix.fish".source = ../../assets/fish/functions/gfix.fish;
-  home.file.".config/fish/functions/gperf.fish".source = ../../assets/fish/functions/gperf.fish;
-  home.file.".config/fish/functions/gref.fish".source = ../../assets/fish/functions/gref.fish;
-  home.file.".config/fish/functions/gstyle.fish".source = ../../assets/fish/functions/gstyle.fish;
-  home.file.".config/fish/functions/gtest.fish".source = ../../assets/fish/functions/gtest.fish;
+  # - `nipe` is user-authored and ships with no plugin, so it stays managed
+  #   here. The git-helper functions (gbuild/_gc/gci/gdocs/...) are deliberately
+  #   NOT managed: they are byte-identical to the ones in gazorby/fish-git-emojis,
+  #   and `fisher` refuses to install a plugin whose files already exist under
+  #   ~/.config/fish/functions (see its "Cannot install" conflict check). They
+  #   still resolve, via the plugin's functions dir on $fish_function_path.
   home.file.".config/fish/functions/nipe.fish".source = ../../assets/fish/functions/nipe.fish;
 
   programs.fish = {
@@ -79,12 +77,24 @@
       ${pkgs.nix-your-shell}/bin/nix-your-shell fish | source
     '';
 
-    # - mirrors the Arch fish_plugins list (assets/fish/fish_plugins): pisces
-    #   (brackets/parens auto-pairing), fzf.fish (fzf keybindings + previews),
-    #   fish-git-emojis (gitmoji in commit subject). Pinned declaratively.
+    # - mirrors the Arch fish_plugins list (assets/fish/fish_plugins), pinned.
+    #   NOTE: `name` must not contain "/". Home Manager interpolates it into
+    #   `conf.d/plugin-${name}.fish` (modules/programs/fish.nix), and fish
+    #   autoloads `conf.d/*.fish` at the top level only -- a name like
+    #   "gazorby/fish-git-emojis" lands in a subdirectory that fish never reads.
     plugins = [
       {
-        name = "laughedelic/pisces";
+        name = "fisher";
+        # - fetchgit rather than fetchFromGitHub: the latter pulls a tarball from
+        #   codeload.github.com, which is unreachable from this network.
+        src = pkgs.fetchgit {
+          url = "https://github.com/jorgebucaran/fisher";
+          rev = "791da644d33d392216f6b1a9b5fc1e470db6d7f2";
+          sha256 = "185nzkbnsgrmq9pj1llmw6a6w29sbb656r4imkbv2qksdvr9sp2k";
+        };
+      }
+      {
+        name = "pisces";
         src = pkgs.fetchFromGitHub {
           owner = "laughedelic";
           repo = "pisces";
@@ -93,7 +103,7 @@
         };
       }
       {
-        name = "patrickf1/fzf.fish";
+        name = "fzf_fish";
         src = pkgs.fetchFromGitHub {
           owner = "patrickf1";
           repo = "fzf.fish";
@@ -102,7 +112,7 @@
         };
       }
       {
-        name = "gazorby/fish-git-emojis";
+        name = "fish_git_emojis";
         src = pkgs.fetchFromGitHub {
           owner = "gazorby";
           repo = "fish-git-emojis";
@@ -164,7 +174,7 @@
 
           set -l input $argv[1]
           set -l output $argv[2]
-          set -l crf 26
+          set -l crf 28
           if test (count $argv) -ge 3
               set crf $argv[3]
           end
@@ -178,13 +188,27 @@
               -c:v libx264 \
               -crf $crf \
               -preset slow \
-              -pix_fmt yuv420p \
               -c:a aac \
-              -b:a 128k \
-              -movflags +faststart \
+              -b:a 96k \
               "$output"
         '';
       };
     };
   };
+
+  # - Seed ~/.config/fish/fish_plugins from assets/fish/fish_plugins the first
+  #   time. It is the list bare `fisher update` reconciles against, so all four
+  #   plugins are pulled in by one command. Deliberately *not* a home.file:
+  #   fisher rewrites this file itself (fisher.fish writes $fish_plugins after
+  #   every install/update/remove), which would fail on a read-only store
+  #   symlink. Once written it is an ordinary user file and is left alone;
+  #   cleanOldGen only ever considers paths recorded in a generation, so it
+  #   survives rebuilds.
+  home.activation.fisherPlugins = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    fish_plugins="$HOME/.config/fish/fish_plugins"
+    mkdir -p "$(dirname "$fish_plugins")"
+    if [ ! -e "$fish_plugins" ]; then
+      cat ${fishPluginsFile} >"$fish_plugins"
+    fi
+  '';
 }
