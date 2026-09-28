@@ -183,6 +183,9 @@
 
       social = with pkgs; [
         telegram-desktop
+        # - signal-desktop: override forces the gnome-libsecret keyring
+        #   (Electron password store) so it unlocks on non-GNOME desktops
+        #   instead of always asking for a nonexistent master password.
         signal-desktop
         legcord
         zapzap
