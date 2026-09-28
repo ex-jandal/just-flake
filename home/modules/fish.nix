@@ -193,6 +193,22 @@ in
               "$output"
         '';
       };
+      sp = {
+        description = "Bridge Obsidian daily notes and Super Productivity";
+        body = ''
+          # - The bridge lives in the notes repo, not the nix store: it resolves
+          #   the vault from its own path and `sp log` writes back into it.
+          set -l bridge $HOME/project/start-with-cyber/para/tools/sp-bridge.py
+
+          if not test -f $bridge
+              echo "sp: bridge not found at $bridge" >&2
+              return 1
+          end
+
+          # - stdlib only on purpose, so there is no venv to keep in sync.
+          ${pkgs.python3}/bin/python3 $bridge $argv
+        '';
+      };
     };
   };
 

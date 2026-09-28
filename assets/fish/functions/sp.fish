@@ -1,0 +1,1 @@
+/home/abu_jandal/project/start-with-cyber/para/tools/sp.fish
