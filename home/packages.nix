@@ -79,7 +79,6 @@
         #   (lib/qt-6/plugins/styles/darkly6.so + kdecoration3 plugin)
         darkly
         libreoffice
-        # - inkscape
         # - evince
         pdftk
         qpdf
@@ -162,7 +161,7 @@
         imagemagick
         kdePackages.kdenlive
         # - blender
-        # - inkscape
+        inkscape
         audacity
         easyeffects
         pavucontrol
@@ -179,7 +178,7 @@
         # - zen-browser not in this snapshot — re-add if available
         chromium
         # - firefox
-        # - w3m
+        w3m
       ];
 
       social = with pkgs; [
@@ -200,7 +199,7 @@
         mpd
         localsend
         sioyek
-        # -  super-productivity
+        super-productivity
         anki
         # - tigervnc
         freerdp
