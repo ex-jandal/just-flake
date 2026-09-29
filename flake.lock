@@ -186,7 +186,8 @@
         "noctalia": "noctalia",
         "noctalia-greeter": "noctalia-greeter",
         "rusbmux": "rusbmux",
-        "xmcl": "xmcl"
+        "xmcl": "xmcl",
+        "zen-browser": "zen-browser"
       }
     },
     "rusbmux": {
@@ -241,6 +242,29 @@
       "original": {
         "owner": "x45iq",
         "repo": "xmcl-nix",
+        "type": "github"
+      }
+    },
+    "zen-browser": {
+      "inputs": {
+        "home-manager": [
+          "home-manager"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1790640826,
+        "narHash": "sha256-bxciMkBWQ+G9EPwRzZkJ/L+cVgCKbgoHfHAVSlXkj7s=",
+        "owner": "0xc000022070",
+        "repo": "zen-browser-flake",
+        "rev": "50e132ab7f46b99cc750a1f04d6857280d61a84e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "0xc000022070",
+        "repo": "zen-browser-flake",
         "type": "github"
       }
     }

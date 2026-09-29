@@ -1,5 +1,6 @@
 {
   pkgs,
+  inputs,
   ...
 }:
 # - mapped from `pacman -Qqe`/`-Qqm` + config refs
@@ -7,6 +8,12 @@
 # - some AUR-only apps are NOT in nixpkgs and are documented in README
 # - browser/modern apps exposed as options below to keep the list tidy
 {
+  imports = [
+    inputs.zen-browser.homeModules.default
+  ];
+
+  programs.zen-browser.enable = true;
+
   home.packages =
     let
       cli = with pkgs; [
