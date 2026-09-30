@@ -19,6 +19,9 @@
     # Local Tor SOCKS + Privoxy, all routing to Tor (services.tor in
     # hosts/nixos/modules/network.nix). 9050 = slow SOCKS, per-destination
     # circuit; 9063 = fast SOCKS; 8118 = Privoxy HTTP -> 9063.
+    # proxy_dns turns the socks4 entry into SOCKS4a (proxychains sends the
+    # 0.0.0.1 sentinel), so the hostname goes to Tor and DNS does not leak.
+    # Only TCP is proxied, so `proxychains4 ping` is a no-op; use curl/nc.
     socks4 127.0.0.1 9050
     socks5 127.0.0.1 9063
     http 127.0.0.1 8118

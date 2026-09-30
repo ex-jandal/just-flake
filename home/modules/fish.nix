@@ -129,6 +129,9 @@ in
       run-hotspot = "sudo ~/linuxrouter --ap wlan0 'abu_jandal - archlinux' -g 137 --freq-band 2.4 -6 -p";
       run-hotspot5 = "sudo ~/linuxrouter --ap wlan0 'abu_jandal - archlinux' -g 137 --freq-band 5 -6 -p";
       tbrowser = "nix develop ~/just-flake#term-browser -c terminal-browser";
+      # - confirms traffic is really on Tor, not just that a site is reachable.
+      #   -q drops proxychains' chain trace; drop it to see which proxy was used.
+      torcheck = "proxychains4 -q curl -s https://check.torproject.org/api/ip";
     };
 
     shellInit = ''
