@@ -12,10 +12,9 @@
           url = "https://mcp.context7.com/mcp";
         };
       };
-      # plugins = [
-      #   ""
-      #   ""
-      # ];
+      plugin = [
+        "@dietrichgebert/ponytail"
+      ];
     };
   };
 }
