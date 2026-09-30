@@ -12,9 +12,8 @@
     recommendedServices.enable = true;
   };
 
-  # - Display manager: greetd + Noctalia Greeter. The greeter user is required
-  #   by the noctalia-greeter module (it reads services.greetd
-  #   default_session.user).
+  # - greetd + Noctalia Greeter. The greeter user is required: the module
+  #   reads services.greetd default_session.user.
   users.users.greeter = {
     isSystemUser = true;
     group = "greeter";

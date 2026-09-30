@@ -1,15 +1,11 @@
 { pkgs, ... }:
 {
-  # - fonts moved here from home/packages.nix:
-  #   - system-level registration: NixOS writes each font package into the
-  #     fontconfig config by explicit store path, so its cache invalidates on
-  #     every rebuild. Home Manager fonts land in ~/.nix-profile/share/fonts,
-  #     whose store dirs keep a frozen 1970 mtime — fontconfig never rescans,
-  #     and fonts added in a later rebuild stay invisible.
-  #   - Rubik (the system sans-serif across Qt/Chromium/GTK) must be set here,
-  #     not in ~/.config/fontconfig/fonts.conf — that HM-shipped file is a
-  #     read-only store symlink with a frozen mtime, so the config cache never
-  #     re-reads it after a change.
+  # - fonts live here, not home/packages.nix: HM fonts land in
+  #   ~/.nix-profile/share/fonts with a frozen 1970 mtime, so fontconfig never
+  #   rescans and fonts added in a later rebuild stay invisible. System
+  #   registration writes an explicit store path that invalidates on rebuild.
+  #   Rubik must be set here for the same reason: HM's ~/.config/fontconfig/
+  #   fonts.conf is a read-only symlink, so its cache never re-reads.
   fonts = {
     fontconfig.enable = true;
     fontconfig.defaultFonts.sansSerif = [ "Rubik" ];
@@ -68,9 +64,9 @@
       font-awesome
       # - Inter (clean UI sans, nice complement to Rubik)
       inter
-      # - Unavailable in this snapshot: ttf-bitstream-vera, ttf-cairo, ttf-droid-
-      #   sans (non-mono), ttf-gabarito, ttf-sil-lateef, ttf-gnu-free-fonts,
-      #   otf-space-grotesk, separate rubik-vf
+      # - absent from this nixpkgs snapshot: ttf-bitstream-vera, ttf-cairo,
+      #   ttf-droid-sans, ttf-gabarito, ttf-sil-lateef, ttf-gnu-free-fonts,
+      #   otf-space-grotesk
     ];
   };
 }

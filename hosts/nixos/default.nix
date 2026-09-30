@@ -10,16 +10,12 @@
     options = "--delete-older-than 7d";
   };
 
-  # - Link Wayland session .desktop files into /run/current-system/sw/share so
-  #   the Noctalia greeter's session picker can enumerate them. system.path's
-  #   default pathsToLink omits /share/wayland-sessions, so without this no
-  #   session (incl. niri) is ever visible to the greeter.
+  # - system.path omits /share/wayland-sessions, so without this the Noctalia
+  #   greeter's session picker shows no sessions at all.
   environment.pathsToLink = [ "/share/wayland-sessions" ];
 
-  # - Keep the X session + Wayland dir through sudo so root GUI apps (gparted,
-  #   etc.) can open a display under niri. sudo's default env_reset keeps only a
-  #   minimal env; without DISPLAY/XAUTHORITY/XDG_RUNTIME_DIR a root GUI app
-  #   dies with "cannot open display".
+  # - sudo's env_reset drops DISPLAY/XAUTHORITY/XDG_RUNTIME_DIR, so root GUI
+  #   apps under niri die with "cannot open display" without this.
   security.sudo.extraConfig = "Defaults env_keep += \"DISPLAY XAUTHORITY XDG_RUNTIME_DIR\"";
 
   # - Hardware (filesystems, boot.initrd, GPU) — auto-generated. See hardware.nix.

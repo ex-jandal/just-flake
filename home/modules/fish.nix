@@ -37,11 +37,10 @@ in
   };
 
   # - `nipe` is user-authored and ships with no plugin, so it stays managed
-  #   here. The git-helper functions (gbuild/_gc/gci/gdocs/...) are deliberately
-  #   NOT managed: they are byte-identical to the ones in gazorby/fish-git-emojis,
-  #   and `fisher` refuses to install a plugin whose files already exist under
-  #   ~/.config/fish/functions (see its "Cannot install" conflict check). They
-  #   still resolve, via the plugin's functions dir on $fish_function_path.
+  #   here. The git-helper functions (gbuild/_gc/gci/...) are deliberately NOT
+  #   managed: they are byte-identical to gazorby/fish-git-emojis, and fisher
+  #   refuses to install a plugin whose files already exist under
+  #   ~/.config/fish/functions. They still resolve via $fish_function_path.
   home.file.".config/fish/functions/nipe.fish".source = ../../assets/fish/functions/nipe.fish;
 
   programs.fish = {
@@ -68,11 +67,9 @@ in
       ${pkgs.nix-your-shell}/bin/nix-your-shell fish | source
     '';
 
-    # - mirrors the Arch fish_plugins list (assets/fish/fish_plugins), pinned.
-    #   NOTE: `name` must not contain "/". Home Manager interpolates it into
-    #   `conf.d/plugin-${name}.fish` (modules/programs/fish.nix), and fish
-    #   autoloads `conf.d/*.fish` at the top level only -- a name like
-    #   "gazorby/fish-git-emojis" lands in a subdirectory that fish never reads.
+    # - mirrors assets/fish/fish_plugins, pinned. `name` must not contain "/":
+    #   HM interpolates it into conf.d/plugin-${name}.fish, and fish autoloads
+    #   conf.d/*.fish at top level only, so "owner/repo" would never be read.
     plugins = [
       {
         name = "fisher";
@@ -200,14 +197,12 @@ in
     };
   };
 
-  # - Seed ~/.config/fish/fish_plugins from assets/fish/fish_plugins the first
-  #   time. It is the list bare `fisher update` reconciles against, so all four
-  #   plugins are pulled in by one command. Deliberately *not* a home.file:
-  #   fisher rewrites this file itself (fisher.fish writes $fish_plugins after
-  #   every install/update/remove), which would fail on a read-only store
-  #   symlink. Once written it is an ordinary user file and is left alone;
-  #   cleanOldGen only ever considers paths recorded in a generation, so it
-  #   survives rebuilds.
+  # - Seed ~/.config/fish/fish_plugins once; it is the list bare `fisher
+  #   update` reconciles against, so one command pulls in all four plugins.
+  #   Deliberately *not* a home.file: fisher rewrites the file after every
+  #   install/update/remove, which would fail on a read-only store symlink.
+  #   Once written it is an ordinary user file; cleanOldGen only considers paths
+  #   recorded in a generation, so it survives rebuilds.
   home.activation.fisherPlugins = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     fish_plugins="$HOME/.config/fish/fish_plugins"
     mkdir -p "$(dirname "$fish_plugins")"

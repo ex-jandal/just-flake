@@ -10,9 +10,8 @@
     gcc
     nil
     basedpyright
-    # - opencode.nvim discovers a running server's port via
-    #   `pgrep -f 'opencode.*--port'` + `lsof -Fpn -iTCP -sTCP:LISTEN`.
-    #   `lsof` is mandatory there and `:checkhealth opencode` errors without it.
+    # - mandatory for opencode.nvim: it finds the server port via
+    #   `lsof -Fpn -iTCP -sTCP:LISTEN`, and :checkhealth opencode errors without it
     lsof
   ];
 
@@ -26,9 +25,9 @@
     if [[ ! -f "$HOME/.config/nvim/lazy-lock.json" ]]; then
       cp -f "${../../assets/nvim/lazy-lock.json}" "$HOME/.config/nvim/lazy-lock.json"
     fi
-    # - `cp` inherits the source's 0444 mode from the read-only nix store, which
-    #   stops lazy.nvim from writing new pins. Restore owner-write unconditionally
-    #   so pre-existing broken lockfiles get repaired too.
+    # - `cp` inherits the store's 0444 mode, which blocks lazy.nvim from writing
+    #   new pins. Restore owner-write unconditionally so broken lockfiles that
+    #   already exist get repaired too.
     chmod u+w "$HOME/.config/nvim/lazy-lock.json"
   '';
 

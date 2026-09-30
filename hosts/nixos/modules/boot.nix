@@ -28,9 +28,8 @@
       "sysv.enabled=0"
     ];
 
-    # - linux-zen kernel (matches Arch linux-zen + linux-zen-headers) —
-    #   mainline + desktop-latency/CPU-scheduler tweaks; NixOS otherwise
-    #   defaults to the LTS stable kernel
+    # - linux-zen: mainline + desktop-latency/CPU-scheduler tweaks, where NixOS
+    #   otherwise defaults to the LTS stable kernel
     kernelPackages = pkgs.linuxPackages_zen;
     kernelModules = [
       "vhci-hcd"
