@@ -4,11 +4,8 @@
     inputs.rusbmux.nixosModules.default
   ];
 
-  # - optional services: installed but DISABLED at boot — daemons present so
-  #   the tools "just work" once started; not auto-started to keep VM idle
-  #   memory low. Start manually with `systemctl start docker redis mariadb
-  #   postgresql libvirtd ollama mpd avahi` or `sudo systemctl enable --now
-  #   <unit>` to persist across reboots.
+  # - daemons below are installed but DISABLED at boot, to keep VM idle memory
+  #   low. Start with `systemctl start <unit>`, or `--now` to persist.
   virtualisation.docker.enable = false;
 
   programs.virt-manager.enable = true;

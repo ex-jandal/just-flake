@@ -5,9 +5,8 @@
   ...
 }:
 {
-  # - Noctalia v5 — official home-manager module.
-  #   Uses the flake input (cachix branch, pre-built binary) so no quickshell
-  #   is needed.
+  # - Noctalia v5, official module. Uses the flake input (cachix branch,
+  #   pre-built binary) so no quickshell is needed.
   imports = [ inputs.noctalia.homeModules.default ];
 
   programs.noctalia = {
@@ -23,20 +22,16 @@
   # - the Noctalia service wires into home-manager's wayland systemd target,
   #   which is part of home-manager core (no extra option needed here).
 
-  # - supporting tools used by Noctalia features/services (bars, clipboard,
-  #   media, udisks, wallpaper) — plain home packages, NOT module options.
+  # - supporting tools for Noctalia's features (bars, media, udisks, wallpaper).
   #   wl-clipboard/playerctl/udiskie are already in home/packages.nix.
-  #   - polkit-gnome deliberately NOT installed: it ships an XDG autostart
-  #     .desktop whose GTK agent registers first and forces Noctalia's own
-  #     (themed) agent to disable itself (shell.polkit_agent = true in
-  #     assets/noctalia/settings.toml). Noctalia's built-in agent handles auth.
+  #   - polkit-gnome deliberately NOT installed: its XDG autostart .desktop
+  #     registers first and forces Noctalia's own (themed) agent off
+  #     (shell.polkit_agent in assets/noctalia/settings.toml).
   home.packages = with pkgs; [
     bluez
     upower
-    # - dconf CLI — lets Noctalia's gtk template persist gtk-theme +
-    #   color-scheme="prefer-dark" into the dconf DB (its sync_system_appearance
-    #   silently skips when neither gsettings nor dconf is available). Without it
-    #   Chromium's portal Settings.Read reports light.
+    # - dconf CLI: Noctalia's gtk template persists gtk-theme + prefer-dark
+    #   through it. Without it Chromium's portal Settings.Read reports light.
     dconf
   ];
 }

@@ -14,12 +14,10 @@
     fish
     niri
 
-    # - pkexec apps live in the SYSTEM profile (not home.packages) because
-    #   their polkit actions must register with the system polkitd daemon —
-    #   only systemProfile/share/polkit-1/actions is searched. Without the
-    #   action, pkexec strips DISPLAY and root GUI apps die; the action's
-    #   allow_gui annotation forwards DISPLAY/XAUTHORITY. (gparted:
-    #   org.gnome.gparted; ettercap: org.pkexec.ettercap; meson:
+    # - pkexec apps must be in the SYSTEM profile, not home.packages: only
+    #   systemProfile/share/polkit-1/actions is searched, and without the
+    #   action pkexec strips DISPLAY so root GUI apps die. (gparted:
+    #   org.gnome.gparted, ettercap: org.pkexec.ettercap, meson:
     #   com.mesonbuild.install.)
     gparted
     ettercap
@@ -38,10 +36,9 @@
     #   polkit prompt.
     kdePackages.kio-admin
 
-    # - System-wide theme stack so root pkexec GTK apps (gparted, ettercap)
-    #   resolve the same look: adw-gtk3-dark + Papirus-Dark + ComixCursors.
-    #   User profiles are outside root's XDG_DATA_DIRS; these land in
-    #   /run/current-system/sw/share, which every user (incl. root) searches.
+    # - same theme stack as the user profile, so root pkexec apps match. User
+    #   profiles sit outside root's XDG_DATA_DIRS; these land in
+    #   /run/current-system/sw/share, which every user searches.
     adw-gtk3
     papirus-icon-theme
     comixcursors.Black

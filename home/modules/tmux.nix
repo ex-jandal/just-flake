@@ -8,9 +8,8 @@
 
   home.file.".config/tmux/tmux.conf".source = ../../assets/tmux/tmux.conf;
 
-  # - provide TPM so the copied config resolves its plugins at runtime.
-  #   Pinned to v3.1.0. fetchFromGitHub (hermetic, build-time, cached) instead
-  #   of builtins.fetchGit (non-hermetic full clone at eval, broke builds).
+  # - TPM so the copied config resolves its plugins at runtime. Pinned to
+  #   v3.1.0 via fetchFromGitHub; builtins.fetchGit broke builds (non-hermetic).
   home.file.".config/tmux/plugins/tpm" = {
     source = pkgs.fetchFromGitHub {
       owner = "tmux-plugins";

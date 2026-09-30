@@ -3,10 +3,9 @@
   inputs,
   ...
 }:
-# - mapped from `pacman -Qqe`/`-Qqm` + config refs
-# - unfree allowed via nixpkgs.config.allowUnfreePredicate in home/default.nix
-# - some AUR-only apps are NOT in nixpkgs and are documented in README
-# - browser/modern apps exposed as options below to keep the list tidy
+# - mapped from `pacman -Qqe`/`-Qqm` + config refs. Unfree allowed via
+#   nixpkgs.config.allowUnfreePredicate in home/default.nix. AUR-only apps are
+#   not in nixpkgs; see README. Zen browser is enabled as a module above.
 {
   imports = [
     inputs.zen-browser.homeModules.default
@@ -75,10 +74,8 @@
         #   (lib/qt-6/plugins/styles/darkly6.so + kdecoration3 plugin)
         darkly
         libreoffice
-        # - evince
         pdftk
         qpdf
-        # - kew
         atool
         aria2
         libimobiledevice
@@ -103,8 +100,6 @@
         kanshi
         nwg-displays
         flameshot
-        # - swaylock
-        # - swaybg
         slurp
         grim
         wl-clipboard
@@ -155,14 +150,12 @@
         yt-dlp
         imagemagick
         kdePackages.kdenlive
-        # - blender
         inkscape
         audacity
         easyeffects
         pavucontrol
         gpu-screen-recorder
         ffmpegthumbnailer
-        # - vlc
         imv
         gifski
         resvg
@@ -170,9 +163,7 @@
       ];
 
       browsers = with pkgs; [
-        # - zen-browser not in this snapshot — re-add if available
         chromium
-        # - firefox
         w3m
       ];
 
@@ -189,9 +180,7 @@
       extras = with pkgs; [
         # - apps from the Arch inventory delta (see ARCH-INVENTORY.md §8)
         obsidian
-        # - qbittorrent
         waybar
-        # - mako
         swaylock
         fuzzel
         mpd
@@ -199,21 +188,16 @@
         sioyek
         super-productivity
         anki
-        # - tigervnc
         freerdp
-        # - xchm
-        # - drawio
       ];
 
       lab = with pkgs; [
-        # - Cisco Packet Tracer 9.0.1 (unfree): built from the official deb;
-        #   newer than nixpkgs's cisco-packet-tracer_9 (9.0.0). Register the
-        #   deb once: nix-store --add-fixed sha256
+        # - unfree, newer than nixpkgs's cisco-packet-tracer_9 (9.0.0). Build
+        #   needs the deb registered once: nix-store --add-fixed sha256
         #   ~/Downloads/CiscoPacketTracer_901_Ubuntu_64bit.deb
         (pkgs.callPackage ./packages/packet-tracer-901.nix { })
         # - gns3-gui: spawns gns3-server locally
         gns3-gui
-        # - gns3-server
         dynamips
         vpcs
         ubridge
@@ -224,35 +208,21 @@
         traceroute
         netcat-openbsd
         nethogs
-        # - ostinato
         haguichi
         bmon
         cpufetch
       ];
 
       network = with pkgs; [
-        # - bind
-        # - ipcalc
-        # - dnscrypt-proxy
-        # - cloudflared
-        # - openvpn
-        # - tinyproxy
-        # - virt-manager
         virt-viewer
         dnsmasq
         hostapd
         iw
         haveged
-        # - sniffnet
-        # - linux-wifi-hotspot
       ];
 
       game = with pkgs; [
-        # - wine
-        # - wine64
-        # - winetricks
         # lutris
-        # - mangohud
       ];
 
       dev = with pkgs; [
@@ -263,66 +233,34 @@
         go
         rustup
         dioxus-cli
-        # - dotnet-sdk
         jdk
-        # - maven
         gradle
-        # - kotlin
-        # - php
         python3
         uv
-        # - odin
-        # - docker
-        # - docker-compose
         # - qemu_full listed in the lab block (QEMU for GNS3/VMs)
-        # - mitmproxy
-        # - nmap
-        # - mariadb
-        # - postgresql
-        # - redis
-        # - sqlite
-        # - sqls
-        # - sqlfluff
-        # - glab
         gdb
-        # - valgrind
         nasm
-        # - mdbook
-        # - c3c
         neovide
-        # - ollama
         calc
         zigPackages."0.16"
       ];
 
       security = with pkgs; [
-        # - aircrack-ng
-        # - bettercap
-        # - hashcat
-        # - john
         proxychains-ng
-        # - radare2
         # - r2ghidra not in this snapshot — re-add if available
-        # - nmap
         burpsuite
-        # - ida-free
         yersinia
-        # - crunch
-        # - rockyou
-        # - exiftool
-        # - showmethekey
         # - anonymous overlay network + tooling (Tor config in hosts/nixos)
-        # - tor
         torsocks
         tor-browser
       ];
 
       theme = with pkgs; [
         matugen
-        # - adw-gtk3 moved to environment.systemPackages (hosts/nixos) so root
-        #   pkexec GTK apps resolve the theme via system XDG_DATA_DIRS
-        # - comixcursors .Black: multi-output, base `out` is empty — the .Black
-        #   output is what niri references (xcursor-theme "ComixCursors-Black")
+        # - adw-gtk3 is in environment.systemPackages (hosts/nixos) so root
+        #   pkexec apps resolve it via system XDG_DATA_DIRS. comixcursors: use
+        #   the .Black output, its base `out` is empty and that is what niri
+        #   references (xcursor-theme "ComixCursors-Black").
         comixcursors.Black
       ];
 

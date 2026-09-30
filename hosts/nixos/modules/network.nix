@@ -10,42 +10,28 @@
       plugins = with pkgs; [
         networkmanager-l2tp
         networkmanager-strongswan
-        # - networkmanager-fortisslvpn
-        # - networkmanager-iodine
-        # - networkmanager-openconnect
         networkmanager-openvpn
-        # - networkmanager-sstp
-        # - networkmanager-vpnc
       ];
-      # - the L2TP "VPN connection 1" (UUID 65acbc5e-...) is intentionally NOT in
-      #   ensureProfiles: it writes a minimal profile to
-      #   /run/NetworkManager/system-connections that would shadow the full
-      #   gateway/user/password/psk profile in /etc. The /etc profile persists
-      #   across rebuilds (NixOS never wipes NetworkManager/system-connections)
-      #   and already carries ipsec-interface=virbr2 + ipv4.never-default.
+      # - the L2TP "VPN connection 1" (UUID 65acbc5e-...) is intentionally NOT
+      #   in ensureProfiles: it writes a minimal /run profile that shadows the
+      #   full gateway/user/password/psk one in /etc, which persists across
+      #   rebuilds and already carries ipsec-interface=virbr2 + never-default.
     };
-    # - dnscrypt-proxy sets networking.nameservers = 127.0.0.1 when enabled,
-    #   routing ALL DNS through the proxy. Neutralize with mkForce:
-    #   dnscrypt-proxy runs in the background on 127.0.0.1:53 only, and system
-    #   DNS keeps using DHCP (192.168.122.1) until the Noctalia dns-switcher
-    #   plugin points it at the proxy on demand.
+    # - dnscrypt-proxy forces nameservers = 127.0.0.1; mkForce [] keeps system
+    #   DNS on DHCP until the Noctalia dns-switcher plugin points it at the
+    #   proxy on demand.
     nameservers = lib.mkForce [ ];
   };
   # - iwd as the Wi-Fi backend for NetworkManager (matches Arch)
   networking.networkmanager.wifi.backend = "iwd";
 
   services.xl2tpd.enable = false;
-  # - do NOT enable services.strongswan here: nm-l2tp-service spawns its own
-  #   per-connection charon from the strongswan bundled in its package closure
-  #   (networkmanager-l2tp -> strongswan-6.0.7). A system-wide charon binds
-  #   ports 500/4500, conflicts, and has to be SIGINT-killed on every connect
-  #   ("Stopping strongSwan IPsec failed").
+  # - do NOT enable services.strongswan: nm-l2tp-service spawns its own charon
+  #   from its package closure, and a second system-wide one binds 500/4500,
+  #   conflicts, and must be SIGINT-killed on every connect.
 
-  # - Create /etc/strongswan.conf:
-  #   - do NOT use a manual `load = ...` line — plugins are compiled into the
-  #     binary (monolithic build); a manual list overrides the compile-time one
-  #     and breaks everything.
-  #   - disable the integrity self-test (it fails on Nix store paths).
+  # - integrity_test = no: the self-test fails on Nix store paths. No manual
+  #   `load = ...` — plugins are compiled in, and overriding breaks everything.
   environment.etc."strongswan.conf".text = ''
     libstrongswan {
       integrity_test = no
@@ -125,11 +111,11 @@
       cache_max_ttl = 86400;
       cache_neg_min_ttl = 60;
       cache_neg_max_ttl = 600;
-      # - ad/tracker blocklist + safesearch cloaking from Arch.
-      #   blocked_names/blocked_ips are TOML tables (keyed by *_file);
-      #   cloaking_rules/forwarding_rules are TOML strings (single file path).
-      #   Nesting the latter as tables makes dnscrypt-proxy abort at startup,
-      #   killing all DNS (resolv.conf -> dead 127.0.0.1 stub).
+      # - ad/tracker blocklist + safesearch cloaking. blocked_names/blocked_ips
+      #   are TOML tables (keyed by *_file); cloaking_rules/forwarding_rules
+      #   are TOML strings (a bare file path). Nesting the latter as tables
+      #   makes dnscrypt-proxy abort at startup, killing ALL DNS via a dead
+      #   127.0.0.1 stub in resolv.conf.
       # blocked_names = {
       #   blocked_names_file = ../../../assets/dnscrypt/blocked-names.txt;
       # };
@@ -141,12 +127,9 @@
     };
   };
 
-  # - Tor: anonymous SOCKS proxy + HTTP via Privoxy. services.tor.enable alone
-  #   exposes a "slow" SOCKS proxy on 127.0.0.1:9050 (new circuit per
-  #   destination); client.enable keeps that 9050 listener. Privoxy (enableTor)
-  #   adds an 8118 HTTP proxy forwarding to Tor's "fast" SOCKS on 9063 (new
-  #   circuit every 10 min). No relay/exit/bridge: client only. proxychains
-  #   (home/modules/proxychains.nix) and torsocks use 9050/9063/8118.
+  # - client-only Tor (no relay/exit/bridge): 9050 is the slow SOCKS (new
+  #   circuit per destination), which proxychains and torsocks use. Privoxy
+  #   adds 8118 (HTTP) forwarding to the fast SOCKS on 9063.
   services.tor = {
     enable = true;
     client.enable = true;

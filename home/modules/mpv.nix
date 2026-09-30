@@ -3,10 +3,8 @@
   ...
 }:
 {
-  # - mpv: config/scripts/script-opts/fonts ported verbatim from Arch
-  #   ~/.config/mpv/ (mpv.conf: keep-open=yes/osc=no + memo/modernz/thumbfast
-  #   scripts). Removed the old from-scratch Noctalia/VA-API config — matches
-  #   the real setup exactly.
+  # - mpv config/scripts/script-opts/fonts ported from Arch ~/.config/mpv/
+  #   (mpv.conf keep-open=yes/osc=no, plus memo/modernz/thumbfast).
   home.packages = with pkgs; [
     mpv
   ];

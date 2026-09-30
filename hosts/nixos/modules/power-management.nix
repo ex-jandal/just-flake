@@ -5,9 +5,9 @@
   ...
 }:
 {
-  # - TLP (settings ported from Arch /etc/tlp.conf). Noctalia's
-  #   recommendedServices enables power-profiles-daemon; force it off because
-  #   TLP and PPD fight over the same /sys power knobs.
+  # - TLP, settings from Arch /etc/tlp.conf. mkForce because Noctalia's
+  #   recommendedServices enables power-profiles-daemon and the two fight
+  #   over the same /sys power knobs.
   services.power-profiles-daemon.enable = lib.mkForce false;
   services.tlp = {
     enable = true;

@@ -1,12 +1,9 @@
-# - Cisco Packet Tracer 9.0.1 from the official Ubuntu .deb — newer than
-#   nixpkgs's cisco-packet-tracer_9 (9.0.0), so we build our own following the
-#   same recipe (requireFile -> unpack deb -> extract AppImage ->
-#   appimageTools.wrapType2).
-# - the deb must be registered in the Nix store once (requireFile flow):
+# - Cisco Packet Tracer 9.0.1 from the official Ubuntu .deb, newer than
+#   nixpkgs's cisco-packet-tracer_9 (9.0.0). Same recipe: requireFile -> unpack
+#   deb -> extract AppImage -> appimageTools.wrapType2. Register the deb once:
 #   nix-store --add-fixed sha256 ~/Downloads/CiscoPacketTracer_901_Ubuntu_64bit.deb
-# - the deb ships a single AppImage at opt/pt/packettracer.AppImage; the
-#   wrapper adds libpng/libxkbfile and forces QT_QPA_PLATFORM=xcb (Wayland/niri
-#   launch fix); it then runs under XWayland themed via qt6ct.
+# - the wrapper adds libpng/libxkbfile and forces QT_QPA_PLATFORM=xcb (the
+#   Wayland/niri launch fix); it then runs under XWayland themed via qt6ct.
 {
   pkgs,
   lib,
