@@ -125,10 +125,6 @@
         "org.freedesktop.impl.portal.FileChooser" = [ "gtk" ];
       };
     };
-    configPackages = [
-      pkgs.xdg-desktop-portal-gnome
-      pkgs.xdg-desktop-portal-gtk
-    ];
   };
 
   home.pointerCursor = {

@@ -4,16 +4,10 @@
   ...
 }:
 {
+  # - the rest of the toolchain (curl, unzip, ripgrep, fd, nodejs, python3,
+  #   lazygit) is in home/packages.nix; `git` comes from programs.git.
   home.packages = with pkgs; [
-    git
-    curl
-    unzip
-    ripgrep
-    fd
     gcc
-    nodejs
-    python3
-    lazygit
     nil
     basedpyright
     # - opencode.nvim discovers a running server's port via
