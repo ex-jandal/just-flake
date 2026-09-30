@@ -222,7 +222,14 @@
       ];
 
       game = with pkgs; [
-        # lutris
+        # - on PATH for a normal shell, sharing ~/.wine with lutris. The
+        #   lutris package itself comes from programs.lutris (modules/lutris.nix),
+        #   which puts the same wine build inside its FHS sandbox.
+        wineWow64Packages.stagingFull
+        winetricks
+        mangohud
+        vkbasalt
+        gamescope
       ];
 
       dev = with pkgs; [
