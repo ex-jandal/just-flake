@@ -38,6 +38,7 @@
     ./modules/xmcl.nix
     ./modules/lspmux.nix
     ./modules/obs-studio.nix
+    ./modules/opencode.nix
     # - ./modules/qutebrowser.nix
   ];
 
