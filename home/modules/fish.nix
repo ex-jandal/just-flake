@@ -15,16 +15,7 @@ in
   programs.nix-index-database.comma.enable = true;
   programs.command-not-found.enable = false;
 
-  home.packages = with pkgs; [
-    # - tools the fisher plugins below depend on. The plugins themselves are
-    #   pinned in `programs.fish.plugins`; the fish-side plugin list
-    #   (assets/fish/fish_plugins) is bootstrapped by `home.activation`.
-    zoxide
-    fzf
-    eza
-    onefetch
-    lazygit
-  ];
+  # - zoxide/fzf/eza/onefetch/lazygit live in home/packages.nix, not here.
 
   # - env vars in `home.sessionVariables` so they apply to fish and other shells
   home.sessionVariables = {
@@ -159,9 +150,6 @@ in
         end
         echo "Powering off $dev"
         sudo udisksctl power-off -b $dev
-      '';
-      big-upgrade-packages = ''
-        sudo pacman -Su | awk '{printf("Package: %s -> %s %s\n", $1, $6, $7)}' | sort -k4,4n -rh | tail -n +17
       '';
       convert_social = {
         description = "Compress and convert video for social media compatibility";

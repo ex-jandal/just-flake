@@ -30,9 +30,7 @@
         yq
         glow
         onefetch
-        fastfetch
         starship
-        yazi
         tealdeer
         unzip
         unrar
@@ -56,14 +54,6 @@
         pdfminer
       ];
 
-      terminals = with pkgs; [
-        # - kitty
-        foot
-        ghostty
-        # - alacritty needed by qutebrowser config (editor + fileselect spawn)
-        alacritty
-      ];
-
       utils = with pkgs; [
         # - dolphin: KDE file manager (Mod+E bind spawns it)
         kdePackages.dolphin
@@ -78,7 +68,6 @@
         ranger
         nautilus
         eog
-        zathura
         # - qt6ct: Qt platform theme — applies Noctalia palette to Qt/KDE
         #   apps (dolphin etc.). Selected via QT_QPA_PLATFORMTHEME=qt6ct.
         qt6Packages.qt6ct
@@ -111,7 +100,6 @@
 
       wayland = with pkgs; [
         niri
-        rofi
         kanshi
         nwg-displays
         flameshot
@@ -342,7 +330,6 @@
       #   system registration fixes fontconfig rescanning of store dirs.
     in
     cli
-    ++ terminals
     ++ utils
     ++ editors
     ++ wayland
