@@ -57,5 +57,9 @@
   #   once systemd-resolved (Avahi) integration is decided.
   services.avahi.enable = true;
 
+  # - gamemode: user-level gamemoded service + gamemode.ini. The CLI lands in
+  #   environment.systemPackages, so it does not need to be in home.packages.
+  programs.gamemode.enable = true;
+
   services.rusbmux.enable = true;
 }
