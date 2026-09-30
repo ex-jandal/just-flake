@@ -106,6 +106,7 @@
         mesonlsp
         # - lspmux: shares one language-server instance across editors
         lspmux
+        nixfmt
       ];
 
       wayland = with pkgs; [
