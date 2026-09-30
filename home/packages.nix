@@ -93,7 +93,6 @@
         atool
         aria2
         libimobiledevice
-        opencode
       ];
 
       editors = with pkgs; [
