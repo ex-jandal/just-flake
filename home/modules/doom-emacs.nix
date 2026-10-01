@@ -4,22 +4,6 @@
   pkgs,
   ...
 }:
-let
-  # - lsp-mode resolves the CSS server as `vscode-css-language-server'
-  #   (singular "language", lsp-css.el `lsp-dependency' :system), but nixpkgs
-  #   only ships `vscode-css-languageserver', whose binary is plural. One
-  #   mismatch, and CSS silently gets no server. Add the name it looks for.
-  #   Cheaper than an elisp `lsp-dependency' override: no dependency on
-  #   lsp-mode internals, and it works for any consumer.
-  vscode-css-languageserver-alias = pkgs.symlinkJoin {
-    name = "vscode-css-languageserver-alias";
-    paths = [ pkgs.vscode-css-languageserver ];
-    postBuild = ''
-      ln -s $out/bin/vscode-css-languageserver \
-            $out/bin/vscode-css-language-server
-    '';
-  };
-in
 {
   # - Doom's own build system pulls its elisp deps from nixpkgs + emacs-overlay
   #   rather than straight.el, so there is no `:doom sync` and no runtime
@@ -69,10 +53,11 @@ in
       jdt-language-server
       kotlin-language-server
       # Web
-      # - alias wrapper: nixpkgs plural name vs lsp-mode singular. See the let.
-      vscode-css-languageserver-alias
-      # - provides vscode-json-languageserver, which lsp-mode accepts as its
-      #   second :system candidate (lsp-json.el), so no alias needed.
+      # - both of these install BOTH spellings (vscode-css-language-server and
+      #   vscode-css-languageserver, likewise for json), which is what lsp-mode
+      #   looks for. `meta.mainProgram` reports only the plural one, so do not
+      #   conclude from mainProgram alone that the singular name is missing.
+      vscode-css-languageserver
       vscode-json-languageserver
       typescript-language-server
       vue-language-server
