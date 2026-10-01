@@ -45,7 +45,6 @@
         pokego
         wget
         curl
-        rusbmux
         file
         nix-your-shell
         ghostscript
@@ -273,6 +272,10 @@
 
       # - fonts moved to NixOS fonts.packages (hosts/nixos/default.nix) —
       #   system registration fixes fontconfig rescanning of store dirs.
+
+      # - rusbmux is a flake input, not a nixpkgs attr, so it cannot live in a
+      #   `with pkgs` list (that threw "undefined variable 'rusbmux'").
+      rusbmuxPkgs = inputs.rusbmux.packages.${pkgs.stdenv.hostPlatform.system};
     in
     cli
     ++ utils
@@ -288,5 +291,6 @@
     ++ network
     ++ game
     ++ theme
-    ++ extras;
+    ++ extras
+    ++ [ rusbmuxPkgs.default ];
 }
