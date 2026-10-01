@@ -9,7 +9,7 @@
 ;;   work needed — and the Nerd glyphs keep dashboard/neotree icons rendering.
 ;; - `doom-big-font-size` is a *ratio*, not a point size (1.33 => 1.33x base).
 ;;   `doom-small-font-size` is relative to the default face height, so 11 stays
-;;   below the 16pt base and remains readable.
+;;   below the 18pt base and remains readable.
 (setq doom-font (font-spec :family "CaskaydiaCove Nerd Font" :size 18)
       doom-variable-pitch-font (font-spec :family "Rubik" :size 19)
       doom-big-font-size 1.33
@@ -170,6 +170,10 @@
   ;; - evil-auto-indent fights Doom's own indentation logic; leave it off.
   (setq-default evil-auto-indent nil))
 
+;; - hollow cursor, so it does not visually collide with flymake's glyph in the
+;;   left fringe. A 'bar cursor would sit next to the line numbers instead.
+(setq-default cursor-type 'box)
+
 ;; - Lint listing: Doom binds `SPC c x' to +default/diagnostics, which opens
 ;;   flymake's diagnostics buffer for the current file. Nothing to configure —
 ;;   an earlier version of this file set three variables here
@@ -177,9 +181,6 @@
 ;;   flymake-diagnostic-explanation-filter-predicates,
 ;;   flymake-indicate-diagnostics-faces) but none of them exist in Emacs 30.2,
 ;;   so they were no-ops that just defined unused globals.
-
-
-(setq-default cursor-type 'box)
 
 
 ;;
@@ -208,10 +209,14 @@
 ;; - +icons needs a nerd font in the dired buffer; already installed.
 
 (setq dired-listing-format
-      (cons 'dired-extension "[%X%y %m %d %H:%M:%S]\n")
-      '((dired-permits "%M %m %u %g  %d\n")
-        (dired-size     "%10s\n")
-        (dired-date     "%d %H:%M:%S\n")))
+      ;; - must be ONE value: wrap the per-column entries in `list'. Writing
+      ;;   `(cons ...)' and the alist as two separate arguments is a 3-argument
+      ;;   setq, which throws wrong-number-of-arguments and aborts the rest of
+      ;;   config.el at startup.
+      (list (cons 'dired-extension "[%X%y %m %d %H:%M:%S]\n")
+            '((dired-permits "%M %m %u %g  %d\n")
+              (dired-size     "%10s\n")
+              (dired-date     "%d %H:%M:%S\n"))))
 
 (setq dired-listing-delete-markup t
       dired-use-listing-filters nil
