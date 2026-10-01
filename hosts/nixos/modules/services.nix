@@ -31,6 +31,7 @@
   };
 
   programs.java.enable = true;
+  services.logmein-hamachi.enable = true;
 
   services.redis.servers."".enable = false;
   # - mpd installed but disabled by default
