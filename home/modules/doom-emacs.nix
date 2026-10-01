@@ -41,6 +41,12 @@
       # Systems
       basedpyright
       clang-tools
+      # - dape resolves its Rust/C/OCaml debuggers by bare command name
+      #   (`lldb-dap', `lldb-vscode') with only `dape-ensure-command', which is
+      #   just an executable-find check — so lldb on $PATH is all it needs, and
+      #   nothing gets downloaded into the read-only dape-adapter-dir.
+      #   clang-tools does NOT ship lldb-dap; only lldb does.
+      lldb
       ccls
       csharp-ls
       gopls
