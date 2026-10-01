@@ -45,6 +45,12 @@
       url = "github:nix-community/nix-index-database";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # - Doom Emacs, prebuilt from nixpkgs/emacs-overlay instead of straight.el.
+    #   Do NOT follow nixpkgs: Unstraightened pins its own nixpkgs for the
+    #   elisp package set, and following ours breaks that pinning (its binary
+    #   cache is built against its own nixpkgs anyway).
+    doom-emacs.url = "github:marienz/nix-doom-emacs-unstraightened";
   };
 
   # - Noctalia binary cache lives in hosts/nixos/default.nix (nix.settings).

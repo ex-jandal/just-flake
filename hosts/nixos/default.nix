@@ -91,9 +91,16 @@
         "flakes"
       ];
       # - Noctalia binary cache (kept separate from the flake's nixConfig).
-      extra-substituters = [ "https://noctalia.cachix.org" ];
+      # - doom-emacs-unstraightened cache: without it the first Doom build is a
+      #   ~1000-derivation local compile (~30+ min). It is built against that
+      #   flake's own nixpkgs, so only exact matches substitute.
+      extra-substituters = [
+        "https://noctalia.cachix.org"
+        "https://doom-emacs-unstraightened.cachix.org"
+      ];
       extra-trusted-public-keys = [
         "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
+        "doom-emacs-unstraightened.cachix.org-1:O5oOlRPnmQEvVaFyuMTmthCEooHbrg54WgSLR07tmg4="
       ];
     };
   };

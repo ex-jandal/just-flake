@@ -281,6 +281,10 @@ wallpaper_scheme = "m3-fruit-salad"
 [theme.templates]
 builtin_ids = [
   "btop",
+  # - writes ~/.config/doom/themes/noctalia-theme.el and reloads it via
+  #   `emacsclient`. Needs that directory to exist; home/modules/doom-emacs.nix
+  #   creates it. Only reloads automatically if Emacs runs as a daemon.
+  "emacs",
   "foot",
   "gtk3",
   "gtk4",
