@@ -250,10 +250,55 @@
 ;;
 ;;; DAP / Dape
 ;;
-;; - :tools debugger is dape. No config needed for C/C++/Rust out of the box;
-;;   register extra debug types here as you need them.
+;; - `:tools debugger` gives dape, which already ships configs for Rust, C, C++,
+;;   Python, Go, JS, shell and more — `SPC d d` lists whichever ones match the
+;;   current major-mode AND whose command is on $PATH.
+;;
+;; - Rust needs no adapter download: the lldb configs use `dape-ensure-command'
+;;   (a plain executable-find on "lldb-dap"/"lldb-vscode") and nixpkgs' lldb
+;;   ships `lldb-dap' in bin/. Adding `lldb' to extraBinPackages is the whole
+;;   fix — clang-tools does not provide it.
+;;
+;; - dape-adapter-dir points into the Nix store (Doom sets it to
+;;   doom-user-dir), so anything that WOULD download — cpptools' OpenDebugAD7,
+;;   bashdb, debugpy — can never work. Prefer the configs that are plain
+;;   commands, which is why Rust/C work and cpptools-based ones do not.
+;;
+;; - `dape-command` is the config prompt's initial contents, so pick the adapter
+;;   automatically instead of typing `lldb-dap` at the minibuffer every time.
+;;   Reuses dape's own predicates — dape--config-mode-p and dape--config-ensure
+;;   are exactly what dape--read-config uses to build its suggestions — rather
+;;   than hardcoding names. Hardcoding is how you end up writing `(delve)`
+;;   when the config is called `dlv`; deriving it cannot drift, and it
+;;   automatically picks up configs added upstream.
+(defun +dape-command-for-buffer ()
+  "Return the first dape config usable from the current buffer, or nil."
+  (car (seq-find (lambda (entry)
+                   (let ((config (cdr entry)))
+                     ;; - `modes' must be non-nil. The generic `launch` entry has
+                     ;;   modes nil, which makes dape--config-mode-p match EVERY
+                     ;;   buffer, and it sorts first — so requiring :modes is
+                     ;;   what stops the catch-all from always winning.
+                     (and (plist-get config 'modes)
+                          (dape--config-mode-p config)
+                          (ignore-errors (dape--config-ensure config)))))
+                 dape-configs)))
 
-;; (add-to-list 'dape-adapters '((:id "some-id") (:program "...")))
+;; `dape-command` is read in `dape--read-config' before history and before
+;; mode-based suggestions, so setting it there is what makes the choice stick.
+;; `SPC d d` then just asks which program to debug. A nil result (no config
+;; matched, e.g. plain text) leaves dape's own prompt alone.
+(add-hook 'dape-read-config-hook
+          (lambda ()
+            (when-let ((command (+dape-command-for-buffer)))
+              (setq dape-command (list command)))))
+
+;; Registering additional adapter types is the extension point if you add a
+;; debugger that dape does not know about:
+;; (add-to-list 'dape-configs
+;;              `(my-debugger :modes (rust-ts-mode) :ensure dape-ensure-command
+;;                 command "my-debug-adapter" :type "lldb-dap" :cwd dape-cwd
+;;                 :request "launch" :program "target/debug/app"))
 
 
 ;;
