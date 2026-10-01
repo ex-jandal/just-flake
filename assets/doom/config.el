@@ -170,9 +170,10 @@
   ;; - evil-auto-indent fights Doom's own indentation logic; leave it off.
   (setq-default evil-auto-indent nil))
 
-;; - hollow cursor, so it does not visually collide with flymake's glyph in the
-;;   left fringe. A 'bar cursor would sit next to the line numbers instead.
-(setq-default cursor-type 'box)
+;; - Bar cursor: thin, sits at the character rather than boxing it, and reads
+;;   closer to what a vim user expects. Either shape lives in the text area, so
+;;   neither collides with flymake's glyph, which is drawn in the left fringe.
+(setq-default cursor-type 'bar)
 
 ;; - Lint listing: Doom binds `SPC c x' to +default/diagnostics, which opens
 ;;   flymake's diagnostics buffer for the current file. Nothing to configure —
