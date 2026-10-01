@@ -148,19 +148,15 @@
             (lambda ()
               (local-set-key (kbd "M-.") #'lsp-ui-doc-show))))
 
-;; `SPC c k` shows the same popup. It cannot be rebound with a plain
-;; `define-key' on `evil-leader-map': `SPC c' is a define-prefix-map key
-;; (+evil-bindings.el), so `k' is looked up inside that submap and a "SPC c k"
-;; entry on the parent is shadowed. Rebind `k' in the submap instead.
+;; `SPC c k` shows the same popup. Doom stores <leader> bindings as key
+;; SEQUENCES in its own `doom-leader-map' — `(doom--define-leader-key)' does
+;; (define-key doom-leader-map (kbd "c k") CMD) — not as a nested prefix map on
+;; evil-leader-map, which is why walking that map finds nothing. evil-leader-map
+;; is not even bound when config.el runs.
 ;;
-;; after-init-hook, not top level: +evil-bindings.el is loaded as part of
-;; :config default, and there is no `doom-key-bindings' feature to hang
-;; with-eval-after-load on (the file has no provide form), so ordering has to
-;; be forced from the other end.
-(add-hook 'after-init-hook
-          (lambda ()
-            (when-let (code-map (lookup-key evil-leader-map (kbd "c")))
-              (define-key code-map (kbd "k") #'lsp-ui-doc-show))))
+;; No hook needed: +keybinds.el defvars doom-leader-map during the :doom module,
+;; well before config.el is evaluated.
+(define-key doom-leader-map (kbd "c k") #'lsp-ui-doc-show)
 
 
 (defun my-doom-config ()
