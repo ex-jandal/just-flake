@@ -19,6 +19,7 @@
     ./modules/fish.nix
     ./modules/starship.nix
     ./modules/nvim.nix
+    ./modules/doom-emacs.nix
     ./modules/git.nix
     ./modules/tmux.nix
     ./modules/kitty.nix
