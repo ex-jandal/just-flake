@@ -72,49 +72,32 @@
 ;;
 ;;; LSP
 ;;
-;; - lsp-mode execs servers by bare name, so most are found automatically from
-;;   the PATH packages that home/modules/doom-emacs.nix injects. These are the
-;;   ones nixpkgs names differently, or that need a JVM/SDK flag to work.
+;; - lsp-mode execs servers by bare name and resolves them with `executable-find',
+;;   so the servers home/modules/doom-emacs.nix puts on PATH are found with no
+;;   per-language wiring. Verified against the pinned lsp-mode 20260716.755:
+;;   lsp-svelte uses `:system "svelteserver"', lsp-yaml uses
+;;   `lsp-yaml-server-command' ("yaml-language-server" "--stdio"), and
+;;   lsp-csharp--language-server-path already does (executable-find "OmniSharp")
+;;   capitalised, matching nixpkgs. All three used to be overridden by hand here.
+;;
+;; - An earlier version of this file set `lsp-command-line-functions'. That
+;;   variable does not exist in this lsp-mode, so the whole block — including
+;;   the OmniSharp casing fix and a jdtls `-data' override — was dead code
+;;   that only defined an unused global. The jdtls override was also actively
+;;   wrong: pinning every Java workspace to one data dir would have had them
+;;   trampling each other's indexes.
+;;
+;; - Known gap: this lsp-mode ships NO Java client (clients/ has 141 entries,
+;;   none for jdtls), so `:lang java +lsp' gets highlighting but no server.
+;;   jdt-language-server stays in extraBinPackages because that may change.
 
-(setq lsp-command-line-functions
-      (list
-       ;; nixpkgs ships the launcher capitalised; lsp-mode guesses lowercase.
-       '(csharp-mode . ("OmniSharp" "--zero-based-indices" "false"))
-       ;; jdtls needs the JDK on PATH (JAVA_HOME, home/modules/fish.nix) and a
-       ;; writable workspace dir outside the read-only store.
-       '(java-mode . ("jdtls" "-data" "/home/abu_jandal/.cache/jdtls"))
-       ;; - :lang nim has no +lsp flag upstream, so register zls by hand.
-       '(nim-mode . ("zls"))
-       ;; These spell out the nixpkgs binary names lsp-mode can't guess.
-       '(typescript-mode . ("typescript-language-server" "--stdio"))
-       '(typescript-tsx-mode . ("typescript-language-server" "--stdio"))
-       '(js-jsx-mode . ("typescript-language-server" "--stdio"))
-       '(svelte-mode . ("svelteserver" "--stdio"))
-       '(css-mode . ("vscode-css-languageserver" "--stdio"))
-       '(less-css-mode . ("vscode-css-languageserver" "--stdio"))
-       '(scss-mode . ("vscode-css-languageserver" "--stdio"))
-       '(html-mode . ("vscode-html-languageserver" "--stdio"))
-       '(sml-mode . ("vscode-html-languageserver" "--stdio"))
-       '(xml-mode . ("vscode-html-languageserver" "--stdio"))
-       '(vue-mode . ("vue-language-server" "--stdio"))
-       '(yaml-mode . ("yaml-language-server" "--stdio"))
-       '(toml-mode . ("taplo"))
-       '(go-ts-mode . ("gopls"))
-       '(dockerfile-mode . ("docker-language-server" "--stdio"))
-       '(docker-compose-mode . ("docker-compose-langserver" "--stdio"))
-       '(sql-mode . ("sqls"))
-       '(terraform-mode . ("terraform-ls"))
-       ;; - qmlls, vala-ls and slint-ls are not in nixpkgs, so QML and Vala get
-       ;;   tree-sitter highlighting but no completion. See the README note.
-       ))
-
-;; - Doom already sets +lsp-optimization-mode on lsp buffers, but this is the
-;;   upstream recommendation for lsp-mode's own I/O.
+;; - Only the three options below exist in this lsp-mode and are worth setting.
+;;   lsp-ensure-ignored-invisibles and lsp-auto-install-servers were also set
+;;   here once; neither exists in 20260716.755, so they were no-ops. Servers
+;;   come from Nix, and the download prompt is lsp-enable-suggest-server-download,
+;;   which is left at its default.
 (setq lsp-idle-delay 0.2
       lsp-log-io nil
-      lsp-ensure-ignored-invisibles t
-      ;; - never let lsp-mode shell out to npm; every server comes from nix.
-      lsp-auto-install-servers t
       lsp-server-install-dir (concat (or (getenv "XDG_DATA_HOME")
                                           (concat (getenv "HOME") "/.local/share"))
                                       "/lsp"))
@@ -122,25 +105,63 @@
 ;; - Heavy per-session allocation. Doom's gcmh handles the GC strategy, so
 ;;   leave read-process-output-max where the lsp module put it.
 
-;; Hover. Doom's `+lsp` module already hooks up lsp-ui (so lsp-ui-doc is
-;; installed and active), but `SPC c k` calls `lsp-describe-thing-at-point`,
-;; which prints to the echo area instead of showing the popup. Rebind both the
-;; leader key and `M-.` (the Emacs convention for "describe what's at point").
-;; Doom tunes the popup to at-point, 72 cols, 8 rows; only the delay is ours.
-(setq lsp-ui-doc-show-with-cursor t
-      lsp-ui-doc-position 'at-point
-      lsp-ui-doc-max-width 90
-      lsp-ui-doc-delay 0.2)
 
+;;
+;;; Diagnostics (flymake) — IDE-style inline reporting
+;;
+;; - Doom sets `flymake-fringe-indicator-position' to `right-fringe', which puts
+;;   the glyph on the far side of the window, away from the line numbers. Left
+;;   fringe sits directly beside them.
+(setq flymake-fringe-indicator-position 'left-fringe)
+
+;; - Show the diagnostic text at the end of the offending line, the way an IDE
+;;   prints the error next to the code. `short' = only the most severe entry per
+;;   line; t would print every warning on that line, which gets noisy.
+;;   Needs horizontal room — the text is truncated when the line is short.
+(setq flymake-show-diagnostics-at-end-of-line 'short)
+
+;; - Glyph shapes are flymake's defaults (a red !! for errors, a yellow ! for
+;;   warnings) on compilation-error/compilation-warning. Left explicit because
+;;   the left fringe is narrow and these read better than the alternatives.
+(setq flymake-error-bitmap '(flymake-double-exclamation-mark compilation-error)
+      flymake-warning-bitmap '(exclamation-mark compilation-warning)
+      flymake-note-bitmap '(info-mark compilation-info))
+
+
+;;
+;;; Hover
+;;
+;; - Doom's `+lsp` already hooks up lsp-ui, so `lsp-ui-doc' is installed and
+;;   active. Deliberately NOT setting `lsp-ui-doc-show-with-cursor': upstream
+;;   defaults it to nil and turning it on makes the popup appear every time the
+;;   cursor settles on a symbol. Hover stays keypress-only.
+;;
+;; - `lsp-ui-doc-position' and `lsp-ui-doc-delay' are left at Doom's values: it
+;;   already sets position to 'at-point, and the delay only gates the
+;;   auto-popup we just turned off.
+(setq lsp-ui-doc-max-width 90)
+
+;; `M-.` is the Emacs convention for "describe the thing at point", and is
+;; unbound in Doom. LSP buffers only.
 (with-eval-after-load 'lsp-ui
   (add-hook 'lsp-managed-mode-hook
             (lambda ()
               (local-set-key (kbd "M-.") #'lsp-ui-doc-show))))
 
-;; `SPC c k` is rebound in +evil-bindings.el for -eglot/lsp; override it after
-;; that file has loaded so the popup wins.
-(with-eval-after-load 'doom-key-bindings
-  (map! :n "SPC c k" #'lsp-ui-doc-show))
+;; `SPC c k` shows the same popup. It cannot be rebound with a plain
+;; `define-key' on `evil-leader-map': `SPC c' is a define-prefix-map key
+;; (+evil-bindings.el), so `k' is looked up inside that submap and a "SPC c k"
+;; entry on the parent is shadowed. Rebind `k' in the submap instead.
+;;
+;; after-init-hook, not top level: +evil-bindings.el is loaded as part of
+;; :config default, and there is no `doom-key-bindings' feature to hang
+;; with-eval-after-load on (the file has no provide form), so ordering has to
+;; be forced from the other end.
+(add-hook 'after-init-hook
+          (lambda ()
+            (when-let (code-map (lookup-key evil-leader-map (kbd "c")))
+              (define-key code-map (kbd "k") #'lsp-ui-doc-show))))
+
 
 (defun my-doom-config ()
   "Set up the Nix-managed Doom profile."
@@ -149,14 +170,13 @@
   ;; - evil-auto-indent fights Doom's own indentation logic; leave it off.
   (setq-default evil-auto-indent nil))
 
-;; - Doom's lsp module enables flymake (`SPC c x` for the diagnostic list, and
-;;   nav-flash flashes the line on failure). Only the filtering knobs here:
-;;   show everything, and let flymake report while logging (so a long compile
-;;   doesn't blank out the panel you're reading).
-(setq flymake-suppress-diagnostics-when-logging nil
-      flymake-diagnostic-explanation-filter-predicates
-      '(severity)
-      flymake-indicate-diagnostics-faces nil)
+;; - Lint listing: Doom binds `SPC c x' to +default/diagnostics, which opens
+;;   flymake's diagnostics buffer for the current file. Nothing to configure —
+;;   an earlier version of this file set three variables here
+;;   (flymake-suppress-diagnostics-when-logging,
+;;   flymake-diagnostic-explanation-filter-predicates,
+;;   flymake-indicate-diagnostics-faces) but none of them exist in Emacs 30.2,
+;;   so they were no-ops that just defined unused globals.
 
 
 (setq-default cursor-type 'box)
