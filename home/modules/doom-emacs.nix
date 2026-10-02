@@ -27,7 +27,6 @@
     #   Missing by design: qmlls, vala-ls, slint-ls (not in nixpkgs).
     extraBinPackages = with pkgs; [
       # Nix
-      nil
       nixd
       # Shell / data / markup
       bash-language-server
