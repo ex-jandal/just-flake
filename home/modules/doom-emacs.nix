@@ -102,14 +102,6 @@
     extraPackages = epkgs: [
       epkgs.treesit-grammars.with-all-grammars
 
-      # - org-view-mode hides Org markup (leading stars, #+keyword lines, tags,
-      #   properties) so a document reads as prose instead of source. Used by
-      #   my-markdown-view in assets/doom/config.el to preview Markdown inside
-      #   Emacs. Already in nixpkgs emacsPackages, so it needs no :pin/:recipe —
-      #   assets/doom/packages.el demands a 40-char commit for anything Doom
-      #   does not ship, and `git ls-remote' cannot authenticate here.
-      epkgs.org-view-mode
-
       epkgs.gruvbox-theme
       epkgs.catppuccin-theme
       epkgs.tokyo-night
