@@ -29,6 +29,24 @@
       # Nix
       nixd
       # Shell / data / markup
+      # - pandoc is not a language server. It is what `markdown-preview' (SPC m p)
+      #   shells out to: markdown-mode renders markdown by calling into Doom's
+      #   +markdown-compile-functions (modules/lang/markdown/config.el), which
+      #   tries marked, pandoc, markdown and multimarkdown in order, stopping at
+      #   the first to return non-nil. Each one is gated on executable-find, so
+      #   with no binary on $PATH they all return nil and the run ends in
+      #   "No markdown program could be found. Install marked, pandoc, markdown
+      #   or multimarkdown."
+      # - No module flag is needed: that list is already Doom's default, so
+      #   `:lang (markdown +lsp +tree-sitter)' is enough once this exists.
+      #   `marked' is not in nixpkgs at all (only marked-man, which is unrelated),
+      #   and nixpkgs' multimarkdown may install its binary as `mmd', which would
+      #   fail executable-find silently. pandoc's name is unambiguous
+      #   (meta.mainProgram = "pandoc"), so it works first try.
+      # - Doom invokes it as `pandoc -f markdown -t html --mathjax', so LaTeX
+      #   math and HTML output both work. The closure is large; swap for
+      #   multimarkdown if that matters more than certainty.
+      pandoc
       bash-language-server
       fish-lsp
       shellcheck
