@@ -4,6 +4,40 @@
   pkgs,
   ...
 }:
+let
+  # - Native Emacs client for `opencode serve'. Hand-built rather than declared
+  #   as a `package!' in assets/doom/packages.el because unstraightened's
+  #   melpaBuild cannot satisfy its `(require 'request)': it byte-compiles with
+  #   `emacs --batch -Q' (no package load-path) and derives build inputs only
+  #   from `Package-Requires' headers, which emacs-opencode does not declare.
+  #   Neither `(package! request)' nor `extraPackages' helps — extraPackages is
+  #   merged in step 3, after the step-2 melpaBuild, and adding request as a
+  #   package! leaves the emacs-opencode derivation bit-identical.
+  #   `trivialBuild' is nixpkgs' buildEmacsPackage (no `buildEmacsPackage' alias
+  #   on emacsPackages any more), and `packageRequires' is what puts request on
+  #   the compiler's EMACSLOADPATH: generic.nix folds it into propagatedBuildInputs
+  #   and the emacs setup-hook prepends each one's site-lisp. It is also exactly
+  #   what the variable means — it is upstream's missing `Package-Requires'.
+  # - postInstall ships opencode-sse-bridge.js, the fast SSE transport, which a
+  #   plain melpaBuild would silently drop (the default :files glob is *.el). It
+  #   is resolved relative to the .el that loads it, so it must sit beside them.
+  emacsOpencode = pkgs.emacsPackages.trivialBuild {
+    pname = "emacs-opencode";
+    version = "2026-09-11";
+    src = pkgs.fetchFromGitHub {
+      owner = "jdormit";
+      repo = "emacs-opencode";
+      # - full 40-char commit; git ls-remote https://github.com/jdormit/emacs-opencode HEAD
+      rev = "c90125271caacd49dcfcf079f2008439e70384ca";
+      hash = "sha256-HcOuIC68HGl1OWkvRzK5eVlr2pQGayUAW3ellYib3AE=";
+    };
+    packageRequires = [ pkgs.emacsPackages.request ];
+    postInstall = ''
+      install -Dm644 opencode-sse-bridge.js \
+        "$out/share/emacs/site-lisp/opencode-sse-bridge.js"
+    '';
+  };
+in
 {
   # - Doom's own build system pulls its elisp deps from nixpkgs + emacs-overlay
   #   rather than straight.el, so there is no `:doom sync` and no runtime
@@ -26,6 +60,19 @@
     #   mason/bin) is deliberately NOT used, so the setup stays declarative.
     #   Missing by design: qmlls, vala-ls, slint-ls (not in nixpkgs).
     extraBinPackages = with pkgs; [
+      # - `opencode-server-command' defaults to the bare name "opencode", run
+      #   through (executable-find ...), and `opencode serve' is spawned as its
+      #   own child — so it needs a real binary on $PATH, exactly like the
+      #   language servers below. socat is the MCP stdio<->unix-socket bridge
+      #   opencode uses to reach the emacs-mcp-server socket (mcp.emacs in
+      #   home/modules/opencode.nix): opencode's MCP schema accepts only a
+      #   `command' argv, never a socket, so something has to translate.
+      # - opencode is ALSO installed by programs.opencode. Listing it here too
+      #   is deliberate: this PATH is guaranteed regardless of how the graphical
+      #   session was launched, and a GUI-spawned Emacs may not inherit the
+      #   user's interactive PATH.
+      opencode
+      socat
       # Nix
       nixd
       # Shell / data / markup
@@ -101,6 +148,10 @@
     #   foggy-night-theme provides foggy-night, nord-theme provides nord-*.
     extraPackages = epkgs: [
       epkgs.treesit-grammars.with-all-grammars
+
+      # - see the `emacsOpencode' let-binding at the top of this file for why
+      #   this one is a hand-written derivation and not a packages.el entry.
+      emacsOpencode
 
       epkgs.gruvbox-theme
       epkgs.catppuccin-theme
