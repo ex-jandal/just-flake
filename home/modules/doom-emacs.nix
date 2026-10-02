@@ -41,12 +41,6 @@
       # Systems
       basedpyright
       clang-tools
-      # - dape resolves its Rust/C/OCaml debuggers by bare command name
-      #   (`lldb-dap', `lldb-vscode') with only `dape-ensure-command', which is
-      #   just an executable-find check — so lldb on $PATH is all it needs, and
-      #   nothing gets downloaded into the read-only dape-adapter-dir.
-      #   clang-tools does NOT ship lldb-dap; only lldb does.
-      lldb
       ccls
       csharp-ls
       gopls
@@ -59,12 +53,8 @@
       jdt-language-server
       kotlin-language-server
       # Web
-      # - both of these install BOTH spellings (vscode-css-language-server and
-      #   vscode-css-languageserver, likewise for json), which is what lsp-mode
-      #   looks for. `meta.mainProgram` reports only the plural one, so do not
-      #   conclude from mainProgram alone that the singular name is missing.
       vscode-css-languageserver
-      vscode-json-languageserver
+      vscode-langservers-extracted
       typescript-language-server
       vue-language-server
       svelte-language-server
