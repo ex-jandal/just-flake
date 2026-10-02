@@ -102,61 +102,83 @@
 ;;; LSP
 ;;
 ;; - lsp-mode execs servers by bare name, so most are found automatically from
-;;   the PATH packages that home/modules/doom-emacs.nix injects. These are the
-;;   ones nixpkgs names differently, or that need a JVM/SDK flag to work.
-
-(setq lsp-command-line-functions
-      (list
-       ;; nixpkgs ships the launcher capitalised; lsp-mode guesses lowercase.
-       '(csharp-mode . ("OmniSharp" "--zero-based-indices" "false"))
-       ;; jdtls needs the JDK on PATH (JAVA_HOME, home/modules/fish.nix) and a
-       ;; writable workspace dir outside the read-only store.
-       '(java-mode . ("jdtls" "-data" "/home/abu_jandal/.cache/jdtls"))
-       ;; - :lang nim has no +lsp flag upstream, so register zls by hand.
-       '(nim-mode . ("zls"))
-       ;; These spell out the nixpkgs binary names lsp-mode can't guess.
-       '(typescript-mode . ("typescript-language-server" "--stdio"))
-       '(typescript-tsx-mode . ("typescript-language-server" "--stdio"))
-       '(js-jsx-mode . ("typescript-language-server" "--stdio"))
-       '(svelte-mode . ("svelteserver" "--stdio"))
-       '(css-mode . ("vscode-css-languageserver" "--stdio"))
-       '(less-css-mode . ("vscode-css-languageserver" "--stdio"))
-       '(scss-mode . ("vscode-css-languageserver" "--stdio"))
-       '(html-mode . ("vscode-html-languageserver" "--stdio"))
-       '(sml-mode . ("vscode-html-languageserver" "--stdio"))
-       '(xml-mode . ("vscode-html-languageserver" "--stdio"))
-       '(vue-mode . ("vue-language-server" "--stdio"))
-       '(yaml-mode . ("yaml-language-server" "--stdio"))
-       '(toml-mode . ("taplo"))
-       '(go-ts-mode . ("gopls"))
-       '(dockerfile-mode . ("docker-language-server" "--stdio"))
-       '(docker-compose-mode . ("docker-compose-langserver" "--stdio"))
-       '(sql-mode . ("sqls"))
-       '(terraform-mode . ("terraform-ls"))
-       ;; - qmlls, vala-ls and slint-ls are not in nixpkgs, so QML and Vala get
-       ;;   tree-sitter highlighting but no completion. See the README note.
-       ))
+;;   the PATH packages that home/modules/doom-emacs.nix injects — no per-language
+;;   wiring needed here.
+;; - There used to be a ~25-line `lsp-command-line-functions' block here mapping
+;;   20 major-modes to explicit server commands (OmniSharp capitalisation, jdtls
+;;   -data, zls for nim, typescript/svelte/css/vue/yaml/toml/go/docker/sql/
+;;   terraform…). It was removed because this lsp-mode has no
+;;   `lsp-command-line-functions' variable at all, so the whole block never ran —
+;;   including the bits that looked load-bearing. lsp-mode resolves all of these
+;;   from bare names on $PATH. Note that `:lang java +lsp' is still inert: this
+;;   lsp-mode ships no Java client, so jdtls was never started either way.
+;;
+;; - `lsp-ensure-ignored-invisibles' and `lsp-auto-install-servers' were set here
+;;   too; neither exists in this lsp-mode, so they were no-ops as well. Never
+;;   letting lsp-mode shell out to npm is not something these controlled — every
+;;   server comes from Nix, which is why nothing downloads.
 
 ;; - Doom already sets +lsp-optimization-mode on lsp buffers, but this is the
 ;;   upstream recommendation for lsp-mode's own I/O.
 (setq lsp-idle-delay 0.2
       lsp-log-io nil
-      lsp-ensure-ignored-invisibles t
-      ;; - never let lsp-mode shell out to npm; every server comes from nix.
-      lsp-auto-install-servers t
       lsp-server-install-dir (concat (or (getenv "XDG_DATA_HOME")
                                           (concat (getenv "HOME") "/.local/share"))
                                       "/lsp"))
 
+;;
+;;; LSP clients
+;;
+;; - lsp-mode ships no pyright client and no Java client, so these three are
+;;   registered by hand. Binaries come from extraBinPackages in
+;;   home/modules/doom-emacs.nix.
+;;
+;; - basedpyright: use `basedpyright-langserver', not `basedpyright'. nixpkgs
+;;   installs both and the CLI never answers an LSP `initialize'.
+;;
+;; - rls: only registered so `lsp-rust-switch-server' stops throwing. That command
+;;   does (setf (lsp--client-priority (gethash 'rls lsp-clients)) ...), which
+;;   signals "void-function \(setf\ lsp--client-priority)" when rls is absent.
+;;   Install the rls binary too if you want to actually switch to it.
+(with-eval-after-load 'lsp-mode
+  (lsp-register-client
+   (make-lsp-client
+    :new-connection (lsp-stdio-connection '("basedpyright-langserver" "--stdio"))
+    :activation-fn (lsp-activate-on "python")
+    :server-id 'basedpyright))
+
+  (lsp-register-client
+   (make-lsp-client
+    :new-connection (lsp-stdio-connection '("jdtls" "--stdio"))
+    :activation-fn (lsp-activate-on "java")
+    :server-id 'jdtls))
+
+  (lsp-register-client
+   (make-lsp-client
+    :new-connection (lsp-stdio-connection '("rls" "--stdio"))
+    :activation-fn (lsp-activate-on "rust")
+    :server-id 'rls)))
+
 ;; - Heavy per-session allocation. Doom's gcmh handles the GC strategy, so
 ;;   leave read-process-output-max where the lsp module put it.
 
-;; Hover. Doom's `+lsp` module already hooks up lsp-ui (so lsp-ui-doc is
-;; installed and active), but `SPC c k` calls `lsp-describe-thing-at-point`,
-;; which prints to the echo area instead of showing the popup. Rebind both the
-;; leader key and `M-.` (the Emacs convention for "describe what's at point").
-;; Doom tunes the popup to at-point, 72 cols, 8 rows; only the delay is ours.
-(setq lsp-ui-doc-show-with-cursor t
+;; Hover docs. Doom's `+lsp` module hooks up lsp-ui (so lsp-ui-doc is installed
+;; and active), but `SPC c k` calls `lsp-describe-thing-at-point`, which prints to
+;; the echo area instead of showing a popup. Rebind both the leader key and `M-.`
+;; (the Emacs convention for "describe what's at point").
+;; Doom tunes the popup to at-point, 72 cols, 8 rows; only the width and delay are
+;; ours.
+;;
+;; - `lsp-ui-doc-show-with-cursor' is nil ON PURPOSE. flymake-popon--post-command
+;;   and lsp-ui-doc--make-request are BOTH on post-command-hook, and both anchor
+;;   their frame at point. Rest the cursor on a symbol that also has an error and
+;;   both fire, so the two popups render on top of each other. Only one can win,
+;;   and the diagnostic popup wins; docs become on-demand instead. Do not set this
+;;   back to t without also handling flymake-popon.
+;; - Nothing is lost. `lsp-ui-doc-show' binds this flag to t *dynamically* inside
+;;   its own body, so SPC c k and M-. still work with the global nil — that is why
+;;   those bindings stay wired up below.
+(setq lsp-ui-doc-show-with-cursor nil
       lsp-ui-doc-position 'at-point
       lsp-ui-doc-max-width 90
       lsp-ui-doc-delay 0.2)
@@ -178,14 +200,61 @@
   ;; - evil-auto-indent fights Doom's own indentation logic; leave it off.
   (setq-default evil-auto-indent nil))
 
-;; - Doom's lsp module enables flymake (`SPC c x` for the diagnostic list, and
-;;   nav-flash flashes the line on failure). Only the filtering knobs here:
-;;   show everything, and let flymake report while logging (so a long compile
-;;   doesn't blank out the panel you're reading).
-(setq flymake-suppress-diagnostics-when-logging nil
-      flymake-diagnostic-explanation-filter-predicates
-      '(severity)
-      flymake-indicate-diagnostics-faces nil)
+;; - IDE-style inline diagnostics: the error text is printed at the end of the
+;;   offending line, so you read it without moving the cursor or hovering.
+;; - `flymake-inline-diagnostics' is the only such knob in the flymake Doom
+;;   actually loads. `:checkers (syntax +flymake)` pins flymake from git, and
+;;   that snapshot shadows the one built into Emacs 30.2 — so check variable
+;;   names against the pinned copy, not the Emacs one. This version has no
+;;   `flymake-diagnostic-delimator', no `flymake-inline-diagnostics-excludes'
+;;   and no `flymake-verbosity', so noise filtering isn't available here.
+;; - `short` = only the most severe diagnostic per line. `fancy' would draw it
+;;   below the line with Unicode graphics (CaskaydiaCove Nerd Font covers the
+;;   glyphs), `eol' shows every one.
+;; - The three variables this replaced —
+;;   flymake-suppress-diagnostics-when-logging,
+;;   flymake-diagnostic-explanation-filter-predicates and
+;;   flymake-indicate-diagnostics-faces — exist in neither the built-in flymake
+;;   nor the pinned one. They were no-ops.
+(setq flymake-inline-diagnostics 'short)
+
+;; - Keep the diagnostic hover popup (`flymake-popon-mode`, enabled by Doom on
+;;   flymake-mode). This is the popup that SURVIVED the collision described above:
+;;   it shares post-command-hook with lsp-ui-doc--make-request, so only one of
+;;   them can be on without the two frames landing on top of each other.
+;; - It used to throw on every hover:
+;;     Error running timer "flymake-popon--show" : (wrong-type-argument stringp nil)
+;; - Cause is NOT a message-less diagnostic. doomelpa/flymake-popon ships a
+;;   *stale* flymake-popon.elc next to its own flymake-popon.el, and Emacs
+;;   prefers the .elc. Verified: loading the .el over it fixes the crash
+;;   outright, giving "*   real message" with face flymake-error-echo. The stale
+;;   bytecode reads something that returns nil — `flymake-diagnostic-origin' is
+;;   nil for every diagnostic, which fits. It reproduces for a perfectly ordinary
+;;   diagnostic, so "the server sent no message" was the wrong theory.
+;; - `(setq load-prefer-newer t)` does NOT rescue this: Nix normalises mtimes,
+;;   so the .el and .elc are both mtime=1 and Emacs falls back to preferring the
+;;   .elc. The store is read-only, so the stale file can't just be deleted.
+;; - So format the text ourselves and never call flymake-popon-format-diagnostic.
+;;   `flymake-popon-diagnostic-formatter' is the package's own documented
+;;   extension point, so overriding it is supported rather than a hack. This is
+;;   load-bearing now that the popup stays enabled.
+(defun my-flymake-popon-format-diagnostic (diagnostic)
+  "Format DIAGNOSTIC for `flymake-popon', clamped to `flymake-popon-width'."
+  (let* ((type (or (flymake-diagnostic-type diagnostic) 'error))
+         (text (string-trim (or (flymake-diagnostic-text diagnostic) "")))
+         ;; types are keywords (:error), so symbol-name gives ":error" — drop ":"
+         (head (concat "* " (capitalize
+                             (string-remove-prefix
+                              ":" (string-replace "-" " " (symbol-name type))))))
+         (line (if (string-empty-p text)
+                   head
+                 (concat head ": " (car (split-string text "[\n\r]")))))
+         (width (or flymake-popon-width 65)))
+    (if (> (length line) width)
+        (concat (substring line 0 (- width 3)) "...")
+      line)))
+
+(setq flymake-popon-diagnostic-formatter #'my-flymake-popon-format-diagnostic)
 
 
 (setq-default cursor-type 'box)
