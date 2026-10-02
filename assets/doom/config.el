@@ -1,6 +1,47 @@
 ;;; config.el -*- lexical-binding: t; -*-
 
 ;;
+;;; Preload (no lazy modules)
+;;
+;; - Doom defers packages with plain Emacs autoloads (see doom's
+;;   lisp/cli/loaddefs.el), so nothing loads until a key or file pulls it in.
+;; - There is no module flag for this — :config default only offers +bindings,
+;;   +gnupg and +smartparens — and `use-package' deferral here is decided per
+;;   module in the module's own config, so no global variable turns it off.
+;; - So walk the autoloads and load each file's library. `(autoload 'foo "foo")`
+;;   makes symbol-function a cons whose cdr is the file, so this loads libraries
+;;   by name instead of *calling* anything: calling autoloaded functions to
+;;   "load" them would run commands with no arguments.
+;; - ponytail: `doom-after-init-hook' rather than `after-init-hook' — doom-finalize
+;;   is advised onto command-line-1 (core lisp/doom.el:370), so this is the first
+;;   hook guaranteed to run after every module has installed its autoloads.
+;;   after-init-hook could fire before them and load nothing.
+;; - ponytail: this trades startup time for first-key latency and grows with
+;;   every module added. Revert by deleting this block.
+(add-hook 'doom-after-init-hook
+  (lambda ()
+    (let ((files nil))
+      (mapatoms
+       (lambda (symbol)
+         ;; Plain let*/and, not when-let*: when-let* reads every 2-element list
+         ;; as a BINDING, so a bare (autoloadp definition) would silently bind a
+         ;; variable named `autoloadp` and never call the function at all.
+         (let* ((definition (and (fboundp symbol) (symbol-function symbol)))
+                ;; An autoload object is (autoload FILE DOC STRING INTERACTIVE),
+                ;; so the file is at cadr — cdr is the whole tail list, and cdr
+                ;; of a plain subr is a wrong-type-argument error. Check consp
+                ;; first so we never take cadr of a non-list.
+                (file (and (consp definition)
+                           (autoloadp definition)
+                           (cadr definition)
+                           (stringp (cadr definition))
+                           (cadr definition))))
+           (when file
+             (push file files)))))
+      (dolist (file (delete-dups files))
+        (ignore-errors (load file))))))
+
+;;
 ;;; Fonts
 ;;
 ;; - Doom ships Fira Code at 12pt; both changed here because 12 was small.
