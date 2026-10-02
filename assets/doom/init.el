@@ -20,6 +20,15 @@
        :editor
        (evil +everywhere)
        file-templates
+       ;; - `SPC c f' is bound to +format/region-or-buffer by :config default
+       ;;   +bindings regardless of whether this module is on. Doom only generates
+       ;;   autoloads for ENABLED modules (lisp/cli/loaddefs.el skips a module's
+       ;;   autoloads when `doom-module-active-p' is false), so without this the
+       ;;   key points at a function that was never defined and pressing it throws
+       ;;   "Wrong type argument: commandp, +format/region-or-buffer".
+       ;; - +lsp routes SPC c f through textDocument/formatting. No +onsave: that
+       ;;   would reformat every file on save. Formatting stays on demand.
+       (format +lsp)
        fold
        snippets
        word-wrap
