@@ -8,7 +8,6 @@
   #   lazygit) is in home/packages.nix; `git` comes from programs.git.
   home.packages = with pkgs; [
     gcc
-    nil
     basedpyright
     # - mandatory for opencode.nvim: it finds the server port via
     #   `lsof -Fpn -iTCP -sTCP:LISTEN`, and :checkhealth opencode errors without it
