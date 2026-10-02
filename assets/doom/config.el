@@ -319,10 +319,36 @@
       (unless (get-buffer-window buf)
         (kill-buffer buf)))))
 
-;; - `v' is free on markdown-mode-map: Doom binds o (open), p (preview),
-;;   e (export), ' (edit code block) and the i/insert prefix there.
+;; - `v' is free on all three maps: Doom binds o (open), p (preview), e (export),
+;;   ' (edit code block) and the i/insert prefix there.
+;; - All THREE maps are needed, not just markdown-mode-map. Doom's own markdown
+;;   module calls (+markdown-common-config ...) three times — for markdown-mode,
+;;   gfm-mode and markdown-ts-mode (modules/lang/markdown/config.el:120,156) —
+;;   and `:lang markdown +tree-sitter' means a .md file opens in markdown-ts-mode.
+;;   Binding only markdown-mode-map put the key on a map this config never uses,
+;;   which is why `SPC m v' did nothing.
+;; - Guard with boundp only. Emacs 30.2 has no keym-p, keymap-p or keymappable
+;;   (all verified fboundp => nil, and none is defined in its lisp/ tree), so the
+;;   keym-p guard I first wrote raised void-function at load time — which is what
+;;   left my-markdown-view itself unusable. A mode map variable that is bound is
+;;   always a keymap, so boundp is sufficient.
+;; - `map!' expands to nothing under --batch (+keybinds.el:363 guards on
+;;   noninteractive), so a batch test cannot verify this binding at all.
+(defvar my-markdown-view--maps
+  '(markdown-mode-map gfm-mode-map markdown-ts-mode-map))
+
+(defun my-markdown-view--bind ()
+  "Bind `my-markdown-view' to `SPC m v' on every Markdown mode map."
+  (dolist (m my-markdown-view--maps)
+    (when (boundp m)
+      (map! :map m :localleader "v" #'my-markdown-view))))
+
+;; - markdown-ts-mode lives in its own package, so wait for that to load before
+;;   touching its map; markdown-mode and gfm-mode come with markdown-mode itself.
 (with-eval-after-load 'markdown-mode
-  (map! :map markdown-mode-map :localleader "v" #'my-markdown-view))
+  (my-markdown-view--bind))
+(with-eval-after-load 'markdown-ts-mode
+  (my-markdown-view--bind))
 
 
 
