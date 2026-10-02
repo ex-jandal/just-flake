@@ -72,6 +72,7 @@
        debugger
        direnv
        editorconfig
+       lookup
        (lsp +lsp)
        magit
        pdf
