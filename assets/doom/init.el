@@ -72,6 +72,10 @@
        debugger
        direnv
        editorconfig
+       ;; - NOT optional: :config default +bindings binds SPC c d/D/i/t/k to
+       ;;   #'+lookup/* unconditionally (+evil-bindings.el), so omitting this
+       ;;   module leaves five keys pointing at undefined functions and they
+       ;;   throw "Wrong type argument: commandp, +lookup/definition".
        lookup
        (lsp +lsp)
        magit
