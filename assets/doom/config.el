@@ -352,3 +352,149 @@
 (add-hook 'text-mode-hook #'flyspell-mode)
 (add-hook 'markdown-mode-hook #'flyspell-mode)
 (add-hook 'org-mode-hook #'flyspell-mode)
+
+
+;;
+;;; OpenCode
+;;
+;; - Native Emacs client for `opencode serve' (github.com/jdormit/emacs-opencode),
+;;   provided as a buildEmacsPackage via `extraPackages' in
+;;   home/modules/doom-emacs.nix (NOT a packages.el entry — see the long comment
+;;   there on why melpaBuild cannot satisfy its `request' dependency).
+;;   `package!'-declared packages are required by the generated profile; this one
+;;   is not, so the require below is what loads it.
+;;
+;; - Doom ships no module for it — checked doomemacs master and its modules
+;;   submodule — so there is nothing to add to the `doom!' block in init.el.
+;;
+;; - The package talks to the SAME server surface as opencode.nvim already does
+;;   (both drive `opencode serve' over /session, /event, /agent, /command), so
+;;   every route it calls was verified present in nixpkgs' opencode 1.18.21.
+;;
+;; - M-x opencode is the entry point; it auto-detects the project root from
+;;   `project-current' (or default-directory). C-u picks a directory by hand.
+;;   In the session buffer: C-c C-c send, C-c C-a agent, C-c C-l model,
+;;   C-c C-o slash command.
+(require 'emacs-opencode)
+
+;; - `opencode-sse-backend' stays at its default 'auto, which picks the JS
+;;   bridge (opencode-sse-bridge.js run under bun or node, both installed) and
+;;   falls back to curl if the bridge is unusable. The script is only found
+;;   because the postInstall in home/modules/doom-emacs.nix installs it; a
+;;   stock melpaBuild drops it and every session then warns "bridge script not
+;;   found" (emacs-opencode-sse.el:578). Set this to 'curl if streaming ever
+;;   stalls — it works standalone, just chunkier.
+
+;; - Leader keys. The `:leader' + `:prefix' shape is load-bearing, not stylistic:
+;;   `:leader' makes map! emit `doom--define-leader-key', which binds into
+;;   doom-leader-map and takes the key prefix ONLY from :prefix/:infix
+;;   (modules/doom/compat/+keybinds.el:57-79). Spelling the keys out by hand —
+;;   (map! :desc "..." "SPC o c a" #'opencode-ask) — expands to
+;;   (general-define-key "SPC o c a" …), which hands general the whole string as
+;;   one key descriptor, never splitting it into a prefix chain. The binding is
+;;   silently dead. Verified expansions:
+;;     (map! :leader :prefix ("o c" . "opencode") :desc "Ask" "a" …)
+;;     => (doom--define-leader-key :infix "o c" "" (cons "opencode" …) "a" …)
+;;     => (define-key doom-leader-map (kbd "o c") …) and (kbd "o c a")
+;;   `:prefix' (not `:prefix-map') on purpose: :prefix-map mints a
+;;   doom-leader-<desc>-map variable via defvar, and Doom's own bindings already
+;;   own doom-leader-open-map and friends — hence its docstring's "DO NOT USE
+;;   THIS IN YOUR PRIVATE CONFIG". `:prefix' degrades to :infix internally
+;;   because `:leader' set doom--map-fn, which is exactly what we want.
+;;   No state keyword => global in every mode, correct for M-x-style commands.
+;;
+;; - Bare at top level, not in `with-eval-after-load'. That idiom would be dead
+;;   here: this Doom has no lisp/doom-key-bindings.el (the key-bindings machinery
+;;   moved to modules/doom/compat/+keybinds.el) and nothing provides that
+;;   feature, so the hook would never fire. Bare is correct because :user has
+;;   CONFIGDEPTH 105 — the highest in the tree — so $DOOMDIR/config.el is the
+;;   last config file loaded, after every module's.
+;;
+;; - `SPC o c' is the only free slot under Doom's open prefix: `a' is the
+;;   org-agenda sub-prefix and b d f F r R p P t T e E - are all taken
+;;   (modules/config/default/+evil-bindings.el:675-744).
+;;
+;; - These 8 are exactly the commands upstream leaves UNBOUND, i.e. the whole
+;;   gap: every other interactive command in the package is either session-local
+;;   (all of those are pre-bound to C-c C-<x>, TAB, RET and mouse-1 by
+;;   emacs-opencode-session-mode.el / -session-render.el) or redundant here:
+;;     opencode-send-to-session  — subsumed by opencode-send-context-to-session,
+;;                                  which falls back to "10 lines around point"
+;;                                  when no region is selected
+;;     opencode-run-server       — the server starts on demand anyway
+;;   The omitted ones stay on M-x.
+(map! :leader
+  :prefix ("o c" . "opencode")
+  :desc "New session"          "c" #'opencode
+  :desc "Ask"                  "a" #'opencode-ask
+  :desc "Ask with context"     "A" #'opencode-ask-contextual
+  :desc "Open session"         "s" #'opencode-open-session
+  :desc "Send context"         "t" #'opencode-send-context-to-session
+  :desc "MCP status"           "m" #'opencode-mcp-status
+  :desc "Shutdown server"      "x" #'opencode-shutdown
+  :desc "Shutdown all servers" "X" #'opencode-shutdown-all)
+
+;; - `A' and `t' are the two worth remembering: they mirror the opencode.nvim
+;;   maps this repo already ships (assets/nvim/lua/plugins/opencode.lua) —
+;;   ask("@this: ") and operator("@this") — so a region or point carries into
+;;   the prompt.
+;;
+;; - `m' reports on the MCP server below, so it is the quickest way to tell
+;;   whether the agent can actually reach this Emacs.
+
+;; - The one session-buffer command upstream leaves unbound. Session-local, so
+;;   `:map' with NO `:leader' — map! silently ignores `:map' when `:leader' is
+;;   present (doomemacs#5532), which would make this a no-op without an error.
+;;   `opencode-session-mode-map' is a plain defvar handed straight to
+;;   use-local-map (emacs-opencode-session-mode.el:52-77), with no copy made at
+;;   mode-init, so this survives into every session buffer.
+;;   C-c C-s is free: upstream takes every C-c C-<letter> except b d e g h i j
+;;   m q s u w y, plus C-c C-[ and C-c C-].
+(map! :map opencode-session-mode-map
+  :desc "Rename session" "C-c C-s" #'opencode-session-rename)
+
+
+;;
+;;; Emacs MCP server
+;;
+;; - github.com/rhblind/emacs-mcp-server exposes this running Emacs to the
+;;   agent over a unix socket: buffers, diagnostics, elisp eval, org editing.
+;;   opencode reaches it through `mcp.emacs' in home/modules/opencode.nix
+;;   (socat bridging stdio to the socket). Only elisp deps are org, which
+;;   :lang org already provides.
+;;
+;; - `mcp-server-socket-directory' MUST be set. It defaults to
+;;   `user-emacs-directory', and unstraightened's wrapper passes
+;;   --init-directory=$doomSource, a READ-ONLY nix store path — so the default
+;;   points at the store and mcp-server-transport-unix's
+;;   (make-directory dir t) fails, leaving the server unable to start. doomDir is
+;;   likewise a store path. DOOMLOCALDIR (~/.local/share/doom, from
+;;   doomLocalDir in home/modules/doom-emacs.nix) is the writable state dir Doom
+;;   already creates, so the socket lands at
+;;     ~/.local/share/doom/emacs-mcp-server.sock
+;;   which is the path home/modules/opencode.nix tells socat to connect to.
+(require 'mcp-server)
+
+(setq mcp-server-socket-directory doom-local-dir)
+
+;; - `doom-after-init-hook', NOT the `emacs-startup-hook' upstream suggests.
+;;   doom-finalize runs it (doomemacs lisp/doom.el:520), and doom-finalize is
+;;   advised onto command-line-1 :after — i.e. after this file has been loaded —
+;;   so the require above has definitely run by then. emacs-startup-hook fires
+;;   from after-init-hook, which races with Doom's own module loading.
+(add-hook 'doom-after-init-hook #'mcp-server-start-unix)
+
+;; - ponytail: every tool enabled, including `eval-elisp'. That tool is remote
+;;   code execution in the Emacs process by design, and upstream's static
+;;   scanner has known bypasses — it does not walk `let' binding positions and
+;;   does not catch runtime (intern ...) construction (their README,
+;;   "Security Limitations", issue #10). Deliberate: this is the same trust level
+;;   as letting the agent run bash in this project. Tighten if that is not the
+;;   deal: (setq mcp-server-emacs-tools-enabled '(get-diagnostics)) drops
+;;   eval-elisp and all 13 org tools, leaving read-only diagnostics.
+;;
+;; - Management: M-x mcp-server-status, mcp-server-stop, mcp-server-list-clients.
+;;   Audit trail: M-x mcp-server-security-show-audit-log.
+;;
+;; - No `server-start' needed: doom-finalize already calls it on every graphic
+;;   frame (doomemacs lisp/doom.el:521-529), so emacsclient works too.
