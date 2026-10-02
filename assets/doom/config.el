@@ -279,6 +279,52 @@
 (global-set-key (kbd "C-c C-a") #'my-browse-region)
 
 
+;;
+;;; Markdown preview in Emacs
+;;
+;; - `SPC m p' (markdown-preview) always opens a browser: markdown-mode ends it
+;;   in browse-url-of-buffer (markdown-mode.el:7929). This leaves that alone and
+;;   adds a real in-Emacs view on `SPC m v'.
+;; - pandoc converts md -> org, then org-view-mode hides the Org markup so it
+;;   reads as prose. Verified pandoc's output keeps headings, /emphasis/,
+;;   =code=, #+begin_src blocks and tables intact.
+;; - org-view-mode is org-only — it signals "Not in org-mode" otherwise
+;;   (org-view-mode.el:653) — which is why the buffer is converted before the
+;;   minor mode is switched on.
+;; - Snapshot, not live: it re-renders on each keypress, it does not track edits.
+(defun my-markdown-view ()
+  "Preview the current Markdown buffer inside Emacs, as rendered Org."
+  (interactive)
+  (unless (executable-find "pandoc")
+    (user-error "pandoc not on PATH"))
+  (let* ((file (or (buffer-file-name)
+                   (user-error "Save the buffer first: %s needs a file" major-mode)))
+         (name (format "*%s*" (file-name-nondirectory file)))
+         (buf (get-buffer-create name)))
+    (unwind-protect
+        (with-current-buffer buf
+          (let ((inhibit-read-only t))
+            (erase-buffer)
+            (org-mode)
+            (insert-file-contents file)
+            (goto-char (point-min))
+            (unless (zerop (call-process-region (point-min) (point-max)
+                                               "pandoc" nil t nil
+                                               "-f" "markdown" "-t" "org"))
+              (user-error "pandoc failed to convert %s" file))
+            (goto-char (point-min))
+            (org-view-mode 1)
+            (display-buffer buf)))
+      ;; Only clean up if the conversion bailed before display-buffer.
+      (unless (get-buffer-window buf)
+        (kill-buffer buf)))))
+
+;; - `v' is free on markdown-mode-map: Doom binds o (open), p (preview),
+;;   e (export), ' (edit code block) and the i/insert prefix there.
+(with-eval-after-load 'markdown-mode
+  (map! :map markdown-mode-map :localleader "v" #'my-markdown-view))
+
+
 
 ;;
 ;;; Dired
