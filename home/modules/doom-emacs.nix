@@ -37,8 +37,10 @@
       taplo
       yaml-language-server
       texlab
-      # Systems
+      # basedpyright and jdt-language-server have no lsp-mode client, so they are
+      # registered by hand in assets/doom/config.el.
       basedpyright
+      # Systems
       clang-tools
       ccls
       csharp-ls
