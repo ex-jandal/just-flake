@@ -73,6 +73,25 @@ in
       #   user's interactive PATH.
       opencode
       socat
+      # Signal (the `sgn' client declared in assets/doom/packages.el).
+      # - signal-cli is required, not optional: `sgn-cli-program' defaults to
+      #   (or (executable-find "signal-cli") "signal-cli") and sgn spawns it as a
+      #   JSON-RPC subprocess, so like the language servers below it must be a
+      #   real binary on $PATH. nixpkgs 0.14.3, which satisfies sgn's v0.14+
+      #   floor. Note this is the JVM build (openjdk25_headless wrapper +
+      #   dbus_java), not the native Rust one, so it needs a live session bus.
+      signal-cli
+      # - qrencode renders the device-linking QR inline in Emacs. sgn-link
+      #   falls back to printing the URI to scan with your phone, so this is not
+      #   load-bearing, but linking a device is the main setup step and reading
+      #   a QR beats reading a 200-char svrkit:// URI.
+      qrencode
+      # - imagemagick for sgn-media, which calls `convert' to turn APNG stickers
+      #   into GIFs. Only reachable for animated stickers. Verified that
+      #   nixpkgs' imagemagick still ships the legacy `convert' name (IM7 7.1.2
+      #   builds without --without-legacy), which is what sgn's
+      #   (executable-find "convert") probe requires; it is NOT `magick'.
+      imagemagick
       # Nix
       nixd
       # Shell / data / markup
