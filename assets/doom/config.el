@@ -1,21 +1,5 @@
 ;;; config.el -*- lexical-binding: t; -*-
 
-;;
-;;; Startup
-;;
-;; - Doom only calls package-initialize from (with-eval-after-load 'straight ...)
-;;   (core lisp/doom-emacs.el:328-330), and unstraightened bypasses straight.el
-;;   entirely, so it never runs. Without it no package autoloads are read — and
-;;   third-party themes register themselves with custom-theme-load-path *from
-;;   their autoloads* (core lisp/doom-emacs.el:276 says so). Result: M-x
-;;   load-theme listed nothing but the noctalia directory added below, even
-;;   though all 11 theme packages were installed.
-;; - This has to run before the theme loads. Doom reads $DOOMDIR/config.el after
-;;   every module's config.el but before after-init-hook, and doom-init-theme-h
-;;   — which does (load-theme doom-theme t) — is on after-init-hook at -90
-;;   (core lisp/doom-emacs.el:1308-1312).
-(package-initialize)
-
 ;; - Doom sets custom-file to $DOOMDIR/custom.el (core lisp/doom-emacs.el:284),
 ;;   which is a read-only store path. Emacs stores a non-built-in theme's SHA-256
 ;;   in custom-safe-themes and saves it there the first time you confirm the
@@ -42,6 +26,11 @@
       doom-big-font-size 1.33
       doom-big-font-line-height 1.1
       doom-small-font-size 11)
+
+(set-fontset-font t 'arabic "Rubik")
+(setq-default bidi-paragraph-direction 'nil)
+
+(setq display-line-numbers-type 'relative)
 
 
 ;;
