@@ -118,6 +118,23 @@
 ;;   letting lsp-mode shell out to npm is not something these controlled — every
 ;;   server comes from Nix, which is why nothing downloads.
 
+;; - svelte-mode is the one exception to "no per-language wiring needed here":
+;;   Doom has no :lang svelte module, so nothing adds `lsp!' to its hook. lsp-svelte
+;;   activates on the `.svelte' *extension* (lsp-svelte.el:273), not on a
+;;   major-mode/language-id match, so it would come up fine here regardless.
+;; - `lsp-deferred', not `lsp': at file-local-vars-hook time lsp-mode is not fully
+;;   set up yet. This is what Doom's `lsp!' expands to.
+;; - The `require' is load-bearing, not just for the mode. :lang web already claims
+;;   `\.svelte\' via `(use-package! web-mode :mode "\\.svelte\\'")'
+;;   (modules/lang/web/+html.el:16), and svelte-mode's own
+;;   `(add-to-list 'auto-mode-alist '("\\.svelte\\'" . svelte-mode))' PREPENDS when
+;;   it loads — so this require is what makes svelte-mode win that extension.
+;;   :user has CONFIGDEPTH 105, so this file loads after every module's config.el
+;;   and therefore after web-mode's prepend.
+(require 'svelte-mode)
+
+(add-hook 'svelte-mode-hook #'lsp-deferred)
+
 ;; - Doom already sets +lsp-optimization-mode on lsp buffers, but this is the
 ;;   upstream recommendation for lsp-mode's own I/O.
 (setq lsp-idle-delay 0.2
