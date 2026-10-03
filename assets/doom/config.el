@@ -176,6 +176,43 @@
     :activation-fn (lsp-activate-on "rust")
     :server-id 'rls)))
 
+;; - No `:lang tailwindcss' module exists upstream (nothing under doomemacs/modules
+;;   mentions tailwind), but lsp-mode ships an `lsp-tailwindcss' client and the
+;;   binary is already in extraBinPackages.
+;;
+;; - lsp-tailwindcss.el:273 declares the server with ONLY a `:download' provider
+;;   (the vscode extension zip) — no `:system'. Left alone, `lsp-package-path' looks
+;;   for ~/.local/share/lsp/tailwindcss/extension/dist/tailwindServer.js, gets nil,
+;;   and `lsp' drops the client at its `lsp--server-binary-present?' filter
+;;   (lsp-mode.el:9876). SILENTLY: html/svelte/ts still match, so matching-clients is
+;;   non-nil and the install-suggestion branch at lsp-mode.el:9915 never runs either.
+;; - Overriding the dependency to `:system' points it at the nixpkgs binary.
+;; - `with-eval-after-load' on the CLIENT, not on lsp-mode: `lsp-dependency' is an
+;;   ht-set, so lsp-tailwindcss's own call at load time clobbers an override made
+;;   too early. lsp-mode's own docstring shows this require-then-override order.
+;; - Side effect: with no `:download' provider left, `M-x lsp-install-server' reports
+;;   "no automatic installation for tailwindcss". Correct — every server in this flake
+;;   comes from Nix.
+;;
+;; - `js-ts-mode' is prepended because upstream's list (lsp-tailwindcss.el:53) has
+;;   web-mode, html-mode, css-mode, typescript-mode, typescript-tsx-mode and
+;;   tsx-ts-mode but not js-ts-mode, which is what Doom's :lang javascript uses for
+;;   plain .js/.jsx. .ts/.tsx already resolve through typescript-mode's ts-mode
+;;   ancestry, and .svelte through svelte-mode's html-mode ancestry.
+;;
+;; - No `lsp-tailwindcss-skip-config-check' needed: `lsp-tailwindcss--activate-p'
+;;   wants a tailwind.config.* file OR a v4 package.json entry, and
+;;   `lsp-tailwindcss--version-v4-p' matches "^4.3.2" out of devDependencies.
+;; - Nothing hooks lsp! into these modes for this client — it is an add-on
+;;   (`lsp-tailwindcss-add-on-mode' is t), so it attaches to whatever server already
+;;   manages the buffer.
+(with-eval-after-load 'lsp-tailwindcss
+  (lsp-dependency 'tailwindcss-language-server
+                  '(:system "tailwindcss-language-server"))
+
+  (setq lsp-tailwindcss-major-modes
+        (cons 'js-ts-mode lsp-tailwindcss-major-modes)))
+
 ;; - Heavy per-session allocation. Doom's gcmh handles the GC strategy, so
 ;;   leave read-process-output-max where the lsp module put it.
 
