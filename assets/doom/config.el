@@ -176,6 +176,18 @@
     :activation-fn (lsp-activate-on "rust")
     :server-id 'rls)))
 
+  (after! rustic
+    (setq rustic-analyzer-command '("lspmux" "client"))
+  )
+
+  (defun my-rust-disable-clippy-flymake ()
+    "Remove Emacs 30's clippy-on-stdin flymake backend for Rust buffers."
+    (remove-hook 'flymake-diagnostic-functions 'rust-ts-flymake t))
+  
+  (dolist (hook '(rustic-mode-hook rust-mode-hook))
+    (add-hook hook #'my-rust-disable-clippy-flymake))
+
+
 ;; - No `:lang tailwindcss' module exists upstream (nothing under doomemacs/modules
 ;;   mentions tailwind), but lsp-mode ships an `lsp-tailwindcss' client and the
 ;;   binary is already in extraBinPackages.
