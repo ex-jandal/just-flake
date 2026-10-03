@@ -39,6 +39,37 @@
            :files ("*.el" "tools/*.el" "mcp-wrapper.py" "mcp-wrapper.sh"))
   :pin "a5d749cf9880598f66308545985526fd4460627f")
 
+;; - Signal client: send/receive over signal-cli's JSON-RPC interface, with
+;;   local SQLite persistence and FTS5 full-text search across all history.
+;;   Reached with M-x sgn-start / M-x sgn-chat (no keybinding by choice).
+;; - A plain `package!' DOES work here, unlike emacs-opencode above: every
+;;   (require ...) in all 13 source files resolves to Emacs core — button,
+;;   cl-lib, color, image, json, notifications, tabulated-list — or to sgn's own
+;;   modules. So unstraightened's melpaBuild (`emacs --batch -Q', no package
+;;   load-path) can byte-compile it standalone, which is exactly how upstream's
+;;   own Makefile does it. Package-Requires is only ((emacs "29.1")), already
+;;   satisfied by the 30.2 this builds against, so there is nothing to fetch.
+;; - `:files ("*.el")' is deliberately WIDER than upstream's Makefile, which
+;;   lists 12 SRCS but omits sgn-import.el even though sgn.el requires it — so
+;;   `make compile' is broken upstream. The root glob picks up all 13 files.
+;; - The SQLite layer uses Emacs 29+'s built-in sqlite.el (sqlite-open /
+;;   sqlite-execute / sqlite-select), NOT an external emacs-sqlite3 binding,
+;;   which is why "no external deps" holds. Confirmed against the built
+;;   30.2: sqlite-available-p t, SQLite 3.53.3, FTS5 create/insert/drop all
+;;   succeed. sgn hard-fails at startup if FTS5 is missing.
+;; - No `(require 'sgn)' in config.el: sgn-start and sgn-chat are both
+;;   ;;;###autoload.
+;; - sgn-account (the phone number) is deliberately NOT set here — this repo
+;;   pushes to GitHub and Codeberg. Set it with
+;;   `M-x customize-set-variable' so it lands in the redirected custom-file
+;;   instead of in git.
+;; - sgn cannot register an account, only link extra devices (M-x sgn-link).
+;;   First-time registration is a manual `signal-cli register' (SMS).
+(package! sgn
+  :recipe (:type git :host github :repo "benthamite/sgn"
+           :files ("*.el"))
+  :pin "8b9c48306b50819e7454e51d0d580abe0477d1a4")
+
 ;; - :lang vala does not exist upstream, so Doom never declares vala-mode.
 ;;   Dropped: `vala-mode` is in nixpkgs emacsPackages, but vala-ls (the LSP)
 ;;   is not, so this only buys syntax highlighting with no completion.

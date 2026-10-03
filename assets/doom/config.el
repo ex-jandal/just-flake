@@ -489,6 +489,13 @@
   :desc "Shutdown server"      "x" #'opencode-shutdown
   :desc "Shutdown all servers" "X" #'opencode-shutdown-all)
 
+;; Resize windows instantly using Ctrl + Shift + Arrow keys
+(map! "C-S-h"  #'evil-window-decrease-width
+      "C-S-l"  #'evil-window-increase-width
+      "C-S-k"  #'evil-window-decrease-height
+      "C-S-j"  #'evil-window-increase-height)
+
+
 ;; - `A' and `t' are the two worth remembering: they mirror the opencode.nvim
 ;;   maps this repo already ships (assets/nvim/lua/plugins/opencode.lua) —
 ;;   ask("@this: ") and operator("@this") — so a region or point carries into
@@ -507,6 +514,81 @@
 ;;   m q s u w y, plus C-c C-[ and C-c C-].
 (map! :map opencode-session-mode-map
   :desc "Rename session" "C-c C-s" #'opencode-session-rename)
+
+
+;;
+;;; Signal (the `sgn' client)
+;;
+;; - `SPC o s' sits next to `SPC o c' for opencode because `s' is the one letter
+;;   left under Doom's open prefix on Linux: the direct bindings there are
+;;   A a b d f F r R - plus t T e E D m l and p P, and `s' appears only inside
+;;   (:when (modulep! :os macos)) as a "send to application" prefix
+;;   (modules/config/default/+evil-bindings.el:676-724). Not on this platform.
+;;
+;; - THREE sibling map! forms with fully-qualified prefixes, NOT one nested form.
+;;   :prefix goes through doom--map-set, which is plist-put (keybinds.el:260) —
+;;   it REPLACES the pending prefix rather than appending, so a second :prefix
+;;   inside a single form commits the first and binds only `m' at top level.
+;;   Sibling forms are fine: doom--map-commit emits general-define-key with
+;;   :prefix (:290-301), which walks into the existing `SPC o s' keymap instead
+;;   of replacing it. :prefix-map is still avoided — the leader prefix is already
+;;   a keymap, not a symbol.
+;;
+;; - All 25 interactive commands are bound; none need a (require 'sgn) since they
+;;   are all ;;;###autoload. The split is by how often you reach for them, not by
+;;   topic: the everyday ones are single keys on `SPC o s' so nothing stands
+;;   between you and sending a message.
+;;
+;; - sgn ALSO binds most of these itself, in narrower keymaps. Left alone on
+;;   purpose, since those are better keys where they apply:
+;;     sgn-chat-mode-map      RET send, C-c C-a attach, C-c C-v voice, C-g cancel
+;;     sgn-chat-message-map   r reply, R react, e edit, d delete, f forward,
+;;                            P pin, c copy, g more-history — a text property on
+;;                            a rendered message, so it does not shadow typing
+;;     sgn-dashboard-mode-map RET open, c chat, s search, g refresh, d mark-read
+;;     sgn-search-mode-map    RET goto, n next, p prev
+;;   The globals below exist to reach those same actions from anywhere else.
+;;
+;; - `v' (voice note) is bound for completeness but always errors upstream
+;;   (sgn.el:578, "not yet implemented").
+;;
+;;   >>> sgn-account MUST be set, or sgn-start / sgn-chat / sgn-note-to-self all
+;;   >>> user-error and signal-cli is spawned with `-a <number>' (sgn-rpc.el:146).
+;;   >>> It is set in ~/.config/doom/custom.el, NOT here — see the custom-file
+;;   >>> section at the end of this file.
+(map! :leader
+  :prefix ("o s" . "signal")
+  :desc "Dashboard"           "d" #'sgn-dashboard
+  :desc "Open chat"           "c" #'sgn-chat
+  :desc "Reply"               "r" #'sgn-reply
+  :desc "React"               "R" #'sgn-react
+  :desc "Forward"             "f" #'sgn-forward
+  :desc "Note to self"        "n" #'sgn-note-to-self
+  :desc "Attach file"         "a" #'sgn-attach-file
+  :desc "Start Signal"        "s" #'sgn-start
+  :desc "Stop Signal"         "S" #'sgn-stop
+  :desc "Search history"      "/" #'sgn-search
+  :desc "Search in chat"      "i" #'sgn-search-in-chat
+  :desc "Link device"         "l" #'sgn-link
+  :desc "Voice note"          "v" #'sgn-send-voice-note
+  :desc "Show log"            "?" #'sgn-show-log
+  :desc "Import from Desktop" "I" #'sgn-import-from-desktop)
+
+(map! :leader
+  :prefix ("o s m" . "signal message")
+  :desc "Edit"               "e" #'sgn-edit
+  :desc "Delete"             "d" #'sgn-delete
+  :desc "Copy text"          "y" #'sgn-copy-text
+  :desc "Toggle pin"         "p" #'sgn-toggle-pin
+  :desc "Vote"               "v" #'sgn-vote-poll
+  :desc "Disappearing timer" "t" #'sgn-set-disappearing)
+
+(map! :leader
+  :prefix ("o s c" . "signal chat")
+  :desc "New group"   "g" #'sgn-create-group
+  :desc "Create poll" "p" #'sgn-create-poll
+  :desc "Block"       "b" #'sgn-block-contact
+  :desc "Unblock"     "u" #'sgn-unblock-contact)
 
 
 ;;
@@ -553,3 +635,27 @@
 ;;
 ;; - No `server-start' needed: doom-finalize already calls it on every graphic
 ;;   frame (doomemacs lisp/doom.el:521-529), so emacsclient works too.
+
+
+;;
+;;; Custom file
+;;
+;; - Doom loads custom-file ONLY if this config left it untouched:
+;;     (when (eq custom-file old-custom-file) (doom-load custom-file 'noerror))
+;;   at lisp/doom-profiles.el:594, where old-custom-file is captured before the
+;;   module configs run. The redirect at the top of this file changes it, so
+;;   that guard is ALWAYS false and custom.el is never loaded. Without this form
+;;   `M-x customize-set-variable' writes the file and silently does nothing on
+;;   the next start.
+;; - Placed at the very end, which is where Doom would have loaded it: after
+;;   every module's config, so saved customizations win over the setq defaults.
+;;   `doom-load' is what Doom itself calls, and 'noerror covers the common case
+;;   of the file not existing yet on a fresh machine.
+;;
+;; - This is what carries sgn-account (the Signal phone number). That number is
+;;   passed to signal-cli as `-a' and three entry points user-error without it
+;;   (sgn-rpc.el:146, sgn.el:511 and :588), so it is mandatory — but it must not
+;;   live in this file, which is pushed to GitHub and Codeberg. Set it once with
+;;     M-x customize-set-variable sgn-account RET +15550000000 RET
+;;   and it persists here, outside git.
+(doom-load custom-file 'noerror)
