@@ -74,6 +74,16 @@
        (rest +jq)
        (rust +lsp +tree-sitter)
        (sh +lsp +tree-sitter)
+       ;; - html + css + svelte LSPs. Nothing outside this module hooks lsp-mode
+       ;;   into those modes: modules/lang/web/+html.el:169 and +css.el:71 are the
+       ;;   only `add-hook ... :append #'lsp!' for web-mode/html-mode/nxml-mode and
+       ;;   the css family. Without this line .html fell through to the built-in
+       ;;   mhtml-mode and .css to the built-in css-mode — both loaded, neither with
+       ;;   a client — and .svelte had no auto-mode-alist entry at all.
+       ;; - It also claims `\.svelte\': +html.el does `(use-package! web-mode :mode
+       ;;   "\\.svelte\\'")'. config.el requires svelte-mode, which prepends its own
+       ;;   entry and so wins that extension.
+       (web +lsp +tree-sitter)
        (yaml +lsp +tree-sitter)
        (zig +lsp +tree-sitter)
 

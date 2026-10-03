@@ -45,6 +45,16 @@
 ;;   Uncomment if you want it.
 ;; (package! vala-mode)
 
+;; - No `:lang svelte' module exists upstream either — Doom's :lang web claims
+;;   `\.svelte\' for web-mode but offers no Svelte-aware editing. svelte-mode gives
+;;   that (Svelte directives, `{#expr}` blocks, per-submode indentation) and is
+;;   what config.el registers with lsp-mode.
+;; - No :recipe/:pin: nixpkgs emacsPackages has it, and v1.0.5 declares
+;;   `Package-Requires: ((emacs "26.1"))' — it requires only built-ins
+;;   (sgml-mode, js, css-mode, prog-mode, subr-x) and treats pug/coffee/sass/
+;;   typescript as soft deps, which is why nixpkgs' recipe has an empty `deps'.
+(package! svelte-mode)
+
 ;; Prefer Doom's own tree-sitter grammars; the nixpkgs set is provided via
 ;; `extraPackages` (with-all-grammars) so that grammar .so files are compiled
 ;; ahead of time rather than at first launch.
