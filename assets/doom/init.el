@@ -4,18 +4,20 @@
 ;; store). Everything private goes in config.el instead.
 
 (doom! :completion
-       vertico
-       corfu
+       (vertico +icons)
+       (corfu +icons +orderless)
 
        :ui
        doom
        dashboard
        modeline
+       hl-todo
        nav-flash
        ophints
        (popup +defaults)
        window-select
        neotree
+       zen
 
        :editor
        (evil +everywhere)
@@ -32,15 +34,18 @@
        fold
        snippets
        word-wrap
+       multiple-cursors
 
        :emacs
-       dired
+       (dired +dirvish +icons)
+       (ibuffer +icons)
        undo
        vc
 
        :term
        eshell
        vterm
+       ;; (ghostel +everywhere)
 
        :os
        (:if (featurep :system 'macos) macos)
@@ -51,12 +56,13 @@
        (csharp +lsp +tree-sitter)
        ;; - no :lang vala module exists upstream; XML/CSV come from :lang data.
        data
+       emacs-lisp
        (go +lsp +tree-sitter)
        (java +lsp +tree-sitter)
        (json +lsp +tree-sitter)
        (javascript +lsp +tree-sitter)
        (kotlin +lsp +tree-sitter)
-       (latex +lsp)
+       (latex +cdlatex +lsp)
        (markdown +lsp +tree-sitter)
        ;; - :lang nim has no +lsp flag upstream (zls works anyway; see config.el)
        nim
@@ -67,7 +73,7 @@
        ;;   allRefs = true` — a full git clone on every rebuild. Costs a 35MB
        ;;   JS/CSS library to get org-present slides nobody has asked for.
        ;;   Re-add the flag + one fetchTree setting if presentations matter.
-       (org +journal +roam +pretty)
+       (org +journal +roam +pretty +dragndrop +gnuplot)
        (php +lsp +tree-sitter)
        (python +lsp +tree-sitter)
        (qt +lsp +tree-sitter)
@@ -97,13 +103,13 @@
        ;;   throw "Wrong type argument: commandp, +lookup/definition".
        lookup
        (lsp +lsp)
-       magit
+       (magit +forge)
        pdf
        tree-sitter
 
        :checkers
-       (syntax +flymake)
+       (syntax +flymake +icons)
        (spell +hunspell)
 
        :config
-       (default +bindings))
+       (default +bindings +smartparens))

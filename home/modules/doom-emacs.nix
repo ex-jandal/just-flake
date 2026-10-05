@@ -153,6 +153,7 @@ in
       sqls
       vale
       typos
+      delta
     ];
 
     # - tree-sitter grammars for the :lang modules below. Doom installs

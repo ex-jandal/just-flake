@@ -70,6 +70,9 @@
            :files ("*.el"))
   :pin "8b9c48306b50819e7454e51d0d580abe0477d1a4")
 
+(package! magit-delta
+  :recipe (:host github :repo "dandavison/magit-delta")
+  :pin "5fc7dbddcfacfe46d3fd876172ad02a9ab6ac616")
 ;; - :lang vala does not exist upstream, so Doom never declares vala-mode.
 ;;   Dropped: `vala-mode` is in nixpkgs emacsPackages, but vala-ls (the LSP)
 ;;   is not, so this only buys syntax highlighting with no completion.
