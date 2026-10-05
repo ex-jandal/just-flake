@@ -355,6 +355,25 @@
       dired-filter-hidden-files nil
       dired-confirm-delete nil)
 
+(use-package! which-key
+  :init
+  (setq which-key-idle-delay 0.2
+        which-key-allow-multiple-replacements t)
+  :config
+  ;; modified from https://tecosaur.github.io/emacs-config/config.html#which-key
+  (pushnew!
+   which-key-replacement-alist
+   '(("" . "\\`+?evil[-:]?\\(?:a-\\)?\\(.*\\)") . (nil . "◂\\1"))
+   '(("\\`g s" . "\\`evilem--?motion-\\(.*\\)") . (nil . "◃\\1"))
+   '(("" . "\\`+?magit[-:]?\\(?:a-\\)?\\(.*\\)") . (nil . "\\1"))))
+
+
+(setq corfu-auto-delay 0.2)
+
+
+(use-package magit-delta
+  :hook (magit-mode . magit-delta-mode))
+
 
 ;;
 ;;; Neotree
