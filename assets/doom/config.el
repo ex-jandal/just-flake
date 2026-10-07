@@ -21,8 +21,8 @@
 ;; - `doom-big-font-size` is a *ratio*, not a point size (1.33 => 1.33x base).
 ;;   `doom-small-font-size` is relative to the default face height, so 11 stays
 ;;   below the 20pt base and remains readable.
-(setq doom-font (font-spec :family "CaskaydiaCove Nerd Font" :size 20)
-      doom-variable-pitch-font (font-spec :family "Rubik" :size 21)
+(setq doom-font (font-spec :family "CaskaydiaCove Nerd Font" :size 22)
+      doom-variable-pitch-font (font-spec :family "Rubik" :size 23)
       doom-big-font-size 1.33
       doom-big-font-line-height 1.1
       doom-small-font-size 11)
