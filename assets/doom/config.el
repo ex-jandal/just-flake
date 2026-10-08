@@ -10,7 +10,6 @@
                         (or (getenv "XDG_CONFIG_HOME")
                             (concat (getenv "HOME") "/.config"))))
 
-
 ;;
 ;;; Fonts
 ;;
@@ -46,7 +45,8 @@
 ;;
 ;; - Setting `doom-theme' rather than calling `load-theme' keeps Doom's own hooks
 ;;   (org-modern integration, solaire-mode in popups).
-(setq doom-theme 'doom-gruvbox)
+;; (setq doom-theme 'doom-gruvbox)
+(setq doom-theme 'melange)
 
 ;; - Noctalia is still generated and still selectable, just no longer the default.
 ;;   Its emacs template (assets/noctalia/settings.toml -> [theme.templates]
@@ -59,24 +59,28 @@
 ;;   otherwise. That fallback never ran, because Noctalia writes the file on every
 ;;   palette change, so `doom-theme' would silently revert to noctalia and there
 ;;   was no way to pick a theme permanently. Hence the unconditional setq above.
-(defconst +noctalia-themes-dir
-  (expand-file-name "doom/themes"
-                    (or (getenv "XDG_CONFIG_HOME")
-                        (concat (getenv "HOME") "/.config"))))
+;; (defconst +noctalia-themes-dir
+;;   (expand-file-name "doom/themes"
+;;                     (or (getenv "XDG_CONFIG_HOME")
+;;                         (concat (getenv "HOME") "/.config"))))
 
-(add-to-list 'custom-theme-load-path +noctalia-themes-dir)
+;; (add-to-list 'custom-theme-load-path +noctalia-themes-dir)
+
+(add-to-list 'custom-theme-load-path
+             (expand-file-name "themes/" doom-user-dir))
 
 ;; - Switch back to it after a Noctalia palette change:
 ;;     M-x my-reload-noctalia-theme
 ;;   Noctalia's own post_hook does this automatically, but only when Emacs runs
 ;;   as a daemon (`emacs --daemon`), because it calls `emacsclient -e'.
-(defun my-reload-noctalia-theme ()
-  "Reload the Noctalia theme, if its file has appeared."
-  (interactive)
-  (let ((file (expand-file-name "noctalia-theme.el" +noctalia-themes-dir)))
-    (if (file-exists-p file)
-        (progn (load file nil t) (load-theme 'noctalia t) "Noctalia theme reloaded")
-      (message "Noctalia theme not generated yet: %s" file))))
+
+;; (defun my-reload-noctalia-theme ()
+;;   "Reload the Noctalia theme, if its file has appeared."
+;;   (interactive)
+;;   (let ((file (expand-file-name "noctalia-theme.el" +noctalia-themes-dir)))
+;;     (if (file-exists-p file)
+;;         (progn (load file nil t) (load-theme 'noctalia t) "Noctalia theme reloaded")
+;;       (message "Noctalia theme not generated yet: %s" file))))
 
 ;; - After changing `doom-theme' above: `M-x doom/reload-theme'.
 ;; - Available with no rebuild (all preinstalled by home/modules/doom-emacs.nix):

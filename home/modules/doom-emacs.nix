@@ -200,4 +200,5 @@ in
   #   so none of those exist by default and the template would silently emit
   #   nothing. Create ~/.config/doom/themes so it has somewhere to land.
   home.file.".config/doom/themes/.keep".text = "";
+  home.file.".config/doom/themes/melange-theme.el".source = ../../assets/doom/themes/melange-theme.el;
 }
