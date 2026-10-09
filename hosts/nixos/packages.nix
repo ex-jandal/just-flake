@@ -2,6 +2,7 @@
 {
   imports = [
     inputs.helium-flake.nixosModules.default
+    inputs.artcraft.nixosModules.default
   ];
 
   # - Provide a Wayland session entry so the greeter can offer Niri (pkgs.niri
@@ -60,6 +61,17 @@
     lua-language-server
     marksman
   ];
+
+  programs.artcraft = {
+  enable = true;
+  apps = [
+    "photocraft"
+    "vectorcraft"
+    "filmcraft"
+    "effectcraft"
+  ];  # default: every app, newest version
+  linkFonts = true;
+  };
 
   programs.helium.enable = true;
   programs.kdeconnect.enable = true;

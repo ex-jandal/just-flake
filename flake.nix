@@ -37,6 +37,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    artcraft.url = "github:ipeglin/artcraft-nix";
+
     rusbmux = {
       url = "github:abdullah-albanna/rusbmux";
     };
