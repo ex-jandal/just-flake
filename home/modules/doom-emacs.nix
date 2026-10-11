@@ -172,6 +172,7 @@ in
       # - see the `emacsOpencode' let-binding at the top of this file for why
       #   this one is a hand-written derivation and not a packages.el entry.
       emacsOpencode
+      epkgs.codex-ide
 
       epkgs.gruvbox-theme
       epkgs.catppuccin-theme
