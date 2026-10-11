@@ -133,8 +133,8 @@
 (setq lsp-idle-delay 0.2
       lsp-log-io nil
       lsp-server-install-dir (concat (or (getenv "XDG_DATA_HOME")
-                                          (concat (getenv "HOME") "/.local/share"))
-                                      "/lsp"))
+                                         (concat (getenv "HOME") "/.local/share"))
+                                     "/lsp"))
 
 ;;
 ;;; LSP clients
@@ -169,16 +169,16 @@
     :activation-fn (lsp-activate-on "rust")
     :server-id 'rls)))
 
-  (after! rustic
-    (setq rustic-analyzer-command '("lspmux" "client"))
+(after! rustic
+  (setq rustic-analyzer-command '("lspmux" "client"))
   )
 
-  (defun my-rust-disable-clippy-flymake ()
-    "Remove Emacs 30's clippy-on-stdin flymake backend for Rust buffers."
-    (remove-hook 'flymake-diagnostic-functions 'rust-ts-flymake t))
-  
-  (dolist (hook '(rustic-mode-hook rust-mode-hook))
-    (add-hook hook #'my-rust-disable-clippy-flymake))
+(defun my-rust-disable-clippy-flymake ()
+  "Remove Emacs 30's clippy-on-stdin flymake backend for Rust buffers."
+  (remove-hook 'flymake-diagnostic-functions 'rust-ts-flymake t))
+
+(dolist (hook '(rustic-mode-hook rust-mode-hook))
+  (add-hook hook #'my-rust-disable-clippy-flymake))
 
 
 ;; - No `:lang tailwindcss' module exists upstream (nothing under doomemacs/modules
@@ -391,10 +391,29 @@
 ;;
 ;; - git-aware sidebar (ranger-like), rather than treemacs.
 
-(setq neo-tree-auto-indent t
-      neo-tree-indentation-level 2
-      neo-tree-dirname-separator "/"
-      neo-tree-show-file-types nil)
+
+
+(after! neotree
+  ;; File icons and Doom's NeoTree styling
+  (setq doom-neotree-file-icons t
+        doom-neotree-enable-variable-pitch nil)
+
+  ;; Layout
+  (setq neo-window-width 32
+        neo-window-fixed-size nil
+        neo-show-hidden-files t
+        neo-show-slash-for-folder t))
+
+;; Apply Doom Themes' NeoTree renderer.
+;; Requires the nerd-icons package and installed fonts.
+(after! doom-themes
+  (doom-themes-neotree-config))
+
+(after! neotree
+  (setq neo-theme 'nerd-icons
+        neo-vc-integration '(face char)
+        neo-window-width 32
+        neo-show-hidden-files t))
 
 
 ;;
@@ -509,15 +528,15 @@
 ;;     opencode-run-server       — the server starts on demand anyway
 ;;   The omitted ones stay on M-x.
 (map! :leader
-  :prefix ("o c" . "opencode")
-  :desc "New session"          "c" #'opencode
-  :desc "Ask"                  "a" #'opencode-ask
-  :desc "Ask with context"     "A" #'opencode-ask-contextual
-  :desc "Open session"         "s" #'opencode-open-session
-  :desc "Send context"         "t" #'opencode-send-context-to-session
-  :desc "MCP status"           "m" #'opencode-mcp-status
-  :desc "Shutdown server"      "x" #'opencode-shutdown
-  :desc "Shutdown all servers" "X" #'opencode-shutdown-all)
+      :prefix ("o c" . "opencode")
+      :desc "New session"          "c" #'opencode
+      :desc "Ask"                  "a" #'opencode-ask
+      :desc "Ask with context"     "A" #'opencode-ask-contextual
+      :desc "Open session"         "s" #'opencode-open-session
+      :desc "Send context"         "t" #'opencode-send-context-to-session
+      :desc "MCP status"           "m" #'opencode-mcp-status
+      :desc "Shutdown server"      "x" #'opencode-shutdown
+      :desc "Shutdown all servers" "X" #'opencode-shutdown-all)
 
 ;; Resize windows instantly using Ctrl + Shift + Arrow keys
 (map! "C-S-h"  #'evil-window-decrease-width
@@ -543,7 +562,7 @@
 ;;   C-c C-s is free: upstream takes every C-c C-<letter> except b d e g h i j
 ;;   m q s u w y, plus C-c C-[ and C-c C-].
 (map! :map opencode-session-mode-map
-  :desc "Rename session" "C-c C-s" #'opencode-session-rename)
+      :desc "Rename session" "C-c C-s" #'opencode-session-rename)
 
 
 ;;
@@ -587,38 +606,38 @@
 ;;   >>> It is set in ~/.config/doom/custom.el, NOT here — see the custom-file
 ;;   >>> section at the end of this file.
 (map! :leader
-  :prefix ("o s" . "signal")
-  :desc "Dashboard"           "d" #'sgn-dashboard
-  :desc "Open chat"           "c" #'sgn-chat
-  :desc "Reply"               "r" #'sgn-reply
-  :desc "React"               "R" #'sgn-react
-  :desc "Forward"             "f" #'sgn-forward
-  :desc "Note to self"        "n" #'sgn-note-to-self
-  :desc "Attach file"         "a" #'sgn-attach-file
-  :desc "Start Signal"        "s" #'sgn-start
-  :desc "Stop Signal"         "S" #'sgn-stop
-  :desc "Search history"      "/" #'sgn-search
-  :desc "Search in chat"      "i" #'sgn-search-in-chat
-  :desc "Link device"         "l" #'sgn-link
-  :desc "Voice note"          "v" #'sgn-send-voice-note
-  :desc "Show log"            "?" #'sgn-show-log
-  :desc "Import from Desktop" "I" #'sgn-import-from-desktop)
+      :prefix ("o s" . "signal")
+      :desc "Dashboard"           "d" #'sgn-dashboard
+      :desc "Open chat"           "c" #'sgn-chat
+      :desc "Reply"               "r" #'sgn-reply
+      :desc "React"               "R" #'sgn-react
+      :desc "Forward"             "f" #'sgn-forward
+      :desc "Note to self"        "n" #'sgn-note-to-self
+      :desc "Attach file"         "a" #'sgn-attach-file
+      :desc "Start Signal"        "s" #'sgn-start
+      :desc "Stop Signal"         "S" #'sgn-stop
+      :desc "Search history"      "/" #'sgn-search
+      :desc "Search in chat"      "i" #'sgn-search-in-chat
+      :desc "Link device"         "l" #'sgn-link
+      :desc "Voice note"          "v" #'sgn-send-voice-note
+      :desc "Show log"            "?" #'sgn-show-log
+      :desc "Import from Desktop" "I" #'sgn-import-from-desktop)
 
 (map! :leader
-  :prefix ("o s m" . "signal message")
-  :desc "Edit"               "e" #'sgn-edit
-  :desc "Delete"             "d" #'sgn-delete
-  :desc "Copy text"          "y" #'sgn-copy-text
-  :desc "Toggle pin"         "p" #'sgn-toggle-pin
-  :desc "Vote"               "v" #'sgn-vote-poll
-  :desc "Disappearing timer" "t" #'sgn-set-disappearing)
+      :prefix ("o s m" . "signal message")
+      :desc "Edit"               "e" #'sgn-edit
+      :desc "Delete"             "d" #'sgn-delete
+      :desc "Copy text"          "y" #'sgn-copy-text
+      :desc "Toggle pin"         "p" #'sgn-toggle-pin
+      :desc "Vote"               "v" #'sgn-vote-poll
+      :desc "Disappearing timer" "t" #'sgn-set-disappearing)
 
 (map! :leader
-  :prefix ("o s c" . "signal chat")
-  :desc "New group"   "g" #'sgn-create-group
-  :desc "Create poll" "p" #'sgn-create-poll
-  :desc "Block"       "b" #'sgn-block-contact
-  :desc "Unblock"     "u" #'sgn-unblock-contact)
+      :prefix ("o s c" . "signal chat")
+      :desc "New group"   "g" #'sgn-create-group
+      :desc "Create poll" "p" #'sgn-create-poll
+      :desc "Block"       "b" #'sgn-block-contact
+      :desc "Unblock"     "u" #'sgn-unblock-contact)
 
 
 ;;
