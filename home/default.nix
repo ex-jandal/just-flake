@@ -41,6 +41,7 @@
     ./modules/lutris.nix
     ./modules/obs-studio.nix
     ./modules/opencode.nix
+    ./modules/codex.nix
     # - ./modules/qutebrowser.nix
   ];
 

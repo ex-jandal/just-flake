@@ -372,6 +372,13 @@
    '(("" . "\\`+?magit[-:]?\\(?:a-\\)?\\(.*\\)") . (nil . "\\1"))))
 
 
+(use-package codex-ide
+  :bind ("C-c C-;" . codex-ide-menu))
+
+(map! :leader
+      :desc "Codex IDE menu"   "o x"  #'codex-ide-menu)
+
+
 (setq corfu-auto-delay 0.2)
 
 
