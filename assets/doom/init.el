@@ -30,7 +30,7 @@
        ;;   "Wrong type argument: commandp, +format/region-or-buffer".
        ;; - +lsp routes SPC c f through textDocument/formatting. No +onsave: that
        ;;   would reformat every file on save. Formatting stays on demand.
-       (format +lsp)
+       (format +lsp +onsave)
        fold
        snippets
        word-wrap
@@ -75,11 +75,11 @@
        ;;   Re-add the flag + one fetchTree setting if presentations matter.
        (org +journal +roam +pretty +dragndrop +gnuplot)
        (php +lsp +tree-sitter)
-       (python +lsp +tree-sitter)
+       (python +lsp +uv +cython +pyright +tree-sitter)
        (qt +lsp +tree-sitter)
        (rest +jq)
        (rust +lsp +tree-sitter)
-       (sh +lsp +tree-sitter)
+       (sh +lsp +fish +tree-sitter)
        ;; - html + css + svelte LSPs. Nothing outside this module hooks lsp-mode
        ;;   into those modes: modules/lang/web/+html.el:169 and +css.el:71 are the
        ;;   only `add-hook ... :append #'lsp!' for web-mode/html-mode/nxml-mode and
@@ -109,7 +109,7 @@
 
        :checkers
        (syntax +flymake +icons)
-       (spell +hunspell)
+       (spell +hunspell +everywhere)
 
        :config
        (default +bindings +smartparens))
