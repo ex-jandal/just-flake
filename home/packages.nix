@@ -47,6 +47,7 @@
         curl
         file
         nix-your-shell
+        nix-search-tv
         ghostscript
         tesseract
         pdfminer
