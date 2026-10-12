@@ -18,6 +18,7 @@
        window-select
        neotree
        zen
+       workspaces
 
        :editor
        (evil +everywhere)
@@ -54,16 +55,18 @@
        :lang
        (cc +lsp +tree-sitter)
        (csharp +lsp +tree-sitter)
+       (dart +flutter +lsp +tree-sitter)
        ;; - no :lang vala module exists upstream; XML/CSV come from :lang data.
        data
        emacs-lisp
+       (lua +lsp +tree-sitter)
        (go +lsp +tree-sitter)
        (java +lsp +tree-sitter)
        (json +lsp +tree-sitter)
        (javascript +lsp +tree-sitter)
        (kotlin +lsp +tree-sitter)
        (latex +cdlatex +lsp)
-       (markdown +lsp +tree-sitter)
+       (markdown +grip +lsp +tree-sitter)
        ;; - :lang nim has no +lsp flag upstream (zls works anyway; see config.el)
        nim
        (nix +lsp +tree-sitter)

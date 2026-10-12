@@ -83,8 +83,11 @@
           modules = [
             ./home/default.nix
             ({ ... }: {
-              nixpkgs.config.allowUnfreePredicate = _: true;
-              nixpkgs.config.joypixels.acceptLicense = true;
+              nixpkgs.config = {
+                allowUnfreePredicate = _: true;
+                joypixels.acceptLicense = true;
+                android_sdk.accept_license = true;
+              };
             })
           ];
         };

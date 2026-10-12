@@ -24,7 +24,6 @@ in
     MANPAGER = "nvim -c +Man!";
     # - dev environments resolved from the flake's nixpkgs
     JAVA_HOME = "${pkgs.jdk.home}";
-    ANDROID_HOME = "$HOME/Android/Sdk";
     ANDROID_EMULATOR_HOME = "$HOME/.android";
     ANDROID_AVD_HOME = "$ANDROID_EMULATOR_HOME/avd";
     ANDROID_EMU_OPTIONS = "-gpu host -no-snapshot -accel on -qemu -enable-kvm";
