@@ -40,7 +40,7 @@
        :emacs
        (dired +dirvish +icons)
        (ibuffer +icons)
-       undo
+       (undo +tree)
        vc
 
        :term

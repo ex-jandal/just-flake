@@ -65,6 +65,6 @@ in
     flb = "flutter build apk";
     adbdev = "adb devices -l";
     emu-list = "emulator -list-avds";
-    emu-pixel = "android-emulator -avd Pixel_9_Pro_XL -gpu swiftshader";
+    emu-pixel = "QT_QPA_PLATFORM=xcb android-emulator -avd Pixel_9_Pro_XL -gpu host -dns-server 127.0.0.1";
   };
 }
