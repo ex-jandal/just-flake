@@ -1,4 +1,59 @@
 { pkgs, inputs, ... }:
+let
+  android-emu-libs = with pkgs; [
+    # Audio
+    libpulseaudio
+
+    # X11
+    libx11
+    libxcb
+    libxkbcommon
+    libxkbfile
+    libxcomposite
+    libxcursor
+    libxdamage
+    libxext
+    libxfixes
+    libxi
+    libxrandr
+    libxrender
+    libxtst
+
+    # X11 utility libraries
+    libxcb-wm
+    libxcb-render-util
+    libxcb-keysyms
+    libxcb-image
+    libxcb-cursor
+    libsm
+    libice
+
+    # Graphics
+    libGL
+    libdrm
+    libpng
+
+    # System/runtime libraries
+    glib
+    zlib
+    expat
+    libbsd
+    libuuid
+    nspr
+    nss
+    dbus
+    alsa-lib
+
+    # C/C++ runtime
+    stdenv.cc.cc.lib
+    llvmPackages.libcxx
+
+    # Other
+    protobuf
+    abseil-cpp
+    gperftools
+  ];
+in
 {
   imports = [
     inputs.helium-flake.nixosModules.default
@@ -54,23 +109,27 @@
   ];
 
   programs.nix-ld.enable = true;
-  programs.nix-ld.libraries = with pkgs; [
-    # - add any missing dynamic libraries for unpackaged programs here,
-    #   NOT in environment.systemPackages
-    lua
-    lua-language-server
-    marksman
-  ];
+  programs.nix-ld.libraries =
+    with pkgs;
+    [
+      # - add any missing dynamic libraries for unpackaged programs here,
+      #   NOT in environment.systemPackages
+      lua
+      lua-language-server
+      marksman
+
+    ]
+    ++ android-emu-libs; # for Android Emulator
 
   programs.artcraft = {
-  enable = true;
-  apps = [
-    "photocraft"
-    "vectorcraft"
-    "filmcraft"
-    "effectcraft"
-  ];  # default: every app, newest version
-  linkFonts = true;
+    enable = true;
+    apps = [
+      "photocraft"
+      "vectorcraft"
+      "filmcraft"
+      "effectcraft"
+    ]; # default: every app, newest version
+    linkFonts = true;
   };
 
   programs.helium.enable = true;

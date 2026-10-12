@@ -28,6 +28,7 @@
     ./modules/power-management.nix
     ./modules/fonts.nix
     ./modules/audio.nix
+    ./modules/android.nix
     ./packages.nix
   ];
 

@@ -42,6 +42,7 @@
     ./modules/obs-studio.nix
     ./modules/opencode.nix
     ./modules/codex.nix
+    ./modules/android.nix
     # - ./modules/qutebrowser.nix
   ];
 
