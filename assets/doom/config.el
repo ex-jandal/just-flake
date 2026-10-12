@@ -297,23 +297,23 @@
 ;;   `flymake-popon-diagnostic-formatter' is the package's own documented
 ;;   extension point, so overriding it is supported rather than a hack. This is
 ;;   load-bearing now that the popup stays enabled.
-(defun my-flymake-popon-format-diagnostic (diagnostic)
-  "Format DIAGNOSTIC for `flymake-popon', clamped to `flymake-popon-width'."
-  (let* ((type (or (flymake-diagnostic-type diagnostic) 'error))
-         (text (string-trim (or (flymake-diagnostic-text diagnostic) "")))
-         ;; types are keywords (:error), so symbol-name gives ":error" — drop ":"
-         (head (concat "* " (capitalize
-                             (string-remove-prefix
-                              ":" (string-replace "-" " " (symbol-name type))))))
-         (line (if (string-empty-p text)
-                   head
-                 (concat head ": " (car (split-string text "[\n\r]")))))
-         (width (or flymake-popon-width 65)))
-    (if (> (length line) width)
-        (concat (substring line 0 (- width 3)) "...")
-      line)))
+;; (defun my-flymake-popon-format-diagnostic (diagnostic)
+;;   "Format DIAGNOSTIC for `flymake-popon', clamped to `flymake-popon-width'."
+;;   (let* ((type (or (flymake-diagnostic-type diagnostic) 'error))
+;;          (text (string-trim (or (flymake-diagnostic-text diagnostic) "")))
+;;          ;; types are keywords (:error), so symbol-name gives ":error" — drop ":"
+;;          (head (concat "* " (capitalize
+;;                              (string-remove-prefix
+;;                               ":" (string-replace "-" " " (symbol-name type))))))
+;;          (line (if (string-empty-p text)
+;;                    head
+;;                  (concat head ": " (car (split-string text "[\n\r]")))))
+;;          (width (or flymake-popon-width 65)))
+;;     (if (> (length line) width)
+;;         (concat (substring line 0 (- width 3)) "...")
+;;       line)))
 
-(setq flymake-popon-diagnostic-formatter #'my-flymake-popon-format-diagnostic)
+;; (setq flymake-popon-diagnostic-formatter #'my-flymake-popon-format-diagnostic)
 
 
 (setq-default cursor-type 'box)
@@ -384,6 +384,11 @@
 
 (use-package magit-delta
   :hook (magit-mode . magit-delta-mode))
+
+
+;; Start LSP in Meson build files.
+(after! lsp-mode
+  (add-hook 'meson-mode-local-vars-hook #'lsp! 'append))
 
 
 ;;
