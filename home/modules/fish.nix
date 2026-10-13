@@ -36,8 +36,8 @@ in
     # - reach the overlay libs inside lutris's FHS: its profile prepends to the
     #   inherited PATH and bwrap does not clear the environment. Drop
     #   WINEDEBUG to see wine's stderr when a game misbehaves.
-    MANGOHUD = "1";
-    ENABLE_VKBASALT = "1";
+    # MANGOHUD = "1";
+    # ENABLE_VKBASALT = "1";
     WINEDEBUG = "-all";
   };
 
