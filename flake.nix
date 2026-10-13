@@ -37,7 +37,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    artcraft.url = "github:ipeglin/artcraft-nix";
+    artcraft-launcher.url = "github:storytold/craft-launcher";
 
     rusbmux = {
       url = "github:abdullah-albanna/rusbmux";
