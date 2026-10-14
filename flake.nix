@@ -39,9 +39,9 @@
 
     artcraft-launcher.url = "github:storytold/craft-launcher";
 
-    rusbmux = {
-      url = "github:abdullah-albanna/rusbmux";
-    };
+    rusbmux.url = "github:abdullah-albanna/rusbmux";
+
+    mimo_manager.url = "github:ex-jandal/mimo-manager";
 
     nix-index-database = {
       url = "github:nix-community/nix-index-database";

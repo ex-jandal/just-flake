@@ -9,9 +9,12 @@
 {
   imports = [
     inputs.zen-browser.homeModules.default
+    inputs.mimo_manager.homeManagerModules.default
   ];
 
   programs.zen-browser.enable = true;
+
+  programs.mimo_manager.enable = true;
 
   home.packages =
     let

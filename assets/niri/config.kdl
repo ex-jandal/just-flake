@@ -388,6 +388,13 @@ window-rule {
     default-window-height { proportion 0.80; }
 }
 
+window-rule {
+    match app-id=r#"dev.mimo_manager.MimoManager$"#
+    open-floating true
+    default-column-width { proportion 0.60; }
+    default-window-height { proportion 0.80; }
+}
+
 // Example: block out two password managers from screen capture.
 // (This example rule is commented out with a "/-" in front.)
 /-window-rule {
@@ -546,7 +553,7 @@ binds {
     Mod+Escape hotkey-overlay-title="Logout menu" { spawn-sh "noctalia msg panel-toggle session || pkill rofi || ~/./.config/rofi/powermenu/type-1/powermenu.sh"; }
     Mod+P hotkey-overlay-title="Pick a color from screen" { spawn-sh r#"niri msg pick-color | awk '$1 == "Hex:" { printf "%s", $2 }' | wl-copy"#; }
     Mod+D hotkey-overlay-title="Toggle waybar visibility" {spawn-sh "noctalia msg bar-toggle || killall -SIGUSR1 waybar"; }
-    Mod+M hotkey-overlay-title="Emojis Picker "{spawn-sh "qs -c noctalia-shell ipc call launcher emoji || pkill rofi || ~/./.config/rofi/launchers/type-3/launcher.sh"; }
+    Mod+M hotkey-overlay-title="Emojis Picker "{spawn-sh "mimo_manager"; }
     Mod+B hotkey-overlay-title="Open Browser: Zen-browser" {spawn-sh "zen-browser"; }
 
     Mod+Alt+K hotkey-overlay-title="Show-keys Input" { spawn-sh "qs -c noctalia-shell ipc call plugin:show-keys toggle"; }
