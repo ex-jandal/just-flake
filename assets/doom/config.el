@@ -371,6 +371,17 @@
    '(("\\`g s" . "\\`evilem--?motion-\\(.*\\)") . (nil . "◃\\1"))
    '(("" . "\\`+?magit[-:]?\\(?:a-\\)?\\(.*\\)") . (nil . "\\1"))))
 
+(use-package! lorem-ipsum
+  :commands (lorem-ipsum-insert-paragraphs
+             lorem-ipsum-insert-sentences
+             lorem-ipsum-insert-list)
+  :init
+  (map! :leader
+        (:prefix ("i" . "insert")
+         :desc "Lorem ipsum paragraphs" "l p" #'lorem-ipsum-insert-paragraphs
+         :desc "Lorem ipsum sentences"  "l s" #'lorem-ipsum-insert-sentences
+         :desc "Lorem ipsum list"       "l l" #'lorem-ipsum-insert-list)))
+
 
 (use-package codex-ide
   :bind ("C-c C-;" . codex-ide-menu))
