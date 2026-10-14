@@ -210,11 +210,11 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1792009496,
-        "narHash": "sha256-BTeAqhaT/W0reG17PepHm51Xuur9nXbqn8tPn/05x60=",
+        "lastModified": 1792015333,
+        "narHash": "sha256-lodxOrlo8UnNMuUaMj1TtIv+udeT0EqjCTSDcXxU79A=",
         "owner": "ex-jandal",
         "repo": "mimo-manager",
-        "rev": "1ea8e7e0d8313658180faced8cae7507e74f0533",
+        "rev": "e8dfa02bd9162ff90f2d8ac96002605ca66e29d9",
         "type": "github"
       },
       "original": {
