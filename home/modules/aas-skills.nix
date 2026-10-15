@@ -21,9 +21,9 @@ let
 in
 {
   # - opencode reads $XDG_CONFIG_HOME/opencode/skills/<name>/SKILL.md
-  xdg.configFile = mkLinks "opencode/skills";
+  # xdg.configFile = mkLinks "opencode/skills";
 
   # - CODEX_HOME defaults to ~/.codex (home.preferXdgDirectories is not set),
   #   and codex reads <skills-dir>/<name>/SKILL.md.
-  home.file = mkLinks ".codex/skills";
+  # home.file = mkLinks ".codex/skills";
 }
