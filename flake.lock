@@ -1,5 +1,22 @@
 {
   "nodes": {
+    "agentic-awesome-skills": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1792004688,
+        "narHash": "sha256-WDOyCl4ui2+vtkpv21wcZUVDermLaRLtadYz9m99+ag=",
+        "owner": "sickn33",
+        "repo": "agentic-awesome-skills",
+        "rev": "a3072641b750a1fb2f6ce695a5f984ea3d4c3ec1",
+        "type": "github"
+      },
+      "original": {
+        "owner": "sickn33",
+        "ref": "v19.7.0",
+        "repo": "agentic-awesome-skills",
+        "type": "github"
+      }
+    },
     "artcraft-launcher": {
       "inputs": {
         "flake-utils": "flake-utils",
@@ -390,6 +407,7 @@
     },
     "root": {
       "inputs": {
+        "agentic-awesome-skills": "agentic-awesome-skills",
         "artcraft-launcher": "artcraft-launcher",
         "doom-emacs": "doom-emacs",
         "helium-flake": "helium-flake",
