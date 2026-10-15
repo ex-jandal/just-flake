@@ -95,4 +95,7 @@
     Ask before editing the user's org files or anything outside the task scope,
     even when a tool would permit it unattended.
   '';
+
+  xdg.configFile."opencode/command/new-project.md".source =
+    ../../assets/opencode/command/new-project.md;
 }
