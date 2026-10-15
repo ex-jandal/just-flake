@@ -42,6 +42,7 @@
     ./modules/obs-studio.nix
     ./modules/opencode.nix
     ./modules/codex.nix
+    ./modules/aas-skills.nix
     ./modules/android.nix
     # - ./modules/qutebrowser.nix
   ];
