@@ -178,6 +178,7 @@
         signal-desktop
         legcord
         zapzap
+        signal-cli
       ];
 
       extras = with pkgs; [
