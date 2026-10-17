@@ -202,4 +202,5 @@ in
   #   nothing. Create ~/.config/doom/themes so it has somewhere to land.
   home.file.".config/doom/themes/.keep".text = "";
   home.file.".config/doom/themes/melange-theme.el".source = ../../assets/doom/themes/melange-theme.el;
+  home.file.".config/doom/Half-Life_2_Logo.svg".source = ../../assets/doom/Half-Life_2_Logo.svg;
 }
