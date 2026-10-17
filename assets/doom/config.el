@@ -496,6 +496,9 @@
 (add-hook 'org-mode-hook #'flyspell-mode)
 
 
+(add-hook 'prog-mode-local-vars-hook #'rainbow-mode)
+
+
 ;;
 ;;; OpenCode
 ;;
