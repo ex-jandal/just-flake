@@ -94,6 +94,9 @@
 
 (package! lorem-ipsum)
 
+(package! rainbow-mode)
+
+
 ;; Prefer Doom's own tree-sitter grammars; the nixpkgs set is provided via
 ;; `extraPackages` (with-all-grammars) so that grammar .so files are compiled
 ;; ahead of time rather than at first launch.
