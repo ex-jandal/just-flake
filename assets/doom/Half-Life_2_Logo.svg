@@ -1,0 +1,85 @@
+<svg id="Half-Live_2_Logo" xmlns="http://www.w3.org/2000/svg" width="370" height="370" viewBox="0 0 370 370">
+  <title>Half-Life 2 Logo - Melange Theme</title>
+  <desc>Customized with Melange color palette, deep weathered effects, inner-masked background, and clear text placement.</desc>
+  
+  <defs>
+    <!-- Melange Inner Fill Gradient -->
+    <radialGradient id="innerLogoBg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#2a221d" />
+      <stop offset="70%" stop-color="#14100e" />
+      <stop offset="100%" stop-color="#070605" />
+    </radialGradient>
+
+    <!-- Melange Primary Metallic Gradient (Desert Gold to Deep Spice Amber) -->
+    <linearGradient id="melangeGradient" x1="15%" y1="10%" x2="85%" y2="90%">
+      <stop offset="0%" stop-color="#ffe0a3" />
+      <stop offset="30%" stop-color="#e6a13b" />
+      <stop offset="65%" stop-color="#b85d10" />
+      <stop offset="100%" stop-color="#6e2d04" />
+    </linearGradient>
+
+    <!-- Outer Rim Highlight Gradient -->
+    <linearGradient id="melangeHighlight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff1c7" />
+      <stop offset="50%" stop-color="#d9822b" />
+      <stop offset="100%" stop-color="#4a1a02" />
+    </linearGradient>
+
+    <!-- Deep Drop Shadow & Weathering Effect -->
+    <filter id="deepWeathering" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="5" stdDeviation="4" flood-color="#000000" flood-opacity="0.9" />
+      <feDropShadow dx="-1" dy="-1" stdDeviation="2" flood-color="#ffb74d" flood-opacity="0.25" />
+    </filter>
+
+    <!-- Subtle Grunge Texture Overlay -->
+    <pattern id="grungeNoise" width="6" height="6" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="0.6" fill="#000000" opacity="0.35" />
+      <circle cx="5" cy="4" r="0.8" fill="#ffffff" opacity="0.12" />
+    </pattern>
+
+    <!-- Mask derived from the outer ring inner void to strictly restrict background fill inside the logo -->
+    <mask id="logoInnerVoidMask">
+      <rect width="100%" height="100%" fill="white" />
+      <path fill="black" d="M118.666,70.064h43.581c15.314,44.688,33.953,86.053,49.266,130.743c8.193-1.912,15.589-4.622,22.737-7.579
+        c4.533,6.835,5.214,17.524,9.475,24.633c-15.107,7.315-33.225,11.621-51.16,16.106c-8.843-27.16-20.003-52.001-29.37-78.636
+        c-16.864,22.928-30.968,48.614-47.371,72.003H83.612c-0.297-4.498,3.277-9.268,5.685-13.264c18.61-30.885,40.048-65.68,58.74-97.583
+        c-1.638-7.837-5.489-13.46-7.58-20.843h-21.79V70.064z" />
+    </mask>
+  </defs>
+
+  <!-- Inner Void Dark Fill (Contained exclusively inside the circular interior of the logo ring) -->
+  <path fill="url(#innerLogoBg)" mask="url(#logoInnerVoidMask)" d="M72.243,73.854c-17.719,18.101-31.533,40.191-34.107,72.003c-4.841,59.829,25.983,97.852,58.74,117.479
+    c33.944,20.338,81.501,23.41,119.373,2.842c34.803-18.899,56.164-49.133,62.529-87.161c7.796-46.582-13.714-89.051-36.949-109.9
+    C220.669,50.13,189.321,33.98,144.246,38.8C111.955,42.252,88.753,56.987,72.243,73.854" />
+
+  <!-- Main Logo Body with Deep Weathering Filter -->
+  <g filter="url(#deepWeathering)">
+    <!-- Outer Ring -->
+    <path fill="url(#melangeHighlight)" d="M148.984,10.378c28.292-2.092,60.246-0.947,92.846-0.947c29.215,0,67.794-4.206,88.109,3.79
+      c18.095,7.122,32.394,22.523,29.37,49.265c-1.518,13.418-10.561,27.648-15.159,38.844c-15.217,37.058-32.812,79.412-47.37,114.636
+      c-22.42,54.242-73.281,97.021-149.691,91.9c-41.429-2.779-74.371-23.248-96.636-46.424c-23.404-24.363-40.738-57.709-40.738-102.32
+      c0-42.795,17.851-77.686,40.738-102.321C72.858,32.686,105.273,13.61,148.984,10.378 M323.307,46.379
+      c2.555-26.637-39.369-29.095-38.844-0.947h14.211c-2.135-12.303,9.656-12.044,11.369-3.79c3.631,17.5-32.326,31.788-26.527,53.055
+      c13.622-0.042,27.428-0.269,39.791,0.947c1.48-2.172,1.48-9.196,0-11.369h-24.633C305.68,73.714,321.764,62.468,323.307,46.379
+       M72.243,73.854c-17.719,18.101-31.533,40.191-34.107,72.003c-4.841,59.829,25.983,97.852,58.74,117.479
+      c33.944,20.338,81.501,23.41,119.373,2.842c34.803-18.899,56.164-49.133,62.529-87.161c7.796-46.582-13.714-89.051-36.949-109.9
+      C220.669,50.13,189.321,33.98,144.246,38.8C111.955,42.252,88.753,56.987,72.243,73.854" />
+
+    <!-- Inner Lambda Symbol -->
+    <path fill="url(#melangeGradient)" d="M118.666,70.064h43.581c15.314,44.688,33.953,86.053,49.266,130.743c8.193-1.912,15.589-4.622,22.737-7.579
+      c4.533,6.835,5.214,17.524,9.475,24.633c-15.107,7.315-33.225,11.621-51.16,16.106c-8.843-27.16-20.003-52.001-29.37-78.636
+      c-16.864,22.928-30.968,48.614-47.371,72.003H83.612c-0.297-4.498,3.277-9.268,5.685-13.264c18.61-30.885,40.048-65.68,58.74-97.583
+      c-1.638-7.837-5.489-13.46-7.58-20.843h-21.79V70.064z" />
+
+    <!-- Grunge Overlay -->
+    <path fill="url(#grungeNoise)" style="mix-blend-mode: overlay;" d="M148.984,10.378c28.292-2.092,60.246-0.947,92.846-0.947c29.215,0,67.794-4.206,88.109,3.79
+      c18.095,7.122,32.394,22.523,29.37,49.265c-1.518,13.418-10.561,27.648-15.159,38.844c-15.217,37.058-32.812,79.412-47.37,114.636
+      c-22.42,54.242-73.281,97.021-149.691,91.9c-41.429-2.779-74.371-23.248-96.636-46.424c-23.404-24.363-40.738-57.709-40.738-102.32
+      c0-42.795,17.851-77.686,40.738-102.321C72.858,32.686,105.273,13.61,148.984,10.378z" />
+  </g>
+
+  <!-- Clean, Non-collapsing Text Footer in CaskaydiaCove Nerd Font -->
+  <text x="185" y="348" font-family="&#39;CaskaydiaCove Nerd Font&#39;, &#39;Caskaydia Cove&#39;, monospace" font-size="22" font-weight="600" fill="#e6a13b" text-anchor="middle" letter-spacing="1.2">
+     Powered By 󰂩 Bl󰘧ck Mesa
+  </text>
+</svg>

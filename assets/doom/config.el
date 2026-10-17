@@ -31,6 +31,28 @@
 
 (setq display-line-numbers-type 'relative)
 
+(defun my-weebery-is-always-greater ()
+  (let* ((banner
+          '("        ⣀⣠⣤⣤⣤⣴⢶⡶⣶⣴⣤⣤⡶⣶⣶⣶⣶⣦⣤⣄⠀⠀"
+            " ⠀⠀⠀⠀⣠⣴⣿⣻⠽⠿⠚⠙⠋⠛⠽⠷⣯⡿⣽⣻⢷⣻⣊⣰⡌⢻⣽⣷⠀"
+            " ⠀⠀⣠⣾⢿⠻⠊⠀⢀⣀⣀⣀⠀⠀⠀⠀⠀⠙⠿⣽⣻⣟⣿⠏⢠⣾⣷⣻⠇"
+            " ⠀⣴⡿⡯⠃⠀⠀⠀⢸⡿⣟⣿⣧⠀⠀⠀⠀⠀⠀⠘⢷⡿⣁⣐⣛⢳⣯⡟⠀"
+            " ⣰⡿⡟⠀⠀⠀⠀⠀⠀⠀⠈⣿⢾⡆⠀⠀⠀⠀⠀⠀⠈⢿⣟⡿⣽⣯⡟⠀⠀"
+            " ⣿⣻⠃⠀⠀⠀⠀⠀⠀⢀⣼⡿⣯⣿⡄⠀⠀⠀⠀⠀⠀⠸⣯⣿⣻⡾⠀⠀⠀"
+            " ⣿⣟⠀⠀⠀⠀⠀⠀⢀⣾⣯⡿⢻⣳⣷⡀⠀⠀⠀⠀⠀⠀⣿⣳⣿⠁⠀⠀⠀"
+            " ⣿⣽⡄⠀⠀⠀⠀⢠⣿⣻⡞⠀⠀⢻⣾⢧⠀⠀⠀⠀⠀⢰⣿⣻⠂⠀⠀⠀⠀"
+            " ⢹⣯⣷⡀⠀⠀⣰⡿⣯⠏⠀⠀⠀⠈⣿⢯⣷⡿⣇⠀⢀⣾⣟⠇⠀⠀⠀⠀⠀"
+            " ⠀⠻⡾⣷⣄⠀⠉⠉⠁⠀⠀⠀⠀⠀⠘⠛⠁⠁⠀⣠⣾⣟⠎⠀⠀⠀⠀⠀⠀"
+            " ⠀⠀⠙⢷⣟⣷⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣾⣟⡷⠋⠀⠀⠀⠀⠀⠀⠀"
+            " ⠀⠀⠀⠀⠙⠳⢿⣻⢷⣶⣦⣤⣤⣴⣶⡾⣟⣯⠗⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀"
+            " ⠀⠀⠀⠀⠀⠀⠀⠈⠉⠓⠛⠓⠋⠛⠚⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
+            "  Powered By 󰂩 Bl󰘧ck Mesa  ")))
+    (propertize (mapconcat #'identity banner "\n")
+                'face '+dashboard-banner)))
+
+(setq +dashboard-ascii-banner-fn #'my-weebery-is-always-greater
+      fancy-splash-image (file-name-concat doom-private-dir "Half-Life_2_Logo.svg"))
+
 
 ;;
 ;;; Theme
@@ -46,7 +68,7 @@
 ;; - Setting `doom-theme' rather than calling `load-theme' keeps Doom's own hooks
 ;;   (org-modern integration, solaire-mode in popups).
 ;; (setq doom-theme 'doom-gruvbox)
-(setq doom-theme 'melange)
+(setq doom-theme 'halflife)
 
 ;; - Noctalia is still generated and still selectable, just no longer the default.
 ;;   Its emacs template (assets/noctalia/settings.toml -> [theme.templates]
