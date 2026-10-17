@@ -147,6 +147,8 @@ in
     gns3-server
 
     networkmanagerapplet
+    proton-vpn
+    wireguard-tools
 
     linuxPackages.usbip
 
