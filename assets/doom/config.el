@@ -259,20 +259,20 @@
 ;; - Nothing is lost. `lsp-ui-doc-show' binds this flag to t *dynamically* inside
 ;;   its own body, so SPC c k and M-. still work with the global nil — that is why
 ;;   those bindings stay wired up below.
-(setq lsp-ui-doc-show-with-cursor nil
-      lsp-ui-doc-position 'at-point
-      lsp-ui-doc-max-width 90
-      lsp-ui-doc-delay 0.2)
+;; (setq lsp-ui-doc-show-with-cursor nil
+;;       lsp-ui-doc-position 'at-point
+;;       lsp-ui-doc-max-width 90
+;;       lsp-ui-doc-delay 0.2)
 
-(with-eval-after-load 'lsp-ui
-  (add-hook 'lsp-managed-mode-hook
-            (lambda ()
-              (local-set-key (kbd "M-.") #'lsp-ui-doc-show))))
+;; (with-eval-after-load 'lsp-ui
+;;   (add-hook 'lsp-managed-mode-hook
+;;             (lambda ()
+;;               (local-set-key (kbd "M-.") #'lsp-ui-doc-show))))
 
 ;; `SPC c k` is rebound in +evil-bindings.el for -eglot/lsp; override it after
 ;; that file has loaded so the popup wins.
-(with-eval-after-load 'doom-key-bindings
-  (map! :n "SPC c k" #'lsp-ui-doc-show))
+;; (with-eval-after-load 'doom-key-bindings
+;;   (map! :n "SPC c k" #'lsp-ui-doc-show))
 
 (defun my-doom-config ()
   "Set up the Nix-managed Doom profile."
@@ -297,7 +297,6 @@
 ;;   flymake-diagnostic-explanation-filter-predicates and
 ;;   flymake-indicate-diagnostics-faces — exist in neither the built-in flymake
 ;;   nor the pinned one. They were no-ops.
-(setq flymake-inline-diagnostics 'short)
 
 ;; - Keep the diagnostic hover popup (`flymake-popon-mode`, enabled by Doom on
 ;;   flymake-mode). This is the popup that SURVIVED the collision described above:
@@ -336,6 +335,28 @@
 ;;       line)))
 
 ;; (setq flymake-popon-diagnostic-formatter #'my-flymake-popon-format-diagnostic)
+
+(after! flymake
+  (setq flymake-inline-diagnostics 'fancy
+        flymake-no-changes-timeout 0.5)
+
+  ;; Inline (eol) diagnostics went stale on every edit. Root cause in the
+  ;; pinned flymake's `flymake--handle-report': it only repaints the eol
+  ;; overlays when `flymake-timer' is nil — "a scheduled flymake-start
+  ;; hasn't yet finished". With lsp-mode that gate is always closed at the
+  ;; wrong moment: the server pushes diagnostics via
+  ;; `lsp-diagnostics-updated-hook' ~`lsp-idle-delay' (0.2s) after a
+  ;; change, while `flymake-no-changes-timeout' (0.5s) still has
+  ;; `flymake-timer' pending, so the repaint is skipped; and when the
+  ;; timer finally fires, `lsp-diagnostics--flymake-backend' does not
+  ;; re-report (not first-run), so no later `flymake--handle-report'
+  ;; ever runs. The highlight moves (new overlays) but the display string
+  ;; never does. Repaint after every report: one overlays-in scan,
+  ;; idempotent, and pull-style backends are unaffected by it.
+  (defun my-flymake--repaint-eol (&rest _)
+    (when flymake-inline-diagnostics
+      (flymake--update-all-eol-overlays)))
+  (advice-add 'flymake--handle-report :after #'my-flymake--repaint-eol))
 
 
 (setq-default cursor-type 'box)
