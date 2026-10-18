@@ -195,12 +195,32 @@
   (setq rustic-analyzer-command '("lspmux" "client"))
   )
 
+;; Emacs 30's rust-ts-mode adds `rust-ts-flymake' (clippy-driver on the
+;; buffer text via stdin) to `flymake-diagnostic-functions' in every Rust
+;; buffer, because Doom's compat.el derives rust-mode from rust-ts-mode
+;; (+tree-sitter).  stdin mode gets NO Cargo context: no --edition (so it
+;; assumes 2015 and reports E0670 on every async fn), no --extern for the
+;; downloaded deps (so it reports E0432/E0433 "unresolved import" /
+;; "cannot find crate" for anyhow/clap/tokio that ARE in the lockfile),
+;; and no mod-file path for sibling modules ("cannot find module").
+;; That's the phantom "it can not find modules" noise.  rust-analyzer
+;; already reports real diagnostics for this buffer (verified: zero errors
+;; from the lsp backend), so drop the stdin backend — real clippy lints
+;; come through rust-analyzer below instead.
 (defun my-rust-disable-clippy-flymake ()
   "Remove Emacs 30's clippy-on-stdin flymake backend for Rust buffers."
   (remove-hook 'flymake-diagnostic-functions 'rust-ts-flymake t))
 
 (dolist (hook '(rustic-mode-hook rust-mode-hook))
   (add-hook hook #'my-rust-disable-clippy-flymake))
+
+;; Clippy WITH Cargo context: rust-analyzer runs `cargo clippy' on save
+;; (checkOnSave.command) instead of plain cargo check — full crate graph,
+;; edition and module resolution, so clippy lints land in the lsp flymake
+;; backend that already works.  Note lsp-rust-clippy-preference is RLS-only.
+;; Init options are read at server start: needs lsp workspace restart.
+(after! lsp-rust
+  (setq lsp-rust-analyzer-cargo-watch-command "clippy"))
 
 
 ;; - No `:lang tailwindcss' module exists upstream (nothing under doomemacs/modules
