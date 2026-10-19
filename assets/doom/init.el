@@ -19,6 +19,7 @@
        neotree
        zen
        workspaces
+       (vc-gutter +pretty)
 
        :editor
        (evil +everywhere)
