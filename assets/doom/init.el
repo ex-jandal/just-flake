@@ -99,6 +99,7 @@
 
        :tools
        debugger
+       (docker +lsp +tree-sitter)
        direnv
        editorconfig
        ;; - NOT optional: :config default +bindings binds SPC c d/D/i/t/k to
@@ -108,8 +109,22 @@
        lookup
        (lsp +lsp)
        (magit +forge)
-       pdf
        tree-sitter
+       pdf
+       make
+
+       :app
+       calendar
+       ;;emms
+       ;;everywhere        ; *leave* Emacs!? You must be joking
+       ;;irc               ; how neckbeards socialize
+       (rss +org)          ; emacs as an RSS reader
+       ;;twitter           ; twitter client https://twitter.com/vnought
+
+       :email
+       ;;(mu4e +org +gmail)
+       ;;notmuch
+       ;;(wanderlust +gmail)
 
        :checkers
        (syntax +flymake +icons)
