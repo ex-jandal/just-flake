@@ -43,6 +43,7 @@
     ./modules/opencode.nix
     ./modules/codex.nix
     ./modules/android.nix
+    ./modules/librewolf.nix
     # ./modules/qutebrowser.nix
   ];
 
