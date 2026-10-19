@@ -57,46 +57,6 @@ let
     abseil-cpp
     gperftools
   ];
-
-  # - Upstream's flake adds ninja/cmake to nativeBuildInputs, which lets
-  #   ninja's setup-hook steal buildPhase/installPhase from the cargo hooks.
-  #   It also installs only the bare binary, while winit dlopens libwayland.
-  artcraft-launcher =
-    inputs.artcraft-launcher.packages.${pkgs.stdenv.hostPlatform.system}.default.overrideAttrs
-      (old: {
-        dontUseNinjaBuild = true;
-        dontUseNinjaInstall = true;
-        nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.makeWrapper ];
-        postInstall = ''
-          install -Dm644 ${old.src}/packaging/linux/ai.storyteller.artcraft-launcher.desktop \
-            $out/share/applications/ai.storyteller.artcraft-launcher.desktop
-          mkdir -p $out/share/icons
-          cp -r ${old.src}/assets/app-icon/hicolor $out/share/icons/
-        '';
-        postFixup = ''
-          wrapProgram $out/bin/artcraft-launcher \
-            --prefix LD_LIBRARY_PATH : ${
-              pkgs.lib.makeLibraryPath (
-                with pkgs;
-                [
-                  wayland
-                  libxkbcommon
-                  libGL
-                  mesa
-                  vulkan-loader
-                  libx11
-                  libxcursor
-                  libxrandr
-                  libxi
-                  libxcb
-                  fontconfig
-                  freetype
-                  alsa-lib
-                ]
-              )
-            }
-        '';
-      });
 in
 {
   imports = [
@@ -151,8 +111,6 @@ in
     wireguard-tools
 
     linuxPackages.usbip
-
-    artcraft-launcher
   ];
 
   programs.nix-ld.enable = true;

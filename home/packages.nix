@@ -8,11 +8,8 @@
 #   not in nixpkgs; see README. Zen browser is enabled as a module above.
 {
   imports = [
-    inputs.zen-browser.homeModules.default
     inputs.mimo_manager.homeManagerModules.default
   ];
-
-  programs.zen-browser.enable = true;
 
   programs.mimo_manager.enable = true;
 
@@ -153,6 +150,7 @@
         yt-dlp
         imagemagick
         kdePackages.kdenlive
+        inputs.artcraft-launcher.packages.${pkgs.stdenv.hostPlatform.system}.default
         inkscape
         audacity
         easyeffects

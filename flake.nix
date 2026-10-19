@@ -37,11 +37,20 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    artcraft-launcher.url = "github:storytold/craft-launcher";
+    artcraft-launcher = {
+      url = "github:storytold/craft-launcher";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
-    rusbmux.url = "github:abdullah-albanna/rusbmux";
+    rusbmux = {
+      url = "github:abdullah-albanna/rusbmux";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
-    mimo_manager.url = "github:ex-jandal/mimo-manager";
+    mimo_manager = {
+      url = "github:ex-jandal/mimo-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     nix-index-database = {
       url = "github:nix-community/nix-index-database";
@@ -53,15 +62,6 @@
     #   elisp package set, and following ours breaks that pinning (its binary
     #   cache is built against its own nixpkgs anyway).
     doom-emacs.url = "github:marienz/nix-doom-emacs-unstraightened";
-
-    # - Agentic Awesome Skills: no flake.nix, so `flake = false` and it is
-    #   consumed purely as a data directory by home/modules/aas-skills.nix.
-    #   Pinned to a release tag, not main, so a `nix flake update` is the only
-    #   thing that moves it.
-    agentic-awesome-skills = {
-      url = "github:sickn33/agentic-awesome-skills/v19.7.0";
-      flake = false;
-    };
   };
 
   # - Noctalia binary cache lives in hosts/nixos/default.nix (nix.settings).
