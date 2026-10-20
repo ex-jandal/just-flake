@@ -86,6 +86,7 @@ in
     clang-tools
     clang
     pkg-config
+    direnv
 
     # - MTP kioslave + kmtpd so Dolphin can open phones via Solid (the worker
     #   ships in kio-extras; it must be a profile entry so plugins land on
