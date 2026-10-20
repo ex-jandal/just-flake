@@ -55,6 +55,7 @@ in
       fish_vi_key_bindings
       starship init fish | source
       zoxide init fish | source
+      direnv hook fish | source
       # fzf.fish plugin owns the ctrl-cr/r/alt-c bindings; `fzf --fish` would
       # fight it, so its raw source is omitted here.
 
