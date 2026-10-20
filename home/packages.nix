@@ -65,6 +65,7 @@
         # - ranger: file selector for qutebrowser fileselect.*
         #   (choosefile/choosedir)
         ranger
+        baobab
         nautilus
         eog
         # - qt6ct: Qt platform theme — applies Noctalia palette to Qt/KDE
