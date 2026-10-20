@@ -71,6 +71,7 @@
        ;; - :lang nim has no +lsp flag upstream (zls works anyway; see config.el)
        nim
        (nix +lsp +tree-sitter)
+       (odin +lsp +tree-sitter)
        ;; - deliberately no +present: it pulls `revealjs`, the only package in
        ;;   this config absent from nixpkgs AND emacs-overlay. Unstraightened
        ;;   then fetches hakimel/reveal.js itself with `shallow = false;

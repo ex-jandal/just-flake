@@ -130,6 +130,7 @@ in
       csharp-ls
       gopls
       lua-language-server
+      ols
       nim
       omnisharp-roslyn
       rust-analyzer

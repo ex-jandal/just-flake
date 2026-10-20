@@ -250,6 +250,7 @@
         gdb
         nasm
         neovide
+        odin
         calc
         zigPackages."0.16"
       ];
