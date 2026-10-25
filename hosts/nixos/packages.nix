@@ -120,7 +120,7 @@ in
     [
       # - add any missing dynamic libraries for unpackaged programs here,
       #   NOT in environment.systemPackages
-      lua
+      lua5_4
       lua-language-server
       marksman
 
