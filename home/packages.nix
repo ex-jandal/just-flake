@@ -249,6 +249,11 @@
         uv
         # - qemu_full listed in the lab block (QEMU for GNS3/VMs)
         gdb
+        (lua5_4.withPackages (
+          ps: with ps; [
+            tl
+          ]
+        ))
         nasm
         neovide
         odin
