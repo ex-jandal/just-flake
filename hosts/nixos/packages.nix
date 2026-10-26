@@ -79,6 +79,8 @@ in
     #   org.gnome.gparted, ettercap: org.pkexec.ettercap, meson:
     #   com.mesonbuild.install.)
     gparted
+    exfatprogs
+    ntfs3g
     ettercap
     meson
     ninja
