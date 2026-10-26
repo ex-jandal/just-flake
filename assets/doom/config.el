@@ -453,6 +453,12 @@
       :desc "Codex IDE menu"   "o x"  #'codex-ide-menu)
 
 
+(use-package pilish
+  :bind ("C-c C-p" . pilish))
+
+(map! :leader
+      :desc "Pilish (Pi agent)"   "o i"  #'pilish)
+
 (setq corfu-auto-delay 0.2)
 
 
