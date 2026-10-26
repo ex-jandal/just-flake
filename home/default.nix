@@ -44,6 +44,7 @@
     ./modules/codex.nix
     ./modules/android.nix
     ./modules/librewolf.nix
+    ./modules/pi-coding-agent.nix
     # ./modules/qutebrowser.nix
   ];
 

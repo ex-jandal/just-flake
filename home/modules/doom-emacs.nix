@@ -176,6 +176,7 @@ in
       #   this one is a hand-written derivation and not a packages.el entry.
       emacsOpencode
       epkgs.codex-ide
+      epkgs.pilish
 
       epkgs.gruvbox-theme
       epkgs.catppuccin-theme
