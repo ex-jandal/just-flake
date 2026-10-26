@@ -130,6 +130,8 @@ in
       csharp-ls
       gopls
       lua-language-server
+      fennel-ls
+      fnlfmt
       ols
       nim
       omnisharp-roslyn

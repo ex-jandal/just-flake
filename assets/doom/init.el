@@ -60,7 +60,7 @@
        ;; - no :lang vala module exists upstream; XML/CSV come from :lang data.
        data
        emacs-lisp
-       (lua +lsp +tree-sitter)
+       (lua +fennel +lsp +tree-sitter)
        (go +lsp +tree-sitter)
        (java +lsp +tree-sitter)
        (json +lsp +tree-sitter)
