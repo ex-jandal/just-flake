@@ -9,7 +9,7 @@
     #   install -m 600 .secrets/age.key ~/.config/sops/age/keys.txt
     age.keyFile = "${config.home.homeDirectory}/.config/sops/age/keys.txt";
 
-    defaultSopsFile = ../../.secrets/secrets.yaml.enc;
+    defaultSopsFile = ../../.secrets/secrets.yaml;
 
     secrets.github_token = {
       key = "GITHUB_TOKEN";
