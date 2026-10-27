@@ -53,5 +53,11 @@
     };
   };
 
-  home.file.".agents/skills/brainstorm/SKILL.md".source = ../../assets/skills/brainstorm/SKILL.md;
+  home.file.".agents/skills/brainstorm/SKILL.md".source =
+    ../../assets/aiAgent/skills/brainstorm/SKILL.md;
+
+  home.file.".agents/skills/visualize/SKILL.md".source =
+    ../../assets/aiAgent/skills/visualize/SKILL.md;
+
+  home.file.".agents/skills/teach/SKILL.md".source = ../../assets/aiAgent/skills/teach/SKILL.md;
 }
