@@ -19,8 +19,10 @@
             "npm:@danchamorro/pi-agent-modes"
             "npm:pi-undo-redo"
             "npm:pi-vimmode"
+
             "npm:@xynogen/pix-pretty"
-            "npm:@juicesharp/rpiv-pi"
+            "npm:@heyhuynhgiabuu/pi-diff"
+
             "npm:@danchamorro/pi-prompt-enhancer"
             "git:github.com/DietrichGebert/ponytail"
 
