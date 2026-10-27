@@ -18,12 +18,20 @@
             "npm:pi-permission-system"
             "npm:@danchamorro/pi-agent-modes"
             "npm:pi-undo-redo"
-            "npm:@0xkahi/pi-vim-keys"
+            "npm:pi-vimmode"
             "npm:@xynogen/pix-pretty"
             "npm:@juicesharp/rpiv-pi"
             "npm:@danchamorro/pi-prompt-enhancer"
             "git:github.com/DietrichGebert/ponytail"
             "npm:@tintinweb/pi-subagents"
+
+            "npm:@juicesharp/rpiv-ask-user-question"
+            "npm:@juicesharp/rpiv-todo"
+            "npm:@juicesharp/rpiv-i18n"
+            "npm:@juicesharp/rpiv-web-tools"
+            "npm:@juicesharp/rpiv-args"
+            "npm:@juicesharp/rpiv-workflow"
+
           ];
         };
       };
