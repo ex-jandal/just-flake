@@ -25,6 +25,7 @@
             "git:github.com/DietrichGebert/ponytail"
             "git:github.com/anthropics/skills"
             "npm:@tintinweb/pi-subagents"
+            "npm:pi-opencode-free"
 
             "npm:@juicesharp/rpiv-ask-user-question"
             "npm:@juicesharp/rpiv-todo"
