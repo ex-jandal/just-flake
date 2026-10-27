@@ -35,6 +35,7 @@
             }
             "npm:@tintinweb/pi-subagents"
             "npm:pi-opencode-free"
+            "npm:pi-antigravity"
 
             # "npm:@juicesharp/rpiv-pi"
             "npm:@juicesharp/rpiv-ask-user-question"
