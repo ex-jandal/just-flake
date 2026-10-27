@@ -207,6 +207,27 @@
         "type": "github"
       }
     },
+    "home-manager_2": {
+      "inputs": {
+        "nixpkgs": [
+          "pi-agent",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1783436070,
+        "narHash": "sha256-F80z1JoiJgZyTT5D+3siLOVzqmCEphLR7t0Ym/I2CLI=",
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "rev": "f09af49406ffad37acb6538d3207189a1a1e0b7e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "type": "github"
+      }
+    },
     "mimo_manager": {
       "inputs": {
         "nixpkgs": [
@@ -344,6 +365,27 @@
         "type": "github"
       }
     },
+    "pi-agent": {
+      "inputs": {
+        "home-manager": "home-manager_2",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1792675027,
+        "narHash": "sha256-7NkazmhDlTLN1Czq4hv48+oEo3evh3WZ58tc3zaks2A=",
+        "owner": "ChauDucToan",
+        "repo": "pi-flake",
+        "rev": "7f7f191f59b8cc6cc5684118702301fa76a01959",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ChauDucToan",
+        "repo": "pi-flake",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "artcraft-launcher": "artcraft-launcher",
@@ -355,6 +397,7 @@
         "nixpkgs": "nixpkgs_3",
         "noctalia": "noctalia",
         "noctalia-greeter": "noctalia-greeter",
+        "pi-agent": "pi-agent",
         "rusbmux": "rusbmux",
         "xmcl": "xmcl",
         "zen-browser": "zen-browser"
