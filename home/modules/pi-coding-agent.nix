@@ -12,6 +12,20 @@
           defaultModel = "big-pickle";
           defaultProvider = "bansos";
 
+          retry = {
+            enabled = true;
+            maxRetries = 5;
+            baseDelayMs = 1000;
+            maxAgentDelayMs = 120000;
+            provider = {
+              timeoutMs = 300000;
+              maxRetries = 2;
+              maxRetryDelayMs = 120000;
+            };
+          };
+
+          httpIdleTimeoutMs = 600000;
+
           packages = [
             "npm:@termdraw/pi"
             "npm:pi-mcp-adapter"
@@ -47,6 +61,7 @@
             "npm:@juicesharp/rpiv-args"
             "npm:@juicesharp/rpiv-workflow"
           ];
+
           extensions = [
             "-builtin:mcp"
           ];
