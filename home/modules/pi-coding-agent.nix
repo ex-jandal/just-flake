@@ -32,10 +32,11 @@
             "npm:@juicesharp/rpiv-web-tools"
             "npm:@juicesharp/rpiv-args"
             "npm:@juicesharp/rpiv-workflow"
-
           ];
         };
       };
     };
   };
+
+  home.file.".agents/skills/brainstorm/SKILL.md".source = ../../assets/skills/brainstorm/SKILL.md;
 }
