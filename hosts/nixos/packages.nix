@@ -72,6 +72,8 @@ in
     vim
     fish
     niri
+    age
+    sops
 
     # - pkexec apps must be in the SYSTEM profile, not home.packages: only
     #   systemProfile/share/polkit-1/actions is searched, and without the
