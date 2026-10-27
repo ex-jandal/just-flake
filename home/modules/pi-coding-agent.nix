@@ -23,7 +23,14 @@
             "npm:@juicesharp/rpiv-pi"
             "npm:@danchamorro/pi-prompt-enhancer"
             "git:github.com/DietrichGebert/ponytail"
-            "git:github.com/anthropics/skills"
+
+            {
+              source = "git:github.com/anthropics/skills";
+              skills = [
+                "!skills/frontend-design/**"
+                "!skills/claude-api/**"
+              ];
+            }
             "npm:@tintinweb/pi-subagents"
             "npm:pi-opencode-free"
 
