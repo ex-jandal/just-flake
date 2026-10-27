@@ -41,6 +41,9 @@
             "npm:@juicesharp/rpiv-args"
             "npm:@juicesharp/rpiv-workflow"
           ];
+          extensions = [
+            "-builtin:mcp"
+          ];
         };
       };
     };
