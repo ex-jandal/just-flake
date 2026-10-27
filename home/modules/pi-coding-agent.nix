@@ -9,8 +9,8 @@
     agentFiles = {
       settings = {
         value = {
-          defaultModel = "nvidia/nemotron-3-ultra-550b-a55b:free";
-          defaultProvider = "openrouter";
+          defaultModel = "gpt-6-luna";
+          defaultProvider = "openai-codex";
 
           packages = [
             "npm:@termdraw/pi"
