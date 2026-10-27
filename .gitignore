@@ -1,3 +1,9 @@
 /result
 /result-*
 /.direnv/
+
+# sops secrets
+.secrets/secrets.env
+.secrets/secrets.yaml
+.secrets/age.key
+.secrets/*.key
