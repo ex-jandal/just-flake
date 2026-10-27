@@ -9,14 +9,14 @@ NixOS-level module was removed.
 
 ## Files
 
-| Path | Purpose | Committed |
-|---|---|---|
-| `.secrets/secrets.yaml` | encrypted secrets (edit with `sops`) | yes |
-| `.secrets/secrets.yaml.example` | plaintext stub for a fresh setup | yes |
-| `.secrets/age.key` | age private key | no (gitignored) |
-| `~/.config/sops/age/keys.txt` | copy used by home-manager | no |
-| `.sops.yaml` | encryption recipients / creation rule | yes |
-| `home/modules/sops.nix` | home-manager secret mappings + templates | yes |
+| Path                            | Purpose                                  | Committed       |
+|---------------------------------|------------------------------------------|-----------------|
+| `.secrets/secrets.yaml`         | encrypted secrets (edit with `sops`)     | yes             |
+| `.secrets/secrets.yaml.example` | plaintext stub for a fresh setup         | yes             |
+| `.secrets/age.key`              | age private key                          | no (gitignored) |
+| `~/.config/sops/age/keys.txt`   | copy used by home-manager                | no              |
+| `.sops.yaml`                    | encryption recipients / creation rule    | yes             |
+| `home/modules/sops.nix`         | home-manager secret mappings + templates | yes             |
 
 `age` and `sops` are installed system-wide (`hosts/nixos/packages.nix`).
 Outside this host: `nix shell nixpkgs#age nixpkgs#sops`.
@@ -136,11 +136,11 @@ install -m 600 .secrets/age.key ~/.config/sops/age/keys.txt
 
 ### Available paths
 
-| What | Path |
-|---|---|
-| individual secret | `~/.config/sops-nix/secrets/<attr>` |
-| dotenv template | `~/.config/sops-nix/secrets/rendered/secrets.env` |
-| fish template | `~/.config/sops-nix/secrets/rendered/secrets.fish` |
+| What              | Path                                               |
+|-------------------|----------------------------------------------------|
+| individual secret | `~/.config/sops-nix/secrets/<attr>`                |
+| dotenv template   | `~/.config/sops-nix/secrets/rendered/secrets.env`  |
+| fish template     | `~/.config/sops-nix/secrets/rendered/secrets.fish` |
 
 Current mappings in `home/modules/sops.nix`:
 
@@ -177,8 +177,6 @@ would be copied into the world-readable Nix store.
 ### Rebuild
 
 ```sh
-home-manager switch --flake .#nixos   # standalone
-# or, when using the NixOS config:
 sudo nixos-rebuild switch --flake .#nixos
 ```
 
@@ -194,12 +192,12 @@ The user service runs on login/activation and writes a new secrets generation.
 
 ## Troubleshooting
 
-| Error | Fix |
-|---|---|
-| `sops` shows plaintext in the file | that file is not encrypted yet; run `sops -e -i .secrets/secrets.yaml` |
-| `no matching creation rules found` | run from the repo root, or make `.sops.yaml`'s `path_regex` match the path |
-| `no identity matched any of the recipients` | add your age public key to `.sops.yaml`, then `sops updatekeys .secrets/secrets.yaml` |
-| HM activation fails: missing age key | create `~/.config/sops/age/keys.txt` (mode 600) |
-| `sops .secrets/secrets.yaml` opens but save fails | file has no `sops:` metadata; re-encrypt it with `sops -e -i` |
-| New key cannot decrypt | add the recipient and run `updatekeys` |
-| Git says the secret file is untracked | `git add .secrets/secrets.yaml` (it must be committed) |
+| Error                                             | Fix                                                                                   |
+|---------------------------------------------------|---------------------------------------------------------------------------------------|
+| `sops` shows plaintext in the file                | that file is not encrypted yet; run `sops -e -i .secrets/secrets.yaml`                |
+| `no matching creation rules found`                | run from the repo root, or make `.sops.yaml`'s `path_regex` match the path            |
+| `no identity matched any of the recipients`       | add your age public key to `.sops.yaml`, then `sops updatekeys .secrets/secrets.yaml` |
+| HM activation fails: missing age key              | create `~/.config/sops/age/keys.txt` (mode 600)                                       |
+| `sops .secrets/secrets.yaml` opens but save fails | file has no `sops:` metadata; re-encrypt it with `sops -e -i`                         |
+| New key cannot decrypt                            | add the recipient and run `updatekeys`                                                |
+| Git says the secret file is untracked             | `git add .secrets/secrets.yaml` (it must be committed)                                |
