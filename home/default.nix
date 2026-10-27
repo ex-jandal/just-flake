@@ -13,6 +13,8 @@
 
   # - curated daily-use package list.
   imports = [
+    inputs.sops-nix.homeManagerModules.sops
+    ./modules/sops.nix
     ./packages.nix
     ./modules/niri.nix
     ./modules/noctalia.nix
