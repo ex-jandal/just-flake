@@ -36,10 +36,11 @@
             "npm:@tintinweb/pi-subagents"
             "npm:pi-opencode-free"
 
+            # "npm:@juicesharp/rpiv-pi"
             "npm:@juicesharp/rpiv-ask-user-question"
             "npm:@juicesharp/rpiv-todo"
             "npm:@juicesharp/rpiv-i18n"
-            "npm:@juicesharp/rpiv-web-tools"
+            # "npm:@juicesharp/rpiv-web-tools"
             "npm:@juicesharp/rpiv-args"
             "npm:@juicesharp/rpiv-workflow"
           ];
