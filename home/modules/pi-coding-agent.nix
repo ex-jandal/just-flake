@@ -14,7 +14,7 @@
 
           packages = [
             "npm:@termdraw/pi"
-            # "npm:pi-mcp-adapter"
+            "npm:pi-mcp-adapter"
             "npm:pi-permission-system"
             "npm:@danchamorro/pi-agent-modes"
             "npm:pi-undo-redo"
@@ -23,6 +23,7 @@
             "npm:@juicesharp/rpiv-pi"
             "npm:@danchamorro/pi-prompt-enhancer"
             "git:github.com/DietrichGebert/ponytail"
+            "git:github.com/anthropics/skills"
             "npm:@tintinweb/pi-subagents"
 
             "npm:@juicesharp/rpiv-ask-user-question"
