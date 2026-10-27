@@ -53,3 +53,15 @@ assets/
   ...                # per-program configs (niri, noctalia, tmux, yazi, ...)
 shells/              # devShells (cc.nix, python.nix, latex.nix, term-browser.nix)
 ```
+
+## Secrets (sops-nix + age)
+
+Encrypted with sops/age, decrypted at activation:
+
+- Encrypted secrets: `.secrets/secrets.yaml.enc`
+- NixOS mappings: `hosts/nixos/modules/secrets.nix` → `/run/secrets/`
+- Home-manager mappings: `home/modules/sops.nix` → `~/.config/sops-nix/secrets/`
+- `age` and `sops` are installed system-wide.
+
+Full guide (adding keys/recipients, NixOS and home-manager usage,
+troubleshooting): **[SOPS.md](SOPS.md)**.
