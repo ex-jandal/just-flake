@@ -15,6 +15,7 @@
           packages = [
             "npm:@termdraw/pi"
             "npm:pi-mcp-adapter"
+            "npm:pi-web-access"
             "npm:pi-permission-system"
             "npm:@danchamorro/pi-agent-modes"
             "npm:pi-undo-redo"
@@ -34,7 +35,7 @@
               ];
             }
             "npm:@tintinweb/pi-subagents"
-            "npm:pi-opencode-free"
+            "npm:opencode-pi"
             "npm:pi-antigravity"
 
             # "npm:@juicesharp/rpiv-pi"
