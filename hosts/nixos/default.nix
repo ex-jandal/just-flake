@@ -29,7 +29,6 @@
     ./modules/fonts.nix
     ./modules/audio.nix
     ./modules/android.nix
-    ./modules/secrets.nix
     ./packages.nix
   ];
 

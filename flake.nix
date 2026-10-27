@@ -118,7 +118,6 @@
         modules = [
           ./hosts/nixos/default.nix
           home-manager.nixosModules.home-manager
-          inputs.sops-nix.nixosModules.sops
           {
             home-manager.useGlobalPkgs = true;
             # - home/default.nix needs the same inputs/system it gets via
