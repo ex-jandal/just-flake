@@ -67,6 +67,42 @@
           ];
         };
       };
+
+      mcp = {
+        value = {
+          mcpServers = {
+            context7 = {
+              command = "npx";
+              args = [
+                "-y"
+                "@upstash/context7-mcp"
+              ];
+              description = "Fetch up-to-date library documentation and code examples";
+              exposure = "direct";
+            };
+
+            sequential-thinking = {
+              command = "npx";
+              args = [
+                "-y"
+                "@modelcontextprotocol/server-sequential-thinking"
+              ];
+              description = "Structured reasoning and problem decomposition";
+              exposure = "direct";
+            };
+
+            emacs = {
+              command = "socat";
+              args = [
+                "-"
+                "UNIX-CONNECT:{env:HOME}/.local/share/doom/emacs-mcp-server.sock"
+              ];
+              description = "Connect to the Doom Emacs MCP server over a Unix socket";
+              exposure = "direct";
+            };
+          };
+        };
+      };
     };
   };
 
