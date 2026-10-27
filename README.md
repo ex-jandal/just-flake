@@ -56,12 +56,12 @@ shells/              # devShells (cc.nix, python.nix, latex.nix, term-browser.ni
 
 ## Secrets (sops-nix + age)
 
-Encrypted with sops/age, decrypted at activation:
+One encrypted file, edited in place, decrypted by home-manager:
 
-- Encrypted secrets: `.secrets/secrets.yaml.enc`
-- NixOS mappings: `hosts/nixos/modules/secrets.nix` → `/run/secrets/`
-- Home-manager mappings: `home/modules/sops.nix` → `~/.config/sops-nix/secrets/`
+- Secrets: `.secrets/secrets.yaml` (run `sops .secrets/secrets.yaml` to edit)
+- Home-manager mappings/templates: `home/modules/sops.nix` → `~/.config/sops-nix/secrets/`
+- Fish shells get the keys exported automatically.
 - `age` and `sops` are installed system-wide.
 
-Full guide (adding keys/recipients, NixOS and home-manager usage,
-troubleshooting): **[SOPS.md](SOPS.md)**.
+Full guide (adding keys/recipients, templates, troubleshooting):
+**[SOPS.md](SOPS.md)**.
