@@ -9,8 +9,8 @@
     agentFiles = {
       settings = {
         value = {
-          defaultModel = "gpt-6-luna";
-          defaultProvider = "openai-codex";
+          defaultModel = "big-pickle";
+          defaultProvider = "bansos";
 
           packages = [
             "npm:@termdraw/pi"
@@ -35,7 +35,8 @@
               ];
             }
             "npm:@tintinweb/pi-subagents"
-            "npm:opencode-pi"
+            "npm:pi-free"
+            "npm:pi-bansos"
             "npm:pi-antigravity"
 
             # "npm:@juicesharp/rpiv-pi"

@@ -38,17 +38,17 @@
 
     # Fish exports, auto-sourced below:
     # ~/.config/sops-nix/secrets/rendered/secrets.fish
-    templates."secrets.fish".content = ''
-      set -gx ANTHROPIC_API_KEY '${config.sops.placeholder.anthropic_api_key}'
-      set -gx OPENAI_API_KEY '${config.sops.placeholder.openai_api_key}'
-      set -gx GITHUB_TOKEN '${config.sops.placeholder.github_token}'
-    '';
+    # templates."secrets.fish".content = ''
+    #   set -gx ANTHROPIC_API_KEY '${config.sops.placeholder.anthropic_api_key}'
+    #   set -gx OPENAI_API_KEY '${config.sops.placeholder.openai_api_key}'
+    #   set -gx GITHUB_TOKEN '${config.sops.placeholder.github_token}'
+    # '';
   };
 
   # Export the secrets into every interactive fish shell.
-  programs.fish.interactiveShellInit = ''
-    if test -f ${config.sops.templates."secrets.fish".path}
-      source ${config.sops.templates."secrets.fish".path}
-    end
-  '';
+  # programs.fish.interactiveShellInit = ''
+  #   if test -f ${config.sops.templates."secrets.fish".path}
+  #     source ${config.sops.templates."secrets.fish".path}
+  #   end
+  # '';
 }
