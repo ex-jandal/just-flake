@@ -108,9 +108,16 @@
 
   home.file.".agents/skills/brainstorm/SKILL.md".source =
     ../../assets/aiAgent/skills/brainstorm/SKILL.md;
-
   home.file.".agents/skills/visualize/SKILL.md".source =
     ../../assets/aiAgent/skills/visualize/SKILL.md;
-
   home.file.".agents/skills/teach/SKILL.md".source = ../../assets/aiAgent/skills/teach/SKILL.md;
+
+  home.file.".pi/agent/extensions/md-log.ts".source = ../../assets/aiAgent/extensions/md-log.ts;
+  home.file.".pi/agent/extensions/quiz.ts".source = ../../assets/aiAgent/extensions/quiz.ts;
+  # home.file.".pi/agent/extensions/ask-user-question.ts".source =
+  #   ../../assets/aiAgent/extensions/ask-user-question.ts;
+  home.file.".pi/agent/extensions/visual-tools" = {
+    source = ../../assets/aiAgent/extensions/visual-tools;
+    recursive = true;
+  };
 }
