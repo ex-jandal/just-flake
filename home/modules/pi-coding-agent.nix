@@ -1,4 +1,10 @@
-{ inputs, ... }:
+{ inputs, pkgs, ... }:
+
+let
+  # - shared npm pin + node runtime; see home/packages/agentmemory.nix for why
+  #   this is not a hardcoded /nix/store path or an ~/.npm/_npx cache path.
+  agentmemory = import ../packages/agentmemory.nix { inherit pkgs; };
+in
 
 {
   imports = [ inputs.pi-agent.homeManagerModules.default ];
@@ -94,10 +100,7 @@
             };
 
             agentmemory = {
-              command = "/nix/store/k3nz3s314bipvqbcbw3faq823hxpwbn1-nodejs-slim-24.19.0/bin/node";
-              args = [
-                "/home/abu_jandal/.npm/_npx/6ac3254aa17f4a19/node_modules/@agentmemory/agentmemory/dist/standalone.mjs"
-              ];
+              command = "${agentmemory.mcp}/bin/agentmemory-mcp";
               env = {
                 AGENTMEMORY_TOOLS = "all";
                 AGENTMEMORY_FORCE_PROXY = "1";

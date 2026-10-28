@@ -1,4 +1,9 @@
 { pkgs, lib, ... }:
+let
+  # - pinned npm version + node runtime, shared with pi's MCP entry (see
+  #   home/packages/agentmemory.nix).
+  agentmemory = import ../packages/agentmemory.nix { inherit pkgs; };
+in
 {
   systemd.user.services.agentmemory = {
     Unit = {
@@ -7,7 +12,7 @@
     };
     Service = {
       Type = "simple";
-      ExecStart = "${pkgs.nodejs}/bin/npx --yes @agentmemory/agentmemory@latest";
+      ExecStart = "${agentmemory.cli}/bin/agentmemory";
       Restart = "on-failure";
       RestartSec = 5;
       Environment = [ "HOME=%h" ];
@@ -17,10 +22,5 @@
     };
   };
 
-  home.packages = [
-    pkgs.nodejs
-    (pkgs.writeShellScriptBin "agentmemory" ''
-      exec ${pkgs.nodejs}/bin/npx --yes @agentmemory/agentmemory@latest "$@"
-    '')
-  ];
+  home.packages = agentmemory.packages;
 }
