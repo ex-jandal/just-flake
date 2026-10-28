@@ -132,7 +132,7 @@
       };
 
       formatter.${pkgs.stdenv.hostPlatform.system} =
-        nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system}.nixfmt-rfc-style;
+        nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system}.nixfmt;
 
       devShells.${pkgs.stdenv.hostPlatform.system} = {
         cc = import ./shells/cc.nix { inherit pkgs; };
