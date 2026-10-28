@@ -120,4 +120,8 @@
     source = ../../assets/aiAgent/extensions/visual-tools;
     recursive = true;
   };
+
+  home.file.".pi/agent/agents/researcher.md".source = ../../assets/aiAgent/agents/researcher.md;
+  home.file.".pi/agent/agents/mermaid-maker.md".source = ../../assets/aiAgent/agents/mermaid-maker.md;
+  home.file.".pi/agent/agents/svg-maker.md".source = ../../assets/aiAgent/agents/svg-maker.md;
 }
