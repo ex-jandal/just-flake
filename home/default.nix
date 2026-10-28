@@ -40,6 +40,7 @@
     ./modules/proxychains.nix
     ./modules/xmcl.nix
     ./modules/lspmux.nix
+    ./modules/agentmemory.nix
     ./modules/lutris.nix
     ./modules/obs-studio.nix
     ./modules/opencode.nix
