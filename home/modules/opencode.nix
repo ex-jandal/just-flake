@@ -44,6 +44,26 @@
           #   for a cold Emacs. eval-elisp can also legitimately take a while.
           timeout = 30000;
         };
+
+        # - AgentMemory persistent memory (rohitg00/agentmemory). The
+        #   `@agentmemory/mcp` shim proxies OpenCode to the agentmemory
+        #   server, which must be running on localhost:3111 — start it once
+        #   with `npx -y @agentmemory/agentmemory@latest` (state persists
+        #   under ~/.local/share/agentmemory). Without a reachable server the
+        #   shim falls back to a 7-tool local set.
+        agentmemory = {
+          type = "local";
+          command = [
+            "npx"
+            "-y"
+            "@agentmemory/mcp"
+          ];
+          description = "AgentMemory persistent memory server (localhost:3111)";
+          enabled = true;
+          env = {
+            AGENTMEMORY_URL = "http://localhost:3111";
+          };
+        };
       };
       # - steer the agent toward the emacs_* tools. Written below; kept in this
       #   module rather than assets/opencode/ so the whole opencode<->emacs
