@@ -369,12 +369,12 @@ window-rule {
     default-column-width {}
 }
 
-// Open the Firefox picture-in-picture player as floating by default.
+// Open the browser's picture-in-picture player as floating by default.
+// - Helium is Chromium-based: its windows use app-id "helium" and Chromium's
+//   PiP window title is literally "Picture-in-Picture". (For host Firefox the
+//   app-id would be "firefox", Flatpak's "org.mozilla.firefox".)
 window-rule {
-    // This app-id regular expression will work for both:
-    // - host Firefox (app-id is "firefox")
-    // - Flatpak Firefox (app-id is "org.mozilla.firefox")
-    match app-id=r#"zen-browser$"# title="^Picture-in-Picture$"
+    match app-id=r#"helium$"# title="^Picture-in-Picture$"
     open-floating true
 }
 
@@ -554,7 +554,7 @@ binds {
     Mod+P hotkey-overlay-title="Pick a color from screen" { spawn-sh r#"niri msg pick-color | awk '$1 == "Hex:" { printf "%s", $2 }' | wl-copy"#; }
     Mod+D hotkey-overlay-title="Toggle waybar visibility" {spawn-sh "noctalia msg bar-toggle || killall -SIGUSR1 waybar"; }
     Mod+M hotkey-overlay-title="Mime/type Manager "{spawn-sh "pkill mimo_manager || mimo_manager"; }
-    Mod+B hotkey-overlay-title="Open Browser: Zen-browser" {spawn-sh "zen-browser"; }
+    Mod+B hotkey-overlay-title="Open Browser: Helium" {spawn-sh "helium"; }
 
     Mod+Alt+K hotkey-overlay-title="Show-keys Input" { spawn-sh "qs -c noctalia-shell ipc call plugin:show-keys toggle"; }
 
