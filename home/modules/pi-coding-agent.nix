@@ -60,6 +60,8 @@
             # "npm:@juicesharp/rpiv-web-tools"
             "npm:@juicesharp/rpiv-args"
             "npm:@juicesharp/rpiv-workflow"
+
+            "/home/abu_jandal/.agents/agentmemory"
           ];
 
           extensions = [
@@ -91,13 +93,15 @@
               exposure = "direct";
             };
 
-            emacs = {
-              command = "socat";
+            agentmemory = {
+              command = "/nix/store/k3nz3s314bipvqbcbw3faq823hxpwbn1-nodejs-slim-24.19.0/bin/node";
               args = [
-                "-"
-                "UNIX-CONNECT:{env:HOME}/.local/share/doom/emacs-mcp-server.sock"
+                "/home/abu_jandal/.npm/_npx/6ac3254aa17f4a19/node_modules/@agentmemory/agentmemory/dist/standalone.mjs"
               ];
-              description = "Connect to the Doom Emacs MCP server over a Unix socket";
+              env = {
+                AGENTMEMORY_TOOLS = "all";
+                AGENTMEMORY_FORCE_PROXY = "1";
+              };
               exposure = "direct";
             };
           };
