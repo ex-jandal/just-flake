@@ -15,8 +15,13 @@ in
     agentFiles = {
       settings = {
         value = {
-          defaultModel = "big-pickle";
+          defaultModel = "deepseek-v4.1-flash-free";
           defaultProvider = "bansos";
+
+          modelThinkingLevels = {
+            "bansos/deepseek-v4.1-flash-free" = "high";
+            "bansos/big-pickle" = "low";
+          };
 
           retry = {
             enabled = true;
