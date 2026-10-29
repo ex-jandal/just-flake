@@ -512,8 +512,32 @@
       org-roam-directory "~/org/roam/"
       org-log-into-drawer t
       org-adapt-indentation nil
-      org-src-block-preserve-indentation nil
+      org-src-preserve-indentation nil
       org-cycle-close-headers-state-sublevels nil)
+
+;; - md-log lesson previews (C-c C-x C-l). `org-preview-latex-image-directory'
+;;   defaults to "ltximg/", resolved RELATIVE TO THE FILE, which drops a cache
+;;   folder next to every lesson note. A shared cache also lets an identical
+;;   formula reuse its PNG across files and sessions. Org does NOT create the
+;;   directory it is pointed at — an absent one fails the preview outright with
+;;   "Opening output file: No such file or directory" — so create it here.
+;;   `latex', `dvipng' and `dvisvgm' are on PATH via
+;;   programs.doom-emacs.extraBinPackages in home/modules/doom-emacs.nix;
+;;   dvipng is Emacs' own default process, named here so the dependency is
+;;   explicit rather than implied.
+(let ((dir (expand-file-name "org-latex/"
+                             (or (getenv "XDG_CACHE_HOME")
+                                 (expand-file-name "~/.cache")))))
+  (make-directory dir t)
+  (setq org-preview-latex-default-process 'dvipng
+        org-preview-latex-image-directory dir))
+
+;; - md-log emits pictures as [[file:...]] with `#+attr_org: :width N' when the
+;;   agent asked for a width (`![[pic.png|500]]'). The default, t, means "use
+;;   the image's own pixel width" and silently IGNORES the attribute — a 2000px
+;;   diagram then fills the frame. nil = prefer #+ATTR_ORG :width, then any
+;;   other #+ATTR_xxx :width, then the image's natural size.
+(setq org-image-actual-width nil)
 
 
 ;;

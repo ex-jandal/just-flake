@@ -122,6 +122,21 @@ in
       taplo
       yaml-language-server
       texlab
+      # - ORG LATEX PREVIEW. `org-latex-preview' (C-c C-x C-l) is what turns the
+      #   $...$ in an md-log .org lesson into a rendered formula. It shells out to
+      #   `latex' (via `org-preview-latex-process-alist' → `org-create-formula-image')
+      #   and then to `dvipng', so both must be real binaries on PATH. Neither is:
+      #   :lang latex ships auctex only (no TeX distribution), and scheme-small has
+      #   no dvipng. scheme-small DOES carry latex-bin, amsmath, amsfonts and cm —
+      #   the packages a preview of `\frac' / `\Omega' / `\sum' actually needs.
+      #   dvisvgm is the fallback converter for previews dvipng cannot do (crisper
+      #   under a hidpi font, and required if `org-preview-latex-default-process'
+      #   is ever switched from `dvipng' to `dvisvgm'). Both states are verified in
+      #   the texlive env's `includedTeXPackages', not guessed.
+      (texliveSmall.withPackages (ps: [
+        ps.dvipng
+        ps.dvisvgm
+      ]))
       # basedpyright and jdt-language-server have no lsp-mode client, so they are
       # registered by hand in assets/doom/config.el.
       basedpyright
