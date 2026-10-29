@@ -539,7 +539,7 @@ async function askMultiChoice(
 }
 
 // Shared UI mutex. ctx.ui.custom()/editor can only handle one active call at
-// a time, so ALL pop-up-style tools (ask_user_question, quiz, ...) must
+// a time, so ALL pop-up-style tools (ask_user_question_for_teach, quiz, ...) must
 // serialize against each other, not just against themselves. We stash one
 // mutex on globalThis so separate extension files can share it without
 // importing each other.
@@ -567,15 +567,15 @@ function withUILock<T>(fn: () => Promise<T>): Promise<T> {
 
 export default function askUserQuestion(pi: ExtensionAPI) {
 	pi.registerTool({
-		name: "ask_user_question",
-		label: "ask_user_question",
+		name: "ask_user_question_for_teach",
+		label: "ask_user_question_for_teach",
 		description:
 			"Ask the user a single question and pause execution until they answer. Use this when requirements are ambiguous, user preferences are needed, a decision would materially affect implementation, or you need confirmation before proceeding. Ask exactly one question per tool call, and prefer multiple separate tool calls over bundling unrelated questions together.",
 		promptSnippet:
 			"Use this tool to ask exactly one clarifying question, missing-requirement question, preference question, or decision question before continuing.",
 		promptGuidelines: [
 			"Ask exactly one question per tool call.",
-			"If you need answers to multiple questions, make multiple separate ask_user_question tool calls instead of combining them into one prompt.",
+			"If you need answers to multiple questions, make multiple separate ask_user_question_for_teach tool calls instead of combining them into one prompt.",
 			'Users will always be able to select "Other" to provide custom text input when options are provided.',
 			"Use multiSelect: true only when you need multiple answers to the same question.",
 			'If you recommend a specific option, make it the first option in the list and add "(Recommended)" at the end of the label.',
@@ -594,7 +594,7 @@ export default function askUserQuestion(pi: ExtensionAPI) {
 			}
 
 			if (!ctx.hasUI) {
-				return unavailableResult(params.question, mode, "ask_user_question requires interactive mode UI", context);
+				return unavailableResult(params.question, mode, "ask_user_question_for_teach requires interactive mode UI", context);
 			}
 
 			return withUILock(async () => {
@@ -627,7 +627,7 @@ export default function askUserQuestion(pi: ExtensionAPI) {
 
 		renderCall(args, theme) {
 			const options = normalizeOptions(args.options as Array<{ label: string; value?: string; description?: string }> | undefined);
-			let text = theme.fg("toolTitle", theme.bold("ask_user_question ")) + theme.fg("muted", args.question);
+			let text = theme.fg("toolTitle", theme.bold("ask_user_question_for_teach ")) + theme.fg("muted", args.question);
 			if (args.multiSelect) {
 				text += theme.fg("dim", " [multi-select]");
 			}
@@ -650,7 +650,7 @@ export default function askUserQuestion(pi: ExtensionAPI) {
 			}
 
 			if (details.status === "unavailable") {
-				return new Text(theme.fg("warning", details.message || "ask_user_question unavailable"), 0, 0);
+				return new Text(theme.fg("warning", details.message || "ask_user_question_for_teach unavailable"), 0, 0);
 			}
 
 			const lines = details.answers.map((answer) => {
