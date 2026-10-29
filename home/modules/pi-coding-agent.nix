@@ -121,8 +121,8 @@ in
 
   home.file.".pi/agent/extensions/md-log.ts".source = ../../assets/aiAgent/extensions/md-log.ts;
   home.file.".pi/agent/extensions/quiz.ts".source = ../../assets/aiAgent/extensions/quiz.ts;
-  # home.file.".pi/agent/extensions/ask-user-question.ts".source =
-  #   ../../assets/aiAgent/extensions/ask-user-question.ts;
+  home.file.".pi/agent/extensions/ask-user-question-for-teach.ts".source =
+    ../../assets/aiAgent/extensions/ask-user-question-for-teach.ts;
   home.file.".pi/agent/extensions/visual-tools" = {
     source = ../../assets/aiAgent/extensions/visual-tools;
     recursive = true;
