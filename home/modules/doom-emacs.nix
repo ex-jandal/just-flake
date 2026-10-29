@@ -118,6 +118,7 @@ in
       shellcheck
       mesonlsp
       marksman
+      mermaid-cli
       taplo
       yaml-language-server
       texlab
@@ -177,6 +178,8 @@ in
       emacsOpencode
       epkgs.codex-ide
       epkgs.pilish
+
+      epkgs.markdown-mermaid
 
       epkgs.gruvbox-theme
       epkgs.catppuccin-theme
