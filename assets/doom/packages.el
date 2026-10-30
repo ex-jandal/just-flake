@@ -97,6 +97,7 @@
 (package! rainbow-mode)
 
 (package! markdown-mermaid)
+(package! ob-mermaid)
 
 
 ;; Prefer Doom's own tree-sitter grammars; the nixpkgs set is provided via

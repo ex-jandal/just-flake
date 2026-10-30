@@ -78,7 +78,7 @@
        ;;   allRefs = true` — a full git clone on every rebuild. Costs a 35MB
        ;;   JS/CSS library to get org-present slides nobody has asked for.
        ;;   Re-add the flag + one fetchTree setting if presentations matter.
-       (org +journal +roam +pretty +dragndrop +gnuplot)
+       (org +journal +roam +pretty +dragndrop +gnuplot +ipython)
        (php +lsp +tree-sitter)
        (python +lsp +uv +cython +pyright +tree-sitter)
        (qt +lsp +tree-sitter)
