@@ -26,6 +26,10 @@
       github_token = {
         key = "GITHUB_TOKEN";
       };
+
+      nvidai_api_key = {
+        key = "NVIDAI_API_KEY";
+      };
     };
 
     # Dotenv for tools that take an env file:
@@ -43,12 +47,16 @@
     #   set -gx OPENAI_API_KEY '${config.sops.placeholder.openai_api_key}'
     #   set -gx GITHUB_TOKEN '${config.sops.placeholder.github_token}'
     # '';
+
+    templates."secrets.fish".content = ''
+      set -gx NVIDAI_API_KEY '${config.sops.placeholder.nvidai_api_key}'
+    '';
   };
 
   # Export the secrets into every interactive fish shell.
-  # programs.fish.interactiveShellInit = ''
-  #   if test -f ${config.sops.templates."secrets.fish".path}
-  #     source ${config.sops.templates."secrets.fish".path}
-  #   end
-  # '';
+  programs.fish.interactiveShellInit = ''
+    if test -f ${config.sops.templates."secrets.fish".path}
+      source ${config.sops.templates."secrets.fish".path}
+    end
+  '';
 }
