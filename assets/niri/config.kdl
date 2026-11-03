@@ -489,6 +489,16 @@ window-rule {
     xray false
   }
 }
+window-rule {
+    match app-id=r#"Emulator$"#
+    match title=r#"Android Emulator - Pixel_9_Pro_XL$"#
+    
+    open-floating false
+    min-width 484
+    max-width 484
+    min-height 1024
+    max-height 1024
+}
 
 /*
   Noctalia
