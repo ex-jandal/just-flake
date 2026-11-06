@@ -127,6 +127,8 @@
     };
   };
 
+  networking.wireguard.enable = true;
+
   # - client-only Tor (no relay/exit/bridge): 9050 is the slow SOCKS (new
   #   circuit per destination), which proxychains and torsocks use. Privoxy
   #   adds 8118 (HTTP) forwarding to the fast SOCKS on 9063.
