@@ -283,7 +283,6 @@ spawn-sh-at-startup "systemctl --user stop pipewire wireplumber pipewire-pulse &
 
 // spawn-at-startup "emacs" "--daemon"
 spawn-sh-at-startup "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_MENU_PREFIX XDG_DATA_DIRS QT_QPA_PLATFORMTHEME"
-spawn-sh-at-startup "wg-quick up us-proton"
 prefer-no-csd
 
 environment {
