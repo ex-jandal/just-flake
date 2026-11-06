@@ -137,6 +137,7 @@ in
         ps.dvipng
         ps.dvisvgm
       ]))
+      asm-lsp
       # basedpyright and jdt-language-server have no lsp-mode client, so they are
       # registered by hand in assets/doom/config.el.
       basedpyright
