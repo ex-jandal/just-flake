@@ -176,6 +176,7 @@
         #   instead of always asking for a nonexistent master password.
         signal-desktop
         element-desktop
+        fluffychat
         legcord
         zapzap
         signal-cli
