@@ -175,7 +175,6 @@
         #   (Electron password store) so it unlocks on non-GNOME desktops
         #   instead of always asking for a nonexistent master password.
         signal-desktop
-        element-desktop
         fluffychat
         legcord
         zapzap
