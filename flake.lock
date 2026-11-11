@@ -400,7 +400,8 @@
         "pi-agent": "pi-agent",
         "rusbmux": "rusbmux",
         "sops-nix": "sops-nix",
-        "xmcl": "xmcl"
+        "xmcl": "xmcl",
+        "zapfast": "zapfast"
       }
     },
     "rusbmux": {
@@ -435,6 +436,27 @@
         "owner": "oxalica",
         "repo": "rust-overlay",
         "rev": "c1cfa7a2c809d364ac1a7e9b3ec418afa3f19793",
+        "type": "github"
+      },
+      "original": {
+        "owner": "oxalica",
+        "repo": "rust-overlay",
+        "type": "github"
+      }
+    },
+    "rust-overlay_2": {
+      "inputs": {
+        "nixpkgs": [
+          "zapfast",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1789977098,
+        "narHash": "sha256-fKY4BedarKx4aR0+UOHk65hhDW8pxFytFkaUi0VYDYk=",
+        "owner": "oxalica",
+        "repo": "rust-overlay",
+        "rev": "2776e42828203ec89511699c8dcdedec69ab98e1",
         "type": "github"
       },
       "original": {
@@ -510,6 +532,27 @@
       "original": {
         "owner": "x45iq",
         "repo": "xmcl-nix",
+        "type": "github"
+      }
+    },
+    "zapfast": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "rust-overlay": "rust-overlay_2"
+      },
+      "locked": {
+        "lastModified": 1794206108,
+        "narHash": "sha256-7lFJa24qfSgx6YSu73SnolTFpLB4GQ3qZJwNx24z/z8=",
+        "owner": "crmne",
+        "repo": "zapfast",
+        "rev": "4497f08cee368235dedb4848990916bb40bfc88e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "crmne",
+        "repo": "zapfast",
         "type": "github"
       }
     }

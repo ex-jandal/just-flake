@@ -9,9 +9,11 @@
 {
   imports = [
     inputs.mimo_manager.homeManagerModules.default
+    inputs.zapfast.homeManagerModules.default
   ];
 
   programs.mimo_manager.enable = true;
+  programs.zapfast.enable = true;
 
   home.packages =
     let
