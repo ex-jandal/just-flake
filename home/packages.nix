@@ -221,6 +221,7 @@
 
       network = with pkgs; [
         virt-viewer
+        nftables
         dnsmasq
         hostapd
         iw
