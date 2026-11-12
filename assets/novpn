@@ -1,0 +1,370 @@
+#!/usr/bin/env bash
+# novpn - run applications outside Proton VPN (wg-quick style setups).
+#
+# Usage:
+#   novpn COMMAND [ARGS...]   configure the bypass, then run COMMAND outside the VPN
+#   novpn --verify            configure and self-test the bypass
+#   novpn --status            show current state (rules, counters, routing)
+#   novpn --clean             remove rules/routes/nftables, stop the slice
+#   novpn --help
+#
+# Environment:
+#   NOVPN_INTERFACE   physical interface to use (default: auto-detect)
+#   NOVPN_PRIORITY    ip rule priority for the bypass (default: auto, below the VPN's)
+#   NOVPN_IPV6        unreachable (default, fail closed) | main (route via main table)
+#   NOVPN_MARK        packet/connmark value (default 0x4e4f4e50)
+#   NOVPN_SLICE       systemd slice holding the bypassed processes (default novpn.slice)
+#
+# WHY FOUR MOVING PARTS ARE NEEDED
+# --------------------------------
+# wg-quick installs two policy rules that capture everything not marked with
+# the WireGuard fwmark, e.g.:
+#     88: from all lookup main suppress_prefixlength 0
+#     89: not from all fwmark 0xca6c lookup 51820
+# A bypass therefore has to be evaluated *before* those (lower priority
+# number), which is what `1.` below does.
+#
+# Marking alone is not enough on this host, because nftables sets the mark in
+# the output hook - i.e. *after* the socket has already picked its source
+# address and after conntrack built the flow tuple. Two side effects follow,
+# and `3.`/`4.` repair them:
+#   * packets leave the physical interface carrying the tunnel address
+#     (10.2.0.2) and are unroutable  -> masquerade rewrites the source.
+#   * replies arrive with mark 0, so NixOS' reverse-path filter
+#     (networking.firewall.checkReversePath) resolves their source through the
+#     VPN table, sees a device mismatch and drops them as martians
+#     -> connmark is preserved and restored before that filter runs.
+#
+# Requires: nftables, iproute2, systemd.
+
+set -Eeuo pipefail
+
+SLICE="${NOVPN_SLICE:-novpn.slice}"
+MARK="${NOVPN_MARK:-0x4e4f4e50}"
+NFT_TABLE="${NOVPN_NFT_TABLE:-novpn}"
+IPV6_MODE="${NOVPN_IPV6:-unreachable}"
+TABLE_LEGACY=1000 # routing table used by older versions of this script
+
+die() {
+    echo "novpn: $*" >&2
+    exit 1
+}
+
+warn() {
+    echo "novpn: warning: $*" >&2
+}
+
+require_commands() {
+    local cmd
+    for cmd in nft ip systemd-run systemctl awk grep; do
+        command -v "$cmd" >/dev/null || die "Missing command: $cmd"
+    done
+}
+
+# ---------------------------------------------------------------- detection
+
+route_dev() {
+    # Device chosen for a destination, optionally with a packet mark.
+    ip -4 route get "$@" 2>/dev/null |
+        awk '{ for (i = 1; i < NF; i++) if ($i == "dev") { print $(i + 1); exit } }'
+}
+
+detect_interface() {
+    if [[ -n ${NOVPN_INTERFACE:-} ]]; then
+        IFACE="$NOVPN_INTERFACE"
+    else
+        IFACE="$(ip -4 route show default table main 2>/dev/null |
+            awk '{ for (i = 1; i < NF; i++) if ($i == "dev") { print $(i + 1); exit } }')"
+    fi
+
+    [[ -n $IFACE ]] || die "Cannot determine the physical interface (set NOVPN_INTERFACE)"
+
+    if [[ "$(ip -o link show dev "$IFACE" 2>/dev/null)" != *,UP,* &&
+    "$(ip -o link show dev "$IFACE" 2>/dev/null)" != *UP,* ]]; then
+        warn "interface $IFACE does not look UP"
+    fi
+}
+
+detect_vpn_device() {
+    # Where unmarked traffic goes - i.e. the tunnel we are bypassing.
+    VPN_DEV="$(route_dev 1.1.1.1)"
+    VPN_DEV="${VPN_DEV:-none}"
+
+    if [[ $VPN_DEV == "$IFACE" ]]; then
+        warn "unmarked traffic already leaves via $IFACE; is the VPN down?"
+    fi
+}
+
+detect_priority() {
+    local p
+
+    if [[ -n ${NOVPN_PRIORITY:-} ]]; then
+        PRIORITY="$NOVPN_PRIORITY"
+        return
+    fi
+
+    # Sit just in front of the lowest-precedence VPN rule (wg-quick uses
+    # "suppress_prefixlength" and an fwmark lookup). Ignore our own rules so
+    # repeated runs stay on the same priority instead of creeping downwards.
+    p="$(ip -4 rule show 2>/dev/null | awk -v mark="$MARK" '
+        index($0, mark) { next }
+        /suppress_prefixlength/ { p = $1; sub(":", "", p); print p; next }
+        /fwmark 0x[0-9a-f]/ && /lookup/ { p = $1; sub(":", "", p); print p }
+    ' | grep -E '^[0-9]+$' | sort -n | head -n 1)"
+
+    if [[ -n $p ]] && ((p > 1)); then
+        PRIORITY=$((p - 1))
+    else
+        PRIORITY=87
+    fi
+}
+
+get_cgroup() {
+    systemctl --user start "$SLICE" ||
+        die "Failed to start $SLICE"
+
+    CGROUP="$(systemctl --user show "$SLICE" --property=ControlGroup --value)"
+    CGROUP="${CGROUP#/}"
+
+    [[ -n $CGROUP ]] || die "Cannot determine slice cgroup path"
+
+    # The generated nftables ruleset embeds this path in a quoted string.
+    [[ $CGROUP != *'"'* && $CGROUP != *$'\n'* ]] ||
+        die "Unsupported characters in cgroup path: $CGROUP"
+
+    # nftables wants the number of path components as the ancestor level and
+    # nft rejects a level that does not match the path.
+    LEVEL=$(awk -F/ '{ print NF }' <<<"$CGROUP")
+
+    [[ -d "/sys/fs/cgroup/$CGROUP" ]] ||
+        die "Cgroup directory does not exist: /sys/fs/cgroup/$CGROUP"
+}
+
+# ------------------------------------------------------------------- pieces
+
+remove_mark_rules() {
+    local family=$1 priority
+
+    while read -r priority; do
+        [[ -n $priority ]] || continue
+        sudo ip "$family" rule del priority "$priority" 2>/dev/null || true
+    done < <(ip "$family" rule show 2>/dev/null |
+        awk -v mark="$MARK" '
+            index($0, mark) {
+                p = $1
+                sub(":", "", p)
+                if (p ~ /^[0-9]+$/) print p
+            }')
+}
+
+# 1. Bypass the VPN's policy rules for one mark.
+setup_rules() {
+    remove_mark_rules -4
+    remove_mark_rules -6
+
+    sudo ip -4 rule add priority "$PRIORITY" fwmark "$MARK" lookup main
+
+    case "$IPV6_MODE" in
+        unreachable)
+            # Fail closed: the tunnel has no usable IPv6 here and the physical
+            # link has no global address, so refuse instead of leaking.
+            sudo ip -6 rule add priority "$PRIORITY" fwmark "$MARK" unreachable
+            ;;
+        main)
+            sudo ip -6 rule add priority "$PRIORITY" fwmark "$MARK" lookup main
+            ;;
+        *)
+            die "NOVPN_IPV6 must be 'unreachable' or 'main'"
+            ;;
+    esac
+}
+
+# 2-4. Mark the slice's traffic, repair its source address, restore the mark
+#      on replies. Loaded atomically so there is no half-configured window.
+setup_nftables() {
+    local tmp
+    tmp="$(mktemp)"
+
+    cat >"$tmp" <<EOF
+table inet $NFT_TABLE {
+    chain prerouting {
+        type filter hook prerouting priority mangle - 1; policy accept;
+        # 4. Replies of bypassed flows: restore the mark from connmark before
+        #    NixOS' reverse-path filter runs, so its lookup resolves via the
+        #    physical device instead of the tunnel.
+        ct mark $MARK meta mark set ct mark
+    }
+
+    chain output {
+        type route hook output priority mangle; policy accept;
+        # 2. Everything this slice sends gets the bypass mark.
+        socket cgroupv2 level $LEVEL "$CGROUP" counter \
+            meta mark set $MARK ct mark set $MARK
+    }
+
+    chain postrouting {
+        type nat hook postrouting priority srcnat; policy accept;
+        # 3. The socket picked its source address before the mark existed, so
+        #    it still carries the tunnel address; rewrite it to the address of
+        #    the interface the marked route actually uses.
+        meta mark $MARK counter masquerade
+    }
+}
+EOF
+
+    sudo nft delete table inet "$NFT_TABLE" 2>/dev/null || true
+    sudo nft -f "$tmp" || die "Failed to load nftables ruleset"
+    rm -f "$tmp"
+}
+
+# ------------------------------------------------------------- verification
+
+counter_total() {
+    sudo nft list chain inet "$NFT_TABLE" output 2>/dev/null |
+        awk '/counter packets/ {
+                 for (i = 1; i < NF; i++)
+                     if ($i == "packets") sum += $(i + 1)
+             }
+             END { print sum + 0 }'
+}
+
+verify() {
+    local strict=${1:-warn} dev before after
+
+    dev="$(route_dev 1.1.1.1 mark "$MARK")"
+
+    if [[ $dev != "$IFACE" ]]; then
+        die "marked packets route via '${dev:-nothing}', expected '$IFACE'"
+    fi
+
+    echo "Route check:  marked traffic leaves via $IFACE (not $VPN_DEV)"
+
+    before="$(counter_total)"
+
+    timeout 5 systemd-run --user --scope -q --slice="$SLICE" \
+        -- bash -c 'exec 3<>/dev/tcp/1.1.1.1/80' >/dev/null 2>&1 || true
+
+    after="$(counter_total)"
+
+    if ((after > before)); then
+        echo "Mark check:   $((after - before)) packet(s) marked from inside the slice"
+        return 0
+    fi
+
+    local msg="the cgroup mark never matched (counters did not move)"
+    if [[ $strict == strict ]]; then
+        die "$msg"
+    fi
+    warn "$msg - run 'novpn --verify' for details"
+}
+
+# ------------------------------------------------------------------ actions
+
+setup_all() {
+    require_commands
+
+    sudo -v || die "sudo is required"
+
+    detect_interface
+    detect_vpn_device
+    detect_priority
+    get_cgroup
+
+    echo "Slice:      $SLICE ($CGROUP, level $LEVEL)"
+    echo "Interface:  $IFACE"
+    echo "VPN device: $VPN_DEV"
+    echo "Priority:   $PRIORITY (must be lower than the VPN's rules)"
+    echo "IPv6:       $IPV6_MODE"
+
+    setup_rules
+    setup_nftables
+    echo "Bypass configured."
+}
+
+cleanup() {
+    require_commands
+    sudo -v || die "sudo is required"
+
+    echo "Removing novpn configuration..."
+
+    sudo nft delete table inet "$NFT_TABLE" 2>/dev/null || true
+
+    remove_mark_rules -4
+    remove_mark_rules -6
+
+    # Older versions kept a copy of the physical routes in this table.
+    sudo ip -4 route flush table "$TABLE_LEGACY" 2>/dev/null || true
+
+    systemctl --user stop "$SLICE" 2>/dev/null || true
+
+    echo "Cleanup complete."
+}
+
+status() {
+    require_commands
+
+    detect_interface
+    detect_vpn_device
+
+    echo "=== nftables ==="
+    sudo nft list table inet "$NFT_TABLE" 2>/dev/null || echo "(not configured)"
+
+    echo
+    echo "=== IPv4 policy rules ==="
+    ip -4 rule show
+
+    echo
+    echo "=== IPv6 policy rules ==="
+    ip -6 rule show
+
+    echo
+    echo "=== routing (unmarked = through the VPN) ==="
+    printf 'unmarked 1.1.1.1 -> %s\n' "$(route_dev 1.1.1.1)"
+    printf 'marked   1.1.1.1 -> %s\n' "$(route_dev 1.1.1.1 mark "$MARK")"
+
+    local total
+    total="$(counter_total)"
+    if [[ ${total:-0} -eq 0 ]]; then
+        warn "mark counter is zero: nothing has used the bypass yet (or the cgroup match is broken)"
+    else
+        echo "marked packets so far: $total"
+    fi
+}
+
+main() {
+    case "${1:-}" in
+        --clean)
+            cleanup
+            exit 0
+            ;;
+        --status)
+            status
+            exit 0
+            ;;
+        --verify)
+            setup_all
+            verify strict
+            exit 0
+            ;;
+        --help | -h)
+            sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'
+            exit 0
+            ;;
+        "")
+            die "No command specified. See --help."
+            ;;
+    esac
+
+    setup_all
+    verify warn
+
+    echo "Launching outside the VPN: $*"
+
+    exec systemd-run \
+        --user \
+        --scope \
+        --slice="$SLICE" \
+        -- "$@"
+}
+
+main "$@"
