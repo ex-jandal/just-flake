@@ -129,6 +129,7 @@ in
       surreal-sql = "surreal sql --user root --pass root --namespace test --database test --pretty";
       run-hotspot = "sudo ~/linuxrouter --ap wlan0 'abu_jandal - archlinux' -g 137 --freq-band 2.4 -6 -p";
       run-hotspot5 = "sudo ~/linuxrouter --ap wlan0 'abu_jandal - archlinux' -g 137 --freq-band 5 -6 -p";
+      novpn = "~/novpn";
       tbrowser = "nix develop ~/just-flake#term-browser -c terminal-browser";
       # - confirms traffic is really on Tor, not just that a site is reachable.
       #   -q drops proxychains' chain trace; drop it to see which proxy was used.
