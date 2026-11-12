@@ -145,6 +145,7 @@ in
       clang-tools
       ccls
       csharp-ls
+      copilot-language-server
       gopls
       lua-language-server
       fennel-ls
