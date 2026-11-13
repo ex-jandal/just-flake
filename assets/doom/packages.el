@@ -99,7 +99,11 @@
 (package! markdown-mermaid)
 (package! ob-mermaid)
 
-(package! copilot)
+;; Swiftly grab images of your code.
+;; Requires a :pin since it is not in nixpkgs or emacs-overlay.
+(package! screenshot
+  :recipe (:host github :repo "tecosaur/screenshot")
+  :pin "2770c0cfefe1cc09d55585f4f2f336a1b26e610e")
 
 
 ;; Prefer Doom's own tree-sitter grammars; the nixpkgs set is provided via

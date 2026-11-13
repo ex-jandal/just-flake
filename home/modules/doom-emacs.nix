@@ -92,6 +92,10 @@ in
       #   builds without --without-legacy), which is what sgn's
       #   (executable-find "convert") probe requires; it is NOT `magick'.
       imagemagick
+      # - screenshot CLI dependencies: pngquant for compression and
+      #   wl-clipboard (wl-copy) for copying to clipboard under Wayland.
+      pngquant
+      wl-clipboard
       # Nix
       nixd
       # Shell / data / markup
@@ -145,7 +149,6 @@ in
       clang-tools
       ccls
       csharp-ls
-      copilot-language-server
       gopls
       lua-language-server
       fennel-ls
