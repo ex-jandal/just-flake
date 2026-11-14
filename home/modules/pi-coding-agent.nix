@@ -132,6 +132,12 @@ in
     source = ../../assets/aiAgent/extensions/visual-tools;
     recursive = true;
   };
+  # - opencode-unlimited-style route control for the bansos provider:
+  #   ranked relay pool, egress-block ledger, usage meter, /unlimited reset.
+  home.file.".pi/agent/extensions/pi-unlimited" = {
+    source = ../../assets/aiAgent/extensions/pi-unlimited;
+    recursive = true;
+  };
 
   home.file.".pi/agent/agents/researcher.md".source = ../../assets/aiAgent/agents/researcher.md;
   home.file.".pi/agent/agents/mermaid-maker.md".source = ../../assets/aiAgent/agents/mermaid-maker.md;
