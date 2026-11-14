@@ -14,6 +14,11 @@
   # - curated daily-use package list.
   imports = [
     inputs.sops-nix.homeManagerModules.sops
+    # - Arabic Poem desktop widget for Noctalia: puts a Pango/PangoCairo-capable
+    #   `arabic-poem-python` on PATH and creates the stable symlink
+    #   ~/.local/share/arabic-poem-widget/python that the plugin config points
+    #   at. See assets/noctalia/settings.toml -> [plugin_settings."amr/arabic-poem"].
+    inputs.arabic-poem.homeManagerModules.default
     ./modules/sops.nix
     ./packages.nix
     ./modules/niri.nix

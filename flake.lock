@@ -1,5 +1,20 @@
 {
   "nodes": {
+    "arabic-poem": {
+      "locked": {
+        "lastModified": 1794688936,
+        "narHash": "sha256-5sddjaPyJUh7XwG3EL+w0hr5WBV++mLoF/7vZEvq9QU=",
+        "owner": "ex-jandal",
+        "repo": "arabic-poem-nixos",
+        "rev": "1f94617a654a6e2a13186bd9accec5abfe17f069",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ex-jandal",
+        "repo": "arabic-poem-nixos",
+        "type": "github"
+      }
+    },
     "artcraft-launcher": {
       "inputs": {
         "flake-utils": "flake-utils",
@@ -388,6 +403,7 @@
     },
     "root": {
       "inputs": {
+        "arabic-poem": "arabic-poem",
         "artcraft-launcher": "artcraft-launcher",
         "doom-emacs": "doom-emacs",
         "helium-flake": "helium-flake",

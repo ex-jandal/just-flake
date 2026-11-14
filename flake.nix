@@ -69,6 +69,12 @@
     #   elisp package set, and following ours breaks that pinning (its binary
     #   cache is built against its own nixpkgs anyway).
     doom-emacs.url = "github:marienz/nix-doom-emacs-unstraightened";
+
+    # - Pango-capable Python for the Arabic Poem Noctalia widget renderer.
+    #   No `inputs.nixpkgs.follows`: this flake has no nixpkgs input at all.
+    #   It exports a Home-Manager module that callPackages against OUR pkgs, so
+    #   the typelibs cannot drift from this system's Pango/GLib/HarfBuzz.
+    arabic-poem.url = "github:ex-jandal/arabic-poem-nixos";
   };
 
   # - Noctalia binary cache lives in hosts/nixos/default.nix (nix.settings).

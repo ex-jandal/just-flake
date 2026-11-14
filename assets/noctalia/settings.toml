@@ -49,13 +49,16 @@ warning_threshold = 15
 enabled = true
 
 [desktop_widgets]
-enabled = false
+enabled = true
 schema_version = 2
 widget_order = [
   "desktop-widget-0000000000000001",
   "desktop-widget-0000000000000002",
   "desktop-widget-0000000000000003",
   "desktop-widget-0000000000000004",
+  "desktop-widget-0000000000000005",
+  "desktop-widget-0000000000000006",
+  "desktop-widget-0000000000000007",
 ]
 
 [desktop_widgets.grid]
@@ -119,6 +122,53 @@ type = "audio_visualizer"
 [desktop_widgets.widget.desktop-widget-0000000000000004.settings]
 bands = 32
 show_when_idle = true
+
+# - Arabic Poem tiles (amr/arabic-poem). Sizes are the renderer's LOGICAL sizes
+#   (render.json); the PNGs are 2x and Noctalia scales them down, so the tiles
+#   stay crisp on HiDPI. `background = false` keeps them transparent.
+#   These are only defaults — dragging a tile in the UI stores its position in
+#   ~/.local/state/noctalia/settings.toml, which takes precedence.
+[desktop_widgets.widget.desktop-widget-0000000000000005]
+box_height = 380.0
+box_width = 880.0
+cx = 1464.0
+cy = 252.0
+output = "eDP-1"
+placement_height = 1080.0
+placement_width = 1920.0
+rotation = 0.0
+type = "amr/arabic-poem:poem"
+
+[desktop_widgets.widget.desktop-widget-0000000000000005.settings]
+background = false
+
+[desktop_widgets.widget.desktop-widget-0000000000000006]
+box_height = 140.0
+box_width = 700.0
+cx = 368.00006103515625
+cy = 930.0
+output = "eDP-1"
+placement_height = 1080.0
+placement_width = 1920.0
+rotation = 0.0
+type = "amr/arabic-poem:weekday"
+
+[desktop_widgets.widget.desktop-widget-0000000000000006.settings]
+background = false
+
+[desktop_widgets.widget.desktop-widget-0000000000000007]
+box_height = 120.0
+box_width = 700.0
+cx = 368.00006103515625
+cy = 1008.0
+output = "eDP-1"
+placement_height = 1080.0
+placement_width = 1920.0
+rotation = 0.0
+type = "amr/arabic-poem:date"
+
+[desktop_widgets.widget.desktop-widget-0000000000000007.settings]
+background = false
 
 [idle]
 behavior_order = ["lock", "screen-off", "lock-and-suspend"]
@@ -214,6 +264,15 @@ background = false
 enabled = true
 temperature_night = 3500
 
+[plugin_settings."amr/arabic-poem"]
+# - the wrapper provided by the `arabic-poem` flake input. The path is a stable
+#   symlink maintained by that module's activation script, so it survives
+#   rebuilds even when the wrapper's /nix/store hash changes.
+# - MUST be absolute: Noctalia starts the renderer with a cleared PATH.
+python = "/home/abu_jandal/.local/share/arabic-poem-widget/python/bin/arabic-poem-python"
+interval_minutes = 5
+notify = true
+
 [plugin_settings."alexander/screen-toolkit"]
 panel-legacy_open_near_click = true
 panel-legacy_placement = "attached"
@@ -240,6 +299,7 @@ twelveHourFormat = true
 [plugins]
 auto_update = "none"
 enabled = [
+  "amr/arabic-poem",
   "nightwatch75/dns-switcher",
   "elijaharch/wl-screen-mirror",
   "ycf/mawaqit",
@@ -247,6 +307,13 @@ enabled = [
   "alexander/screen-toolkit",
   "aristides/udiskie",
 ]
+
+    # - Arabic Poem widget source. The plugin itself (poem corpus, renderer,
+    #   Amiri fonts) is pulled from ITS repo by Noctalia, not from our flake.
+    [[plugins.source]]
+    kind = "git"
+    location = "https://github.com/Amr-Os/arabic-poem-noctalia"
+    name = "arabic-poem"
 
 [shell]
 external_ip_enabled = true
