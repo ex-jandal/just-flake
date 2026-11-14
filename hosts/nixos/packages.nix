@@ -141,6 +141,23 @@ in
       lua-language-server
       marksman
 
+      glibc
+      glibc_multi
+      harfbuzz
+      fontconfig
+      pango
+      cairo
+      gtk4
+      gst_all_1.gstreamer
+      gst_all_1.gst-plugins-base
+      gst_all_1.gst-plugins-good
+      gst_all_1.gst-plugins-bad
+      gst_all_1.gst-libav
+      graphene
+      libsecret
+      sqlite
+      openssl
+      libnotify
     ]
     ++ android-emu-libs; # for Android Emulator
 
