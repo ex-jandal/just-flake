@@ -53,6 +53,9 @@
     ./modules/android.nix
     ./modules/librewolf.nix
     ./modules/pi-coding-agent.nix
+    # - pi-unlimited: rotating-egress gateway (Cloudflare WARP via wireproxy)
+    #   in front of pi-bansos. See modules/pi-unlimited.nix.
+    ./modules/pi-unlimited.nix
     # ./modules/qutebrowser.nix
   ];
 

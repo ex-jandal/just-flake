@@ -1,83 +1,144 @@
 # pi-unlimited
 
-An [opencode-unlimited](https://github.com/Tazmyan/OpenCode-Unlimited)-style
-route controller for pi's `bansos` provider ([pi-bansos](https://www.npmjs.com/package/pi-bansos)).
+A rotating-egress gateway for pi's `bansos` provider
+([pi-bansos](https://www.npmjs.com/package/pi-bansos)), plus an honest ledger of
+what OpenCode's free tier actually did.
 
-pi-bansos gives you free OpenCode Zen / KiloCode models through a local
-OpenAI-compatible proxy. When OpenCode's free budget lands, it lands **per
-egress block per UTC day** — one IPv4 `/32`, one IPv6 `/64`. It is not per
-project, per session, per model or per device id, so rotating an identity string
-changes nothing. `pi-unlimited` is the operator surface around the two levers
-that do work:
+It is the [opencode-unlimited-proxy](https://github.com/ebouther/opencode-unlimited-proxy)
+idea rebuilt for pi without Docker: Cloudflare WARP runs as a **userspace**
+WireGuard tunnel (`wireproxy` — no TUN, no `CAP_NET_ADMIN`, no root) exposing a
+local SOCKS5 port, and a small Node relay in front of pi-bansos rotates egress
+across that port and `direct` on every `429`/`403`.
 
-1. **leave through a different address block**, and
-2. **move the session onto an upstream that is not billing that block**.
+```
+pi (provider "bansos")
+  └─ pi-bansos local proxy
+       └─ relay ──► pi-unlimited-gateway :18790
+                      ├─ egress pool: WARP socks5 → direct
+                      ├─ rotates on 429/403, quarantine + backoff
+                      └─ TLS shape (JA4 cipher list + ALPN)
+```
 
-It owns a ranked relay pool with health records and quarantine, an egress-block
-ledger, a local usage meter, and the one-shot `reset` that rotates the route and
-reloads so pi-bansos actually picks it up.
+pi-bansos keeps building the request — UA, project/session headers, the exact
+`read`+`shell` tools, the `<env>` prompt block. Re-implementing that fingerprint
+in a gateway would rot the moment upstream moves a gate, so the gateway is
+inserted only at the seam pi-bansos leaves open: its relay protocol
+(`x-relay-target` / `x-relay-path`). It reproduces only the TLS shape the
+OpenCode edge keys on (cipher-list order + ALPN).
+
+## Components
+
+| Piece | Where |
+|---|---|
+| Gateway (relay + egress pool) | `assets/aiAgent/gateway/pi-unlimited-gateway.mjs` |
+| Extension (ledger, wiring, failover model) | `assets/aiAgent/extensions/pi-unlimited/index.ts` |
+| WARP + gateway systemd user services | `home/modules/pi-unlimited.nix` |
 
 ## Commands
 
 | Command | What it does |
 |---|---|
-| `/unlimited` | Status: mode, pool health, active route, egress, hits today, reset clock |
-| `/unlimited on` | Enable routing + watcher, write the relay file, seed the active route |
-| `/unlimited off` | Stop the watcher, disable the relay, return to direct egress |
-| `/unlimited usage` | Local meter, last limit hit, UTC reset clock, top models |
-| `/unlimited block` | Probe the current egress, classify its `/32` or `/64`, report spent/clean |
-| `/unlimited pool list` | Ranked pool: ready / untested / slow / parked, latency, failures |
-| `/unlimited pool add <url> [label]` | Add a relay or pass-through endpoint |
-| `/unlimited pool remove <url>` | Remove a route |
-| `/unlimited pool test` | Probe up to 10 routes, record latency, park the dead |
-| `/unlimited pool next` | Switch to the next healthy route and reload |
-| `/unlimited pool clear` | Forget the pool |
-| `/unlimited watch on\|off` | Auto-queue a route change on a `429`/`403` |
-| `/unlimited apply` | Write the active route into pi-bansos and reload |
-| `/unlimited reset [--dry]` | Rotate the route, clear today's ledger for the block, reload |
-| `/unlimited doctor` | Node, agent dir, pi-bansos presence, relay file, egress probe |
+| `/unlimited` | Route, gateway health, last refusal, retry-after, UTC reset clock |
+| `/unlimited usage` | Today's refusals grouped by status/kind/model |
+| `/unlimited egress` | Per-egress health from the gateway: ready / parked, latency, errors |
+| `/unlimited apply` | Point pi-bansos at the gateway, then reload |
+| `/unlimited off` | Remove the gateway relay, then reload |
+| `/unlimited auto on\|off` | Select `bansos/auto`, the free-model failover model |
+| `/unlimited watch on\|off` | Notifications only (recording is always on) |
+| `/unlimited clear` | Clear local history only |
+| `/unlimited doctor` | Wiring checks |
 
-## How it hooks in
+## Model failover
 
-- `after_provider_response` — sees the HTTP status before the stream body is
-  consumed. `429` is classified as quota, `403` as the egress/fingerprint gate.
-  Each hit updates the ledger, the local meter and the status bar; when the
-  watcher is on it also queues the next healthy route.
-- `session_start` / `session_shutdown` — loads state, renders the status bar,
-  persists counters.
-- **Shared file**: `pi-bansos-relay-state.json` is pi-bansos's own state. This
-  extension merges its pool into that file's `relays` list and sets the active
-  `url`. pi-bansos re-reads it on every `session_start`, which is why `apply`,
-  `reset` and `pool next` end with `ctx.reload()`.
+`/unlimited auto on` selects `bansos/auto`, a virtual model that routes each
+request to a healthy free model. It stays on whatever already answered
+(`continuation` keeps the prompt cache), and only leaves the previous model on
+a refusal — a `429`/`403` retry moves to the next free model instead of
+replaying the same refusal. The ladder is `PREFERRED_FREE_MODELS`, with any
+other live `bansos` model appended.
 
-State lives in `<agent-dir>/pi-unlimited-state.json` (agent dir defaults to
-`~/.pi/agent`, overridable with `PI_CODING_AGENT_DIR`).
+## Verified behaviour (2026-11-15)
+
+Live, on this machine, through `pi -p`:
+
+| Route | Result |
+|---|---|
+| `direct` (`46.35.92.131`) | `429 FreeUsageLimitError` |
+| WARP (`104.28.241.89`) | `200`, 10247 ms, answer returned |
+
+The gateway sent the request out via WARP, got `200`, and pi printed the answer
+— while `direct` was in cooldown for a `429`. Rotation is not cosmetic.
+
+It is also not magic. In an earlier run the *same* two egresses both returned
+`429` with an identical `Retry-After` (~00:00 UTC), and so did two different
+free models: the spent bucket was global, not per-IP and not per-model. When
+that happens the gateway reports `poolWide: true` and `/unlimited` says so
+instead of inviting another lap around the pool.
 
 ## Honest limits
 
-- **No invented proxies.** Public proxy lists are mostly dead and a dead exit
-  costs a real request. Routes are added explicitly.
-- **The quota is server-side.** Nothing here unlocks an entitlement; the window
-  is a wall clock that resets at exactly `00:00 UTC`.
-- **A route change needs a session restart.** `apply` / `reset` / `pool next`
-  do that for you via reload; a file write alone leaves pi-bansos's in-memory
-  pool stale.
-- **Rotation is capped** at five moves per 30 minutes, so a spent day cannot
-  turn into hammering every exit you own.
-- **Relay egress is not free IP diversity.** Vercel relays share one NAT pool;
-  the value of the pool is failover, not a new `/32` each time. Use real
-  egress (VPN, hotspot, router reconnect) when the block itself is spent.
+- **No budget is created.** Egress rotation multiplies a budget that is metered
+  per egress block. If upstream meters globally, rotation does nothing.
+- **WARP IPv4 is one shared NAT pool.** Other users exhaust it routinely; an
+  exit that answers today may refuse tomorrow. IPv6 with a routed `/64` would
+  give each exit its own block — this host has no routed `/64`.
+- **Tor does not work here.** Measured: every Tor exit returned `429`. Rolling
+  through a dozen exhausted exits costs requests and buys nothing.
+- **The reset is wall-clock.** `00:00 UTC`, every day. No local state changes it.
+- **Fingerprint gate is pi-bansos's job.** If it fires (`403 FreeTierError`), the
+  gateway surfaces it immediately instead of rotating — it is identical on every
+  egress.
+- **Terms of service.** Routing around per-network limits may breach OpenCode's
+  terms and Cloudflare's WARP terms. That decision is yours.
 
 ## Nix
 
-Wired declaratively in `home/modules/pi-coding-agent.nix`:
+`home/modules/pi-unlimited.nix` declares both services and seeds pi-bansos's
+relay state on activation (only when no relay is configured yet, so a
+hand-picked relay is never clobbered):
 
 ```nix
-home.file.".pi/agent/extensions/pi-unlimited" = {
-  source = ../../assets/aiAgent/extensions/pi-unlimited;
-  recursive = true;
+systemd.user.services.pi-unlimited-warp.Service.ExecStart =
+  "${lib.getExe pkgs.wireproxy} -c %h/.config/warp/wgcf-profile.conf";
+
+systemd.user.services.pi-unlimited-gateway.Service = {
+  ExecStart = "${lib.getExe pkgs.nodejs} ${../../assets/aiAgent/gateway/pi-unlimited-gateway.mjs}";
+  Environment = [
+    "PI_UNLIMITED_EGRESS=socks5://127.0.0.1:25344,direct"
+    "PI_UNLIMITED_MAX_EYEBALLS=2"
+  ];
 };
 ```
 
-The directory is auto-discovered (`~/.pi/agent/extensions/*/index.ts`) and
-hot-reloadable with `/reload`.
+The WARP identity is minted per machine on first start into
+`~/.config/warp/wgcf-account.toml` (mode 600) — a device private key, so it
+lives in `$HOME`, never in the Nix store.
+
+```bash
+systemctl --user status pi-unlimited-warp pi-unlimited-gateway
+node assets/aiAgent/gateway/pi-unlimited-gateway.mjs --probe
+curl -s http://127.0.0.1:18790/__unlimited/health | jq
+```
+
+## Gateway configuration
+
+| Env | Default | Meaning |
+|---|---|---|
+| `PI_UNLIMITED_HOST` | `127.0.0.1` | bind address |
+| `PI_UNLIMITED_PORT` | `18790` | bind port |
+| `PI_UNLIMITED_EGRESS` | `direct` | comma list, priority order: `direct`, `socks5://h:p`, `http://h:p` |
+| `PI_UNLIMITED_MAX_EYEBALLS` | `3` | egresses to try per request |
+| `PI_UNLIMITED_STATE` | `<agent-dir>/pi-unlimited-gateway.json` | ledger |
+| `PI_UNLIMITED_AUTH` | unset | optional `x-relay-auth` secret |
+| `PI_UNLIMITED_DEBUG` | unset | `1` logs routing decisions |
+
+Only `opencode.ai` and `api.kilo.ai` are relayable, so the listener is never an
+open proxy.
+
+## CLI
+
+```bash
+pi-unlimited-gateway                 # serve
+pi-unlimited-gateway --probe         # probe every egress, print a table
+pi-unlimited-gateway --print-config  # resolved pool
+```

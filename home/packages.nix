@@ -226,6 +226,8 @@
         hostapd
         iw
         haveged
+        wgcf
+        wireproxy
       ];
 
       game = with pkgs; [
