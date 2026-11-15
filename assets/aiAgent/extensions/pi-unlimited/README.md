@@ -75,6 +75,37 @@ free models: the spent bucket was global, not per-IP and not per-model. When
 that happens the gateway reports `poolWide: true` and `/unlimited` says so
 instead of inviting another lap around the pool.
 
+## Why every attempt has a hard deadline
+
+pi-bansos 0.8.1 has a latent crash that a slow relay can reach. In
+`opencodeDirectFetch`:
+
+```ts
+if (opts.signal?.aborted) {
+  req.destroy(opts.signal.reason ?? new Error("Aborted"));
+  return;                     // ← before req.on("error", reject) below
+}
+req.on("error", reject);
+```
+
+When the caller's `AbortSignal.timeout(...)` has already fired and every relay
+failed, `relayFetch` falls back to that function. It destroys the
+`ClientRequest` while it still has **no `error` listener**, Node re-raises the
+`DOMException [TimeoutError]` as an uncaught exception, and pi exits with
+`ERR_UNHANDLED_ERROR … at destroyRequestOnSocketNT`.
+
+Any relay can trigger this; the local gateway did because it could hold a
+request past the caller's timeout (WARP stalls, and the old upstream timeout was
+600 s). Two defences here:
+
+1. `PI_UNLIMITED_ATTEMPT_TIMEOUT_MS` bounds each attempt (30 s default) and the
+   total budget is `attempts × that`, far under pi's 300 s provider timeout.
+2. A client disconnect aborts the in-flight egress immediately instead of
+   running to its deadline.
+
+The underlying bug is upstream and worth reporting: the `aborted` branch must
+attach the error handler before `req.destroy()`.
+
 ## Honest limits
 
 - **No budget is created.** Egress rotation multiplies a budget that is metered
@@ -130,6 +161,7 @@ curl -s http://127.0.0.1:18790/__unlimited/health | jq
 | `PI_UNLIMITED_MAX_EYEBALLS` | `3` | egresses to try per request |
 | `PI_UNLIMITED_STATE` | `<agent-dir>/pi-unlimited-gateway.json` | ledger |
 | `PI_UNLIMITED_AUTH` | unset | optional `x-relay-auth` secret |
+| `PI_UNLIMITED_ATTEMPT_TIMEOUT_MS` | `30000` | hard per-attempt deadline; keep far below the caller timeout |
 | `PI_UNLIMITED_DEBUG` | unset | `1` logs routing decisions |
 
 Only `opencode.ai` and `api.kilo.ai` are relayable, so the listener is never an

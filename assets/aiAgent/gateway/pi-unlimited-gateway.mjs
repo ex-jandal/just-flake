@@ -49,6 +49,10 @@
  *   PI_UNLIMITED_STATE    state file   (default <agent-dir>/pi-unlimited-gateway.json)
  *   PI_UNLIMITED_AUTH     optional x-relay-auth secret to require
  *   PI_UNLIMITED_MAX_EYEBALLS  egresses to try per request (default 3)
+ *   PI_UNLIMITED_ATTEMPT_TIMEOUT_MS  hard per-attempt deadline (default 30000)
+ *                         Keep this far below the caller's own timeout: a
+ *                         request still in flight when the caller aborts makes
+ *                         pi-bansos 0.8.1 crash on its direct fallback.
  *   PI_UNLIMITED_DEBUG=1  log routing decisions to stderr
  */
 
@@ -105,6 +109,15 @@ const HOP_BY_HOP = new Set([
 ]);
 
 const MAX_BODY_BYTES = 64 * 1024 * 1024;
+/**
+ * Hard per-attempt deadline. Deliberately far below any caller timeout: a
+ * client that gives up mid-request makes pi-bansos fall back to
+ * `opencodeDirectFetch` with an ALREADY-ABORTED AbortSignal, and pi-bansos
+ * 0.8.1 destroys the ClientRequest *before* attaching its 'error' listener
+ * (`req.destroy(...); return;` above `req.on("error", reject)`), which throws
+ * ERR_UNHANDLED_ERROR and kills pi. Answering fast keeps that path unreachable.
+ */
+const ATTEMPT_TIMEOUT_MS = Number(process.env.PI_UNLIMITED_ATTEMPT_TIMEOUT_MS) || 30_000;
 const QUARANTINE_BASE_MS = 90_000;
 const QUARANTINE_MAX_MS = 6 * 3600_000;
 const MAX_EVENTS = 300;
@@ -187,6 +200,11 @@ function loadState(config) {
     return {
       ...base,
       ...raw,
+      // Runtime identity always belongs to this process, never to the file:
+      // uptime and pid must not be inherited from a previous gateway.
+      startedAt: base.startedAt,
+      pid: base.pid,
+      bind: base.bind,
       // Keep egress records for every configured entry, even new ones, and drop
       // records for entries that are no longer configured.
       egress: Object.fromEntries(
@@ -308,12 +326,13 @@ function noteEvent(state, event) {
 
 // ── Transports ────────────────────────────────────────────────────────────
 
-function tcpConnect(host, port, timeoutMs = 15_000) {
+function tcpConnect(host, port, timeoutMs = 15_000, signal) {
   // The connect must finish before tls.connect wraps it. Wrapping a socket that
   // is still connecting and then handing it to http.request segfaults Node
   // (reproduced on v24.19.0), so this is deliberately two steps.
   return new Promise((resolve, reject) => {
     const socket = net.connect({ port, host });
+    linkAbort(socket, signal);
     socket.setTimeout(timeoutMs, () => {
       socket.destroy();
       reject(new Error(`tcp timeout ${host}:${port}`));
@@ -327,9 +346,25 @@ function tcpConnect(host, port, timeoutMs = 15_000) {
   });
 }
 
-function httpConnect(egress, host, port, timeoutMs = 15_000) {
+/**
+ * Destroy a socket when the caller goes away, so a cancelled turn stops
+ * consuming an egress instead of running to its own deadline.
+ */
+function linkAbort(socket, signal) {
+  if (!signal) return;
+  if (signal.aborted) {
+    socket.destroy();
+    return;
+  }
+  const onAbort = () => socket.destroy(new Error("aborted by client"));
+  signal.addEventListener("abort", onAbort, { once: true });
+  socket.once("close", () => signal.removeEventListener("abort", onAbort));
+}
+
+function httpConnect(egress, host, port, timeoutMs = 15_000, signal) {
   return new Promise((resolve, reject) => {
     const socket = net.connect({ port: egress.port, host: egress.host });
+    linkAbort(socket, signal);
     let buffer = "";
     socket.setTimeout(timeoutMs, () => {
       socket.destroy();
@@ -360,9 +395,10 @@ function httpConnect(egress, host, port, timeoutMs = 15_000) {
   });
 }
 
-function socks5Connect(egress, host, port, timeoutMs = 15_000) {
+function socks5Connect(egress, host, port, timeoutMs = 15_000, signal) {
   return new Promise((resolve, reject) => {
     const socket = net.connect({ port: egress.port, host: egress.host });
+    linkAbort(socket, signal);
     let buffer = Buffer.alloc(0);
     let stage = "greeting";
     socket.setTimeout(timeoutMs, () => {
@@ -419,10 +455,18 @@ function socks5Connect(egress, host, port, timeoutMs = 15_000) {
   });
 }
 
-async function tunnel(egress, host, port) {
-  if (egress.kind === "direct") return tcpConnect(host, port);
-  if (egress.kind === "socks5") return socks5Connect(egress, host, port);
-  return httpConnect(egress, host, port);
+async function tunnel(egress, host, port, timeoutMs, signal) {
+  const socket =
+    egress.kind === "direct"
+      ? await tcpConnect(host, port, timeoutMs, signal)
+      : egress.kind === "socks5"
+        ? await socks5Connect(egress, host, port, timeoutMs, signal)
+        : await httpConnect(egress, host, port, timeoutMs, signal);
+  // A persistent listener: an unhandled 'error' on a socket this process owns
+  // would take the gateway down, and the gateway must never be the reason a
+  // provider request fails.
+  socket.on("error", (error) => log(`${egress.id} tunnel error: ${error}`));
+  return socket;
 }
 
 /**
@@ -430,9 +474,12 @@ async function tunnel(egress, host, port) {
  *   { status, headers, stream }   for a response we should pass through, or
  *   { status, headers, bodyText } for a refusal we consumed to classify.
  */
-async function forward(config, egress, target) {
+async function forward(config, egress, target, { signal, timeoutMs = ATTEMPT_TIMEOUT_MS } = {}) {
   const started = Date.now();
-  const raw = await tunnel(egress, target.hostname, Number(target.port) || 443);
+  // Check before creating anything: an already-aborted turn must not open a
+  // socket, and Node throws on a destroyed request with no 'error' listener.
+  if (signal?.aborted) throw new Error("client aborted before request");
+  const raw = await tunnel(egress, target.hostname, Number(target.port) || 443, timeoutMs, signal);
   const isSecure = target.protocol === "https:";
   const socket = isSecure
     ? await new Promise((resolve, reject) => {
@@ -449,6 +496,7 @@ async function forward(config, egress, target) {
             resolve(secure);
           },
         );
+        secure.setTimeout(timeoutMs, () => secure.destroy(new Error("tls handshake timeout")));
         secure.once("error", reject);
       })
     : raw;
@@ -496,8 +544,15 @@ async function forward(config, egress, target) {
         resolve({ status, headers: responseHeaders, stream: response, latency });
       },
     );
-    request.setTimeout(600_000, () => request.destroy(new Error("upstream timeout")));
+    request.setTimeout(timeoutMs, () => request.destroy(new Error("upstream timeout")));
     request.on("error", reject);
+    // The listener above must exist before any destroy() below, otherwise Node
+    // re-raises the error as an uncaught exception.
+    if (signal) {
+      const onAbort = () => request.destroy(new Error("client aborted"));
+      signal.addEventListener("abort", onAbort, { once: true });
+      request.on("close", () => signal.removeEventListener("abort", onAbort));
+    }
     if (body) request.write(body);
     request.end();
   });
@@ -599,10 +654,27 @@ async function handleRelay(config, state, request, res) {
   const tried = [];
   let last = null;
 
+  // Cancelling the turn must cancel the work: otherwise the gateway keeps an
+  // egress busy until its deadline, and pi-bansos is left holding a request
+  // past the caller's abort.
+  const controller = new AbortController();
+  let finished = false;
+  res.on("close", () => {
+    if (!finished) controller.abort();
+  });
+  const deadline = Date.now() + ATTEMPT_TIMEOUT_MS * attempts.length;
+
   for (const egress of attempts) {
+    if (controller.signal.aborted) break;
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
     try {
-      const result = await forward(config, egress, upstream);
+      const result = await forward(config, egress, upstream, {
+        signal: controller.signal,
+        timeoutMs: Math.min(ATTEMPT_TIMEOUT_MS, remaining),
+      });
       if (result.stream) {
+        finished = true;
         noteSuccess(state, egress.id, result.latency);
         saveState(config, state);
         res.writeHead(result.status, result.headers);
@@ -639,6 +711,14 @@ async function handleRelay(config, state, request, res) {
   }
 
   saveState(config, state);
+
+  // The caller hung up and we are out of budget/attempts. Writing to a closed
+  // response is pointless and, worse, this is the exact moment pi-bansos is
+  // about to fall back to direct with an aborted signal.
+  if (controller.signal.aborted) {
+    if (!res.writableEnded) res.destroy();
+    return;
+  }
 
   if (!last) {
     reply(res, 502, { error: { type: "relay_no_egress", message: "no egress available" } });

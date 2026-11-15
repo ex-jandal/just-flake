@@ -108,6 +108,12 @@ in
         # - one lap around the pool per request. More than that only burns the
         #   same refusal again, and a pool-wide refusal is reported anyway.
         "PI_UNLIMITED_MAX_EYEBALLS=2"
+        # - hard per-attempt deadline, far below any caller timeout. A request
+        #   still in flight when pi gives up makes pi-bansos 0.8.1 fall back to
+        #   opencodeDirectFetch with an already-aborted signal, where it calls
+        #   req.destroy() before attaching its 'error' listener — an unhandled
+        #   error that exits pi. Answering fast keeps that path unreachable.
+        "PI_UNLIMITED_ATTEMPT_TIMEOUT_MS=30000"
       ];
       Restart = "on-failure";
       RestartSec = 3;
