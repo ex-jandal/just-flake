@@ -41,6 +41,7 @@ OpenCode edge keys on (cipher-list order + ALPN).
 |---|---|
 | `/unlimited` | One line: `wrapped`/`direct`, distinct blocks, and either `DAILY LIMIT <wait>` or `backoff <wait>` or `ok` |
 | `/unlimited status full` | The long form: per-egress buckets, last refusal, today's counts |
+| `/unlimited test` | Fires **one real request per distinct block** and reports, live, which blocks still have budget and when the spent ones reset |
 | `/unlimited usage` | Today's refusals grouped by status/kind/model |
 | `/unlimited egress` | Per-egress health from the gateway: ready / parked, latency, errors |
 | `/unlimited apply` | Point pi-bansos at the gateway, then reload |
@@ -49,6 +50,47 @@ OpenCode edge keys on (cipher-list order + ALPN).
 | `/unlimited watch on\|off` | Notifications only (recording is always on) |
 | `/unlimited clear` | Clear local history only |
 | `/unlimited doctor` | Wiring checks |
+
+## `/unlimited test` — what "how much is left" can honestly mean
+
+The free tier publishes **no remaining-usage counter**. There is no number to
+read, no API that returns "you have N messages left". So the only truthful
+answer is a yes/no per block plus the reset clock, and that is exactly what the
+test reports:
+
+```
+egress test · deepseek-v4.1-flash-free · 2 request(s) in 3s
+  25344   104.28.201.80    SPENT · resets 00:00Z in 16h 45m
+  direct  89.189.83.90     SPENT · resets 00:00Z in 16h 45m
+0/2 block(s) have budget · remaining usage not published by upstream
+```
+
+```
+egress test · deepseek-v4.1-flash-free · 2 request(s) in 3s
+  25344   104.28.201.80    ok  2s
+  direct  89.189.83.90     SPENT · resets 00:00Z in 16h 43m
+1/2 block(s) have budget · remaining usage not published by upstream
+```
+
+Both lines above are real output from 2026-11-16. `ok` means the block answered
+a real completion, so it had budget **at that moment**; `SPENT` carries the
+provider's own `Retry-After`, which is the reset time `/unlimited status` quotes
+as `DAILY LIMIT`.
+
+Two things to know before running it:
+
+- **It spends budget.** One real completion per distinct block. On a nearly
+  exhausted block, the test itself can be the request that hits the limit — the
+  first `ok` above became `SPENT` on the very next run for that reason.
+- **It costs a turn's worth of latency**, up to ~2s per block, capped at 2
+  minutes total. It is sequential and de-duplicated by exit address, so a
+  duplicate tunnel is never charged twice.
+
+If the fingerprint ever drifts, the test degrades to `gate · fingerprint
+rejected — cannot judge quota` instead of falsely reporting a spent block. That
+is the whole reason the probe carries the client shape: OpenCode answers a
+mis-shaped request with the *same* `429` as a real quota refusal, and reporting
+that as "spent" would be a lie.
 
 ## Multiple tunnels, and why they are de-duplicated
 

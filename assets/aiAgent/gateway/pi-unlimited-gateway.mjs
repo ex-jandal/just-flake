@@ -56,6 +56,7 @@
  *   PI_UNLIMITED_DEBUG=1  log routing decisions to stderr
  */
 
+import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as http from "node:http";
 import * as net from "node:net";
@@ -676,6 +677,215 @@ async function refreshExitIps(config, state) {
   }
 }
 
+// ── Live egress test ──────────────────────────────────────────────────────
+//
+// A quota test is only meaningful if the request carries OpenCode's client
+// fingerprint, because that gate and the quota gate answer with the same
+// 429 FreeUsageLimitError to a shape it does not recognise. pi-bansos owns the
+// real fingerprint, but it cannot speak per-egress, so the minimal shape below
+// is reproduced here for this one diagnostic.
+//
+// KEEP IN SYNC with pi-bansos extensions/index.ts (OPENCODE_EXACT_TOOLS,
+// ENV_FINGERPRINT_NOTE, opencodeHeaders). If upstream moves a gate this probe
+// starts reporting `shape` instead of quota — which is the safe failure: the
+// test says it cannot judge, rather than claiming a block is spent.
+const PROBE_MODEL_FALLBACK = process.env.PI_UNLIMITED_TEST_MODEL?.trim() || "big-pickle";
+const BASE62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+function randomBase62(length) {
+  const bytes = crypto.randomBytes(length);
+  let out = "";
+  for (let i = 0; i < length; i++) out += BASE62[bytes[i] % 62];
+  return out;
+}
+
+const PROBE_TOOLS = [
+  {
+    type: "function",
+    function: {
+      name: "read",
+      description:
+        "Read the contents of a file or directory. Supports text files, images, and PDFs. Images and PDFs are presented directly to the model. Each text line is prefixed by its 1-based line number as <line>: <content>. The prefix is for reference and is not part of the file content. Directory entries are returned one per line. Use offset and limit to read large files or directories in sections. Prefer one larger read over many small slices, and use grep to find specific content in large files.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "File or directory to read" },
+          offset: { type: "number", description: "The line or directory entry to start reading from (1-based)" },
+          limit: { type: "number", description: "The maximum number of lines or directory entries to read (defaults to and capped at 2000)" },
+        },
+        required: ["path"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "shell",
+      description:
+        "Execute a shell command and return its output. Quote file paths containing spaces or special characters. Prefer dedicated tools over shell commands when possible. When output is large, the full result is saved to a file and a truncated preview is returned. Rely on automatic truncation unless filtering the output is more useful. Commands accept an optional timeout, background commands have no timeout by default. Background commands return immediately, and you will be notified when they complete.",
+      parameters: {
+        type: "object",
+        properties: {
+          command: { type: "string", description: "Shell command string to execute" },
+          workdir: { type: "string", description: "Working directory to execute the command in. Defaults to the current working directory. When possible, avoid changing directories in the command and set the working directory here instead." },
+          timeout: { type: "number", description: "Timeout in milliseconds. Set to 0 to disable the timeout." },
+          background: { type: "boolean", description: "Run the command in the background and return immediately (useful for dev servers and long-running builds). You do not need to use '&' at the end of the command when using this parameter. You will be notified when it completes. DO NOT poll for completion." },
+        },
+        required: ["command"],
+      },
+    },
+  },
+];
+
+function probeEnvBlock() {
+  return [
+    "Here is some useful information about the environment you are running in:",
+    "<env>",
+    "  Working directory: " + os.homedir(),
+    "  Workspace root folder: " + os.homedir(),
+    "  Is directory a git repo: no",
+    "  Platform: " + process.platform,
+    "  Prefer " + path.join(os.tmpdir(), "opencode") + " over generic system temporary directories such as /tmp; it is pre-created and approved for external access.",
+    "</env>",
+  ].join("\n");
+}
+
+function probeRequest(model) {
+  const session = `ses_${crypto.randomBytes(6).toString("hex")}${randomBase62(14)}`;
+  const traceId = crypto.randomBytes(16).toString("hex");
+  const spanId = crypto.randomBytes(8).toString("hex");
+  const body = {
+    model,
+    stream: true,
+    max_tokens: 8,
+    messages: [
+      { role: "system", content: "You are a helpful assistant.\n\n" + probeEnvBlock() },
+      { role: "user", content: "hi" },
+    ],
+    tools: structuredClone(PROBE_TOOLS),
+    prompt_cache_key: session,
+  };
+  return {
+    method: "POST",
+    hostname: "opencode.ai",
+    port: 443,
+    protocol: "https:",
+    path: "/inference/v1/chat/completions",
+    headers: {
+      "user-agent": "opencode/dev/1.19.5/opencode",
+      authorization: "Bearer public",
+      "x-opencode-client": "opencode",
+      "x-opencode-project": crypto.randomBytes(20).toString("hex"),
+      "x-opencode-session": session,
+      "x-opencode-session-id": session,
+      "x-session-affinity": session,
+      "x-session-id": session,
+      "x-opencode-request": `msg_${crypto.randomBytes(6).toString("hex")}${randomBase62(14)}`,
+      b3: `${traceId}-${spanId}-1-${spanId}`,
+      traceparent: `00-${traceId}-${spanId}-01`,
+      accept: "text/event-stream",
+      "content-type": "application/json",
+    },
+    body: Buffer.from(JSON.stringify(body)),
+  };
+}
+
+/** Read just enough of a streamed answer to prove it started, then hang up. */
+function drainBriefly(stream, ms = 4000) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      try {
+        stream.destroy();
+      } catch {
+        /* the reply is already gone */
+      }
+      resolve();
+    };
+    stream.once("data", finish);
+    stream.once("end", finish);
+    stream.once("error", finish);
+    const timer = setTimeout(finish, ms);
+    timer.unref?.();
+  });
+}
+
+/**
+ * One real, metered request per distinct block. Sequential and deduped so the
+ * test does not spend the same budget twice, and so the numbers line up with
+ * the routing order the gateway would actually use.
+ */
+async function runEgressTest(config, state, model) {
+  const started = Date.now();
+  const order = egressOrder(config, state);
+  const rows = [];
+  for (const egress of order) {
+    if (Date.now() - started > 120_000) {
+      rows.push({ id: egress.id, status: 0, verdict: "skipped", note: "test budget exhausted" });
+      continue;
+    }
+    const record = state.egress[egress.id];
+    const row = { id: egress.id, exitIp: record?.exitIp || "", status: 0, verdict: "error", note: "" };
+    try {
+      const result = await forward(config, egress, probeRequest(model), { timeoutMs: 45_000 });
+      const latency = Date.now() - started;
+      row.status = result.status;
+      if (result.status === 429 || result.status === 403) {
+        const kind = classifyRefusal(result.bodyText);
+        const ra = retryAfterSeconds(result.headers["retry-after"]);
+        row.kind = kind;
+        row.retryAfterSeconds = ra;
+        row.latencyMs = latency;
+        if (kind === "quota") {
+          row.verdict = "spent";
+          // This IS authoritative: record it for the status line.
+          if (ra != null && ra > 300) {
+            state.buckets[egress.id] = {
+              spentUntil: Date.now() + ra * 1000,
+              retryAfterSeconds: ra,
+              at: Date.now(),
+            };
+          }
+        } else if (kind === "shape") {
+          row.verdict = "gate";
+          row.note = "fingerprint rejected — cannot judge quota";
+        } else {
+          row.verdict = "flagged";
+          row.note = "egress IP flagged";
+        }
+      } else if (result.status >= 200 && result.status < 300) {
+        row.verdict = "ok";
+        row.latencyMs = latency;
+        if (result.stream) await drainBriefly(result.stream);
+        delete state.buckets[egress.id];
+      } else {
+        row.verdict = "error";
+        row.note = `HTTP ${result.status}`;
+        if (result.stream) await drainBriefly(result.stream);
+      }
+    } catch (error) {
+      row.verdict = "error";
+      row.note = String(error).slice(0, 160);
+    }
+    rows.push(row);
+  }
+  saveState(config, state);
+  const available = rows.filter((row) => row.verdict === "ok").length;
+  return {
+    model,
+    at: Date.now(),
+    elapsedMs: Date.now() - started,
+    rows,
+    available,
+    tested: rows.length,
+    // The upstream publishes no remaining-usage counter; the only truthful
+    // "how much is left" is whether a block answers and when it resets.
+    remaining: "not published by upstream",
+  };
+}
+
 // ── Relay handler ─────────────────────────────────────────────────────────
 
 function readBody(request) {
@@ -866,6 +1076,15 @@ async function handleRelay(config, state, request, res) {
 
 function startServer(config, state) {
   const server = http.createServer((request, res) => {
+    const url = new URL(request.url ?? "/", "http://localhost");
+    if (url.pathname === "/__unlimited/test") {
+      const model = url.searchParams.get("model")?.trim() || PROBE_MODEL_FALLBACK;
+      res.setHeader("cache-control", "no-cache");
+      runEgressTest(config, state, model)
+        .then((result) => reply(res, 200, result))
+        .catch((error) => reply(res, 500, { error: { message: String(error) } }));
+      return;
+    }
     if (request.url === "/__unlimited/health") {
       reply(res, 200, {
         ok: true,

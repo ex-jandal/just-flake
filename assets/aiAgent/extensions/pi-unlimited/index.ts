@@ -119,6 +119,26 @@ type GatewayState = {
   events?: { at: number; egress: string; status: number; kind: RefusalKind; retryAfterSeconds?: number }[];
 };
 
+/** Reply of `/__unlimited/test`: one real request per distinct block. */
+type EgressTest = {
+  model: string;
+  at: number;
+  elapsedMs: number;
+  tested: number;
+  available: number;
+  remaining: string;
+  rows: {
+    id: string;
+    exitIp: string;
+    status: number;
+    verdict: "ok" | "spent" | "gate" | "flagged" | "error" | "skipped";
+    note?: string;
+    kind?: RefusalKind;
+    retryAfterSeconds?: number;
+    latencyMs?: number;
+  }[];
+};
+
 type RelayFile = {
   enabled: boolean;
   url: string;
@@ -309,6 +329,55 @@ function appendEvent(state: State, event: LimitEvent): boolean {
 function eventsToday(state: State): LimitEvent[] {
   const today = utcDay();
   return state.events.filter((event) => utcDay(event.at) === today);
+}
+
+// A live test answers one real, metered request per distinct block, so it is
+// allowed to take minutes — hence the separate, generous budget.
+async function gatewayTest(model: string): Promise<EgressTest | string> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 180_000);
+    const url = `${GATEWAY_URL}/__unlimited/test?model=${encodeURIComponent(model)}`;
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timer);
+    if (!response.ok) return `test failed: HTTP ${response.status}`;
+    return (await response.json()) as EgressTest;
+  } catch (error) {
+    return `test failed: gateway unreachable (${String(error).slice(0, 80)})`;
+  }
+}
+
+/** `socks5://127.0.0.1:25344` → `25344`, so rows stay narrow. */
+function shortEgress(id: string): string {
+  if (id === "direct") return "direct";
+  try {
+    const url = new URL(id);
+    return url.port || url.hostname;
+  } catch {
+    return id;
+  }
+}
+
+function formatTest(result: EgressTest): string {
+  const width = Math.max(...result.rows.map((row) => shortEgress(row.id).length), 4);
+  const rows = result.rows.map((row) => {
+    const name = shortEgress(row.id).padEnd(width);
+    const ip = (row.exitIp || "—").padEnd(15);
+    if (row.verdict === "ok") {
+      return `  ${name}  ${ip}  ok  ${humanDuration((row.latencyMs ?? 0) / 1000)}`;
+    }
+    if (row.verdict === "spent") {
+      if (row.retryAfterSeconds == null) return `  ${name}  ${ip}  SPENT · no reset given`;
+      const reset = new Date(Date.now() + row.retryAfterSeconds * 1000).toISOString().slice(11, 16);
+      return `  ${name}  ${ip}  SPENT · resets ${reset}Z in ${humanDuration(row.retryAfterSeconds)}`;
+    }
+    return `  ${name}  ${ip}  ${row.verdict}${row.note ? ` · ${row.note}` : ""}`;
+  });
+  return [
+    `egress test · ${result.model} · ${result.tested} request(s) in ${humanDuration(result.elapsedMs / 1000)}`,
+    ...rows,
+    `${result.available}/${result.tested} block(s) have budget · remaining usage ${result.remaining}`,
+  ].join("\n");
 }
 
 // ── Gateway coordination ───────────────────────────────────────────────────
@@ -615,13 +684,14 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerCommand("unlimited", {
-    description: "OpenCode free tier: status [full] | usage | egress | apply | off | reload | watch | clear | doctor",
+    description: "OpenCode free tier: status [full] | test | usage | egress | apply | off | reload | watch | clear | doctor",
     getArgumentCompletions: (prefix) =>
       [
         "status",
         "status full",
         "usage",
         "egress",
+        "test",
         "apply",
         "off",
         "reload",
@@ -644,6 +714,13 @@ export default function (pi: ExtensionAPI) {
         case "usage":
           notify(ctx, usageReport(state));
           return;
+        case "test": {
+          const model = ctx.model?.id ?? "";
+          notify(ctx, `testing egress — one real request per block (${model || "default model"})…`);
+          const result = await gatewayTest(model);
+          notify(ctx, typeof result === "string" ? result : formatTest(result));
+          return;
+        }
         case "egress": {
           const gateway = await gatewayHealth();
           notify(ctx, egressReport(gateway));
@@ -720,7 +797,7 @@ export default function (pi: ExtensionAPI) {
           return;
         }
         default:
-          notify(ctx, "usage: /unlimited status [full]|usage|egress|apply|off|reload|watch on|off|clear|doctor", "warning");
+          notify(ctx, "usage: /unlimited status [full]|test|usage|egress|apply|off|reload|watch on|off|clear|doctor", "warning");
       }
     },
   });
