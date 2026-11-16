@@ -67,8 +67,8 @@ let
   #     sudo install -m 600 -o "$USER" /etc/wireguard/us-proton.conf \
   #       ~/.config/pi-unlimited/vpn/us-proton.conf
   vpnConfigs = [
-    # "/home/abu_jandal/.config/pi-unlimited/vpn/us-proton.conf"
-    # "/home/abu_jandal/.config/pi-unlimited/vpn/nl-proton.conf"
+    "~/.config/pi-unlimited/vpn/us-proton.conf"
+    "~/.config/pi-unlimited/vpn/nl-proton.conf"
   ];
   vpnPortBase = 25360;
 
@@ -149,10 +149,13 @@ let
     # /etc/wireguard is root-only by design (0700), and a user service cannot
     # even stat inside it, so this is the failure people actually hit.
     if [ ! -r "$src" ]; then
+      # /etc/wireguard is 0700 root, so a user service cannot stat inside it.
+      # Keep this block free of nested quoting: escaping it wrong turns the
+      # whole unit into an "unexpected EOF" at build time.
       echo "pi-unlimited: $src exists but is not readable by $(id -un)." >&2
-      echo "  copy it out of root-only storage once:" >&2
-      echo "    mkdir -p \"$HOME/.config/pi-unlimited/vpn\"" >&2
-      echo "    sudo install -m 600 -o \"$(id -u)\" -g \"$(id -g)\" '$src' \"$HOME/.config/pi-unlimited/vpn/$(basename "$src")\" >&2
+      echo "  /etc/wireguard is root-only, so copy the export out once:" >&2
+      echo "    mkdir -p ~/.config/pi-unlimited/vpn" >&2
+      echo "    sudo install -m 600 -o $(id -un) -g $(id -gn) $src ~/.config/pi-unlimited/vpn/" >&2
       echo "  then point vpnConfigs at the copy." >&2
       exit 1
     fi
