@@ -39,8 +39,9 @@ OpenCode edge keys on (cipher-list order + ALPN).
 
 | Command | What it does |
 |---|---|
-| `/unlimited` | One line: `wrapped`/`direct`, distinct blocks, and either `DAILY LIMIT <wait>` or `backoff <wait>` or `ok` |
-| `/unlimited status full` | The long form: per-egress buckets, last refusal, today's counts |
+| `/unlimited` | One line: session class, `wrapped`/`direct`, distinct blocks, and the address that answered last |
+| `/unlimited proxies` | Every proxy in both gateways: exit address, `ready`/`spent`/`dup of …`/`cooling`, ok vs refused counts, which one is in use |
+| `/unlimited status full` | The long form: per-egress buckets, last refusal, today's counts, plus the proxy table |
 | `/unlimited test` | Fires **one real request per distinct block** and reports, live, which blocks still have budget and when the spent ones reset |
 | `/unlimited usage` | Today's refusals grouped by status/kind/model |
 | `/unlimited egress` | Per-egress health from the gateway: ready / parked, latency, errors |

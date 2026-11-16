@@ -135,6 +135,12 @@ type GatewayEgress = {
   lastLatencyMs: number;
   lastError: string;
   quarantineUntil: number;
+  /** Successful relays through this exit since the ledger was created. */
+  okCount?: number;
+  /** Last HTTP status seen on this exit; 0 means transport failure. */
+  lastStatus?: number;
+  lastAt?: number;
+  exitIpAt?: number;
   /** Public address this exit actually leaves from; duplicates share one budget. */
   exitIp?: string;
 };
@@ -149,6 +155,15 @@ type GatewayState = {
   buckets?: Record<string, { spentUntil: number; retryAfterSeconds: number; at: number }>;
   /** How many distinct exit addresses the pool actually reaches. */
   distinctBlocks?: number;
+  /** The exit that answered pi most recently, success or final refusal. */
+  lastUsed?: {
+    id: string;
+    at: number;
+    ok: boolean;
+    status: number;
+    kind?: RefusalKind;
+    latencyMs?: number;
+  } | null;
   events?: { at: number; egress: string; status: number; kind: RefusalKind; retryAfterSeconds?: number }[];
 };
 
@@ -415,11 +430,11 @@ function formatTest(result: EgressTest): string {
 
 // ── Gateway coordination ───────────────────────────────────────────────────
 
-async function gatewayHealth(timeoutMs = 1500): Promise<GatewayState | undefined> {
+async function gatewayHealthAt(url: string, timeoutMs = 1500): Promise<GatewayState | undefined> {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
-    const response = await fetch(`${GATEWAY_URL}/__unlimited/health`, {
+    const response = await fetch(`${url}/__unlimited/health`, {
       signal: controller.signal,
     });
     clearTimeout(timer);
@@ -428,6 +443,19 @@ async function gatewayHealth(timeoutMs = 1500): Promise<GatewayState | undefined
   } catch {
     return undefined;
   }
+}
+
+const gatewayHealth = (timeoutMs = 1500): Promise<GatewayState | undefined> =>
+  gatewayHealthAt(GATEWAY_URL, timeoutMs);
+
+/** Every gateway this module runs, this shell's one first. */
+async function allGatewayHealth(): Promise<PoolView[]> {
+  const urls: { url: string; cls: "vpn" | "novpn" }[] = [
+    { url: GATEWAY_URL, cls: EGRESS_CLASS },
+    { url: IN_NOVPN ? GATEWAY_URL_VPN : GATEWAY_URL_NOVPN, cls: IN_NOVPN ? "vpn" : "novpn" },
+  ];
+  const states = await Promise.all(urls.map((entry) => gatewayHealthAt(entry.url, 1200)));
+  return urls.map((entry, index) => ({ ...entry, state: states[index] }));
 }
 
 /** Either of this module's gateways — the relay file is shared between shells. */
@@ -511,39 +539,119 @@ function alignRelayToShell(): void {
 // ── Reports ────────────────────────────────────────────────────────────────
 
 /**
- * One line, by design. "wrapped" = the relay hop is live; the suffix answers the
- * only two questions that matter: is the daily bucket spent, or is this just
- * pi-bansos's own short backoff.
+ * One line: which routing class this shell is in, whether the relay hop is live,
+ * how many distinct blocks the pool reaches, and which proxy answered last.
+ * The reset clock moved to `/unlimited proxies` — it made every status line read
+ * like a failure even when nothing was wrong.
  */
 function statusText(state: State, gateway?: GatewayState): string {
   const bits: string[] = [];
-  // The session class is worth one word: it is the difference between the ISP
-  // address and the VPN address, and two novpn shells make it obvious.
+  // The session class is the difference between the ISP address and the VPN
+  // address, so it earns a word whenever it is the non-default one.
   if (IN_NOVPN) bits.push("novpn");
   bits.push(relayStatus().active ? "wrapped" : "direct");
   const blocks = gateway?.distinctBlocks;
   if (typeof blocks === "number" && blocks > 0) {
     bits.push(`${blocks} block${blocks === 1 ? "" : "s"}`);
   }
-  bits.push(limitState(state));
+  const used = inUseAddress(gateway);
+  if (used) bits.push(used);
   return `unlimited: ${bits.join(" · ")}`;
 }
 
-/** "daily limit 8h 12m" | "backoff 4m" | "ok" — never both, never a paragraph. */
-function limitState(state: State): string {
-  const now = Date.now();
-  const buckets = spentBuckets();
-  if (buckets.length) {
-    // The provider's own hint, which pi-bansos hides behind its 15m cap.
-    return `DAILY LIMIT ${humanDuration((buckets[0].spentUntil - now) / 1000)}`;
+/** The address that served the most recent request, if it is recent enough. */
+function inUseAddress(gateway?: GatewayState): string | undefined {
+  const used = gateway?.lastUsed;
+  if (!used || Date.now() - used.at > 30 * 60_000) return undefined;
+  return egressList(gateway).find((record) => record.id === used.id)?.exitIp;
+}
+
+/** Gateway state reports `egress` as an array over HTTP, as a map on disk. */
+function egressList(gateway?: GatewayState): GatewayEgress[] {
+  const raw = gateway?.egress;
+  if (!raw) return [];
+  return Array.isArray(raw)
+    ? raw.map((record) => ({ ...record, id: record.id ?? "?" }))
+    : Object.entries(raw).map(([id, record]) => ({ id, healthy: true, ...record }));
+}
+
+/** `socks5://127.0.0.1:25344` → `warp 25344`; `direct` names its class. */
+function egressLabel(id: string | undefined, cls: "vpn" | "novpn"): string {
+  if (!id || id === "direct") return cls === "novpn" ? "isp" : "vpn";
+  try {
+    const port = new URL(id).port;
+    return port ? `warp ${port}` : id;
+  } catch {
+    return id;
   }
-  const latest = state.events[state.events.length - 1];
-  const until =
-    latest?.retryAfterSeconds != null && latest.retryAfterSeconds <= LOCAL_BACKOFF_MAX_SECONDS
-      ? latest.at + latest.retryAfterSeconds * 1000
-      : 0;
-  if (until > now) return `backoff ${humanDuration((until - now) / 1000)}`;
-  return "ok";
+}
+
+type PoolView = { url: string; cls: "vpn" | "novpn"; state?: GatewayState };
+
+/**
+ * Every proxy, both gateways, one table. The session's gateway comes first and
+ * its last-used exit is starred, because "which one is actually serving me" is
+ * the question this report exists to answer.
+ */
+function proxiesReport(views: PoolView[]): string {
+  const now = Date.now();
+  type Row = { star: string; label: string; ip: string; state: string; counters: string; gw: string };
+  const rows: Row[] = [];
+  for (const view of views) {
+    const entries = egressList(view.state);
+    const session = view.cls === EGRESS_CLASS;
+    const usedId = session ? view.state?.lastUsed?.id : undefined;
+    const gw = `:${new URL(view.url).port}`;
+    if (!entries.length) {
+      rows.push({ star: " ", label: `${view.cls} gateway`, ip: "—", state: "not reachable", counters: "", gw });
+      continue;
+    }
+    // Two tunnels behind one address are one budget; say so instead of printing
+    // a second "ready" that cannot be spent.
+    const seenIps = new Map<string, string>();
+    for (const record of entries) {
+      const bucket = view.state?.buckets?.[record.id ?? ""];
+      const cooling = (record.quarantineUntil ?? 0) > now;
+      const latency = record.lastLatencyMs ? `${(record.lastLatencyMs / 1000).toFixed(1)}s` : "";
+      const label = egressLabel(record.id, view.cls);
+      const ip = record.exitIp || "—";
+      let state: string;
+      if (bucket && bucket.spentUntil > now) {
+        state = `spent ${humanDuration((bucket.spentUntil - now) / 1000)}`;
+      } else if (ip !== "—" && seenIps.has(ip)) {
+        state = `dup of ${seenIps.get(ip)}`;
+      } else if (cooling) {
+        state = `cooling ${humanDuration((record.quarantineUntil - now) / 1000)}`;
+      } else if (record.lastStatus === 0) {
+        state = "unreachable";
+      } else {
+        state = latency ? `ready ${latency}` : "ready";
+      }
+      if (ip !== "—" && !seenIps.has(ip)) seenIps.set(ip, label);
+      const ok = record.okCount ?? 0;
+      const refused = Math.max(0, (record.requests ?? 0) - ok);
+      rows.push({
+        star: usedId && record.id === usedId ? "*" : " ",
+        label,
+        ip,
+        state,
+        counters: `${ok} ok / ${refused} ref`,
+        gw,
+      });
+    }
+  }
+  const w = (key: "label" | "ip" | "state" | "counters") =>
+    Math.max(...rows.map((row) => row[key].length));
+  const ready = rows.filter((row) => row.state.startsWith("ready")).length;
+  const distinct = new Set(rows.map((row) => row.ip).filter((ip) => ip !== "—")).size;
+  return [
+    `proxies · session ${EGRESS_CLASS} · relay ${GATEWAY_URL.replace("http://", "")}`,
+    ...rows.map(
+      (row) =>
+        `  ${row.star} ${row.label.padEnd(w("label"))}  ${row.ip.padEnd(w("ip"))}  ${row.state.padEnd(w("state"))}  ${row.counters.padEnd(w("counters"))}  ${row.gw}`,
+    ),
+    `${rows.length} exit(s) · ${distinct} distinct address(es) · ${ready} ready`,
+  ].join("\n");
 }
 
 /** `/unlimited status` — one line. `/unlimited status full` for the detail. */
@@ -566,7 +674,7 @@ function statusDetail(state: State, gateway?: GatewayState): string {
   const today = eventsToday(state);
   const relay = relayStatus();
   const lines = [
-    `unlimited: ${relay.active ? `wrapped → ${GATEWAY_URL}` : `direct (relay: ${relay.url || "none"})`}`,
+    `unlimited: ${IN_NOVPN ? "novpn · " : ""}${relay.active ? `wrapped → ${GATEWAY_URL}` : `direct (relay: ${relay.url || "none"})`}`,
     `session egress: ${IN_NOVPN ? "novpn — physical interface, VPN bypassed" : "vpn — Proton tunnel"}`,
     `gateway: ${gateway ? `up on ${gateway.bind ?? GATEWAY_URL}` : "not reachable"}`,
     `blocks: ${gateway?.distinctBlocks ?? "?"} distinct · ${gateway?.egress ? (Array.isArray(gateway.egress) ? gateway.egress.length : Object.keys(gateway.egress).length) : "?"} configured`,
@@ -604,32 +712,6 @@ function usageReport(state: State): string {
     last?.retryAfterSeconds != null
       ? `last retry-after: ${humanDuration(last.retryAfterSeconds)}`
       : "last retry-after: unavailable",
-  ].join("\n");
-}
-
-function egressReport(gateway?: GatewayState): string {
-  if (!gateway?.egress) return `Gateway not reachable at ${GATEWAY_URL}.`;
-  const now = Date.now();
-  const entries: [string, GatewayEgress][] = Array.isArray(gateway.egress)
-    ? gateway.egress.map((record) => [record.id ?? "?", record])
-    : Object.entries(gateway.egress).map(([id, record]) => [id, { id, healthy: true, ...record }]);
-  const rows = entries.map(([id, record]) => {
-    const parked =
-      record.quarantineUntil && record.quarantineUntil > now
-        ? `parked ${humanDuration((record.quarantineUntil - now) / 1000)}`
-        : "ready";
-    const latency = record.lastLatencyMs ? `${record.lastLatencyMs}ms` : "—";
-    return `- ${id.padEnd(28)} ${parked.padEnd(16)} ok=${record.requests} fail=${record.failures} last=${latency} ${record.exitIp ?? "?"}${
-      record.lastError ? ` · ${record.lastError}` : ""
-    }`;
-  });
-  const total = gateway.requests?.total ?? 0;
-  const distinct =
-    gateway.distinctBlocks ??
-    new Set(entries.map(([, record]) => record.exitIp).filter(Boolean)).size;
-  return [
-    `Gateway egress (${total} request(s) relayed, ${distinct} distinct block(s)):`,
-    ...rows,
   ].join("\n");
 }
 
@@ -764,12 +846,13 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerCommand("unlimited", {
-    description: "OpenCode free tier: status [full] | test | usage | egress | apply | off | reload | watch | clear | doctor",
+    description: "OpenCode free tier: status [full] | proxies | test | usage | apply | off | reload | watch | clear | doctor",
     getArgumentCompletions: (prefix) =>
       [
         "status",
         "status full",
         "usage",
+        "proxies",
         "egress",
         "test",
         "apply",
@@ -788,7 +871,12 @@ export default function (pi: ExtensionAPI) {
       switch (command) {
         case "status": {
           const gateway = await gatewayHealth();
-          notify(ctx, option === "full" ? statusDetail(state, gateway) : statusReport(state, gateway));
+          notify(
+            ctx,
+            option === "full"
+              ? `${statusDetail(state, gateway)}\n\n${proxiesReport(await allGatewayHealth())}`
+              : statusReport(state, gateway),
+          );
           return;
         }
         case "usage":
@@ -801,9 +889,9 @@ export default function (pi: ExtensionAPI) {
           notify(ctx, typeof result === "string" ? result : formatTest(result));
           return;
         }
+        case "proxies":
         case "egress": {
-          const gateway = await gatewayHealth();
-          notify(ctx, egressReport(gateway));
+          notify(ctx, proxiesReport(await allGatewayHealth()));
           return;
         }
         case "apply": {
@@ -877,7 +965,7 @@ export default function (pi: ExtensionAPI) {
           return;
         }
         default:
-          notify(ctx, "usage: /unlimited status [full]|test|usage|egress|apply|off|reload|watch on|off|clear|doctor", "warning");
+          notify(ctx, "usage: /unlimited status [full]|proxies|test|usage|apply|off|reload|watch on|off|clear|doctor", "warning");
       }
     },
   });

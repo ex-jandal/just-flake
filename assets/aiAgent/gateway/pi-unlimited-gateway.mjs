@@ -315,6 +315,9 @@ function noteSuccess(state, id, latencyMs) {
   const record = state.egress[id];
   if (!record) return;
   record.requests += 1;
+  record.okCount = (record.okCount ?? 0) + 1;
+  record.lastStatus = 200;
+  record.lastAt = Date.now();
   record.failures = 0;
   record.quarantineUntil = 0;
   record.lastError = "";
@@ -328,6 +331,8 @@ function noteRefusal(state, id, status, detail) {
   const record = state.egress[id];
   if (!record) return;
   record.requests += 1;
+  record.lastStatus = status;
+  record.lastAt = Date.now();
   record.failures += 1;
   record.lastError = `${status} ${detail}`.trim().slice(0, 200);
   // Exponential backoff per consecutive refusal, same shape pi-bansos uses for
@@ -341,6 +346,8 @@ function noteTransportFailure(state, id, error) {
   const record = state.egress[id];
   if (!record) return;
   record.requests += 1;
+  record.lastStatus = 0;
+  record.lastAt = Date.now();
   record.failures += 1;
   record.lastError = `transport: ${String(error).slice(0, 180)}`;
   const wait = Math.min(30_000 * 2 ** (record.failures - 1), 15 * 60_000);
@@ -1017,6 +1024,7 @@ async function handleRelay(config, state, request, res) {
       if (result.stream) {
         finished = true;
         noteSuccess(state, egress.id, result.latency);
+        state.lastUsed = { id: egress.id, at: Date.now(), ok: true, status: result.status, latencyMs: result.latency };
         saveState(config, state);
         res.writeHead(result.status, result.headers);
         result.stream.pipe(res);
@@ -1069,6 +1077,16 @@ async function handleRelay(config, state, request, res) {
   // Report whether the refusal was pool-wide. This is the signal that tells an
   // operator "rotation cannot help, wait for the reset" instead of inviting
   // another lap around the pool.
+  const lastTried = tried.at(-1);
+  if (lastTried) {
+    state.lastUsed = {
+      id: lastTried.id,
+      at: Date.now(),
+      ok: false,
+      status: last.status,
+      kind: lastTried.kind,
+    };
+  }
   const kinds = new Set(tried.map((t) => t.kind));
   const poolWide = tried.length > 1 && kinds.size === 1 && (kinds.has("quota") || kinds.has("shape"));
   const headers = { ...last.headers };
@@ -1109,6 +1127,7 @@ function startServer(config, state) {
           ...state.egress[e.id],
         })),
         requests: state.requests,
+        lastUsed: state.lastUsed ?? null,
         buckets: Object.fromEntries(
           Object.entries(state.buckets ?? {}).filter(([, b]) => b.spentUntil > Date.now()),
         ),
