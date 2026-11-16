@@ -564,13 +564,30 @@ function alignRelayToShell(): void {
  * The reset clock moved to `/unlimited proxies` — it made every status line read
  * like a failure even when nothing was wrong.
  */
-function statusText(state: State, gateway?: GatewayState): string {
+/**
+ * Distinct exit addresses across every gateway. Deliberately the same number
+ * `/unlimited proxies` prints: the two views disagreed when the bar counted only
+ * the session gateway (4 blocks) while the table counted both (3 addresses), and
+ * a status line that contradicts the command it points at is worse than none.
+ */
+function distinctBlocks(views?: PoolView[]): number | undefined {
+  if (!views?.length) return undefined;
+  const ips = new Set<string>();
+  for (const view of views) {
+    for (const record of egressList(view.state)) {
+      if (record.exitIp) ips.add(record.exitIp);
+    }
+  }
+  return ips.size || undefined;
+}
+
+function statusText(state: State, views?: PoolView[]): string {
   const bits: string[] = [];
   // The session class is the difference between the ISP address and the VPN
   // address, so it earns a word whenever it is the non-default one.
   if (IN_NOVPN) bits.push("novpn");
   bits.push(relayStatus().active ? "wrapped" : "direct");
-  const blocks = gateway?.distinctBlocks;
+  const blocks = distinctBlocks(views);
   if (typeof blocks === "number" && blocks > 0) {
     bits.push(`${blocks} block${blocks === 1 ? "" : "s"}`);
   }
@@ -631,6 +648,10 @@ function proxiesReport(views: PoolView[]): string {
   const used = sessionView?.state?.lastUsed ?? lastUsedFromLedger(EGRESS_CLASS);
   type Row = { star: string; label: string; ip: string; state: string; counters: string; gw: string };
   const rows: Row[] = [];
+  // Dedupe across gateways, not per gateway: one public address is one budget
+  // no matter which tunnel or gateway reached it, so repeating it in the second
+  // block would read like a spare that can be spent.
+  const seenIps = new Map<string, string>();
   for (const view of views) {
     const entries = egressList(view.state);
     const session = view.cls === EGRESS_CLASS;
@@ -640,20 +661,16 @@ function proxiesReport(views: PoolView[]): string {
       rows.push({ star: " ", label: `${view.cls} gateway`, ip: "—", state: "not reachable", counters: "", gw });
       continue;
     }
-    // Two tunnels behind one address are one budget; say so instead of printing
-    // a second "ready" that cannot be spent.
-    const seenIps = new Map<string, string>();
     for (const record of entries) {
       const bucket = view.state?.buckets?.[record.id ?? ""];
       const cooling = (record.quarantineUntil ?? 0) > now;
       const latency = record.lastLatencyMs ? `${(record.lastLatencyMs / 1000).toFixed(1)}s` : "";
       const label = egressLabel(record.id, view.cls);
       const ip = record.exitIp || "—";
+      const dup = ip !== "—" ? seenIps.get(ip) : undefined;
       let state: string;
       if (bucket && bucket.spentUntil > now) {
         state = `spent ${humanDuration((bucket.spentUntil - now) / 1000)}`;
-      } else if (ip !== "—" && seenIps.has(ip)) {
-        state = `dup of ${seenIps.get(ip)}`;
       } else if (cooling) {
         state = `cooling ${humanDuration((record.quarantineUntil - now) / 1000)}`;
       } else if (record.lastStatus === 0) {
@@ -661,7 +678,10 @@ function proxiesReport(views: PoolView[]): string {
       } else {
         state = latency ? `ready ${latency}` : "ready";
       }
-      if (ip !== "—" && !seenIps.has(ip)) seenIps.set(ip, label);
+      // The row is still real, it just cannot be spent twice: say so instead of
+      // printing the same address and verdict ten times across two gateways.
+      if (dup) state = `${state} · dup`;
+      else if (ip !== "—") seenIps.set(ip, label);
       const ok = record.okCount ?? 0;
       // Not `requests - ok`: older ledgers counted successes before okCount
       // existed, and that arithmetic invented hundreds of refusals.
@@ -716,8 +736,8 @@ function proxiesReport(views: PoolView[]): string {
 }
 
 /** `/unlimited status` — one line. `/unlimited status full` for the detail. */
-function statusReport(state: State, gateway?: GatewayState): string {
-  const line = statusText(state, gateway);
+function statusReport(state: State, views?: PoolView[]): string {
+  const line = statusText(state, views);
   if (!relayStatus().active) {
     const relay = relayStatus();
     const hint = relay.managed
@@ -797,15 +817,24 @@ export default function (pi: ExtensionAPI) {
     }
   };
 
-  const setStatus = (
-    ctx: { ui?: { setStatus?: (key: string, text: string) => void } },
-    gateway?: GatewayState,
-  ) => {
+  type UiCtx = { ui?: { setStatus?: (key: string, text: string) => void } };
+
+  const setStatus = (ctx: UiCtx, views?: PoolView[]) => {
     try {
-      ctx.ui?.setStatus?.("unlimited", statusText(state, gateway));
+      ctx.ui?.setStatus?.("unlimited", statusText(state, views));
     } catch {
       // Cosmetic only.
     }
+  };
+
+  /**
+   * Refresh the bar from live gateway state. Fire-and-forget: a slow or absent
+   * gateway must never make a hook wait, and the count is cosmetic.
+   */
+  const refreshStatus = (ctx: UiCtx): void => {
+    void allGatewayHealth()
+      .then((views) => setStatus(ctx, views))
+      .catch(() => setStatus(ctx));
   };
 
   const record = (
@@ -819,7 +848,7 @@ export default function (pi: ExtensionAPI) {
     event: LimitEvent,
   ) => {
     if (!appendEvent(state, event)) return;
-    setStatus(ctx);
+    refreshStatus(ctx);
     if (!state.watch) return;
     const retry = event.retryAfterSeconds != null ? ` Retry in ${humanDuration(event.retryAfterSeconds)}.` : "";
     const wide = event.poolWide ? " Every egress was refused, so rotating cannot help." : "";
@@ -842,8 +871,8 @@ export default function (pi: ExtensionAPI) {
     state = loadState();
     // One short probe so the status bar can say how many distinct blocks the
     // pool really reaches; a down gateway must not delay session start.
-    const gateway = await gatewayHealth(800);
-    setStatus(ctx, gateway);
+    const views = await allGatewayHealth();
+    setStatus(ctx, views);
   });
 
   pi.on("session_shutdown", () => saveState(state));
@@ -931,12 +960,13 @@ export default function (pi: ExtensionAPI) {
       const [command = "status", option] = String(args ?? "").trim().split(/\s+/).filter(Boolean);
       switch (command) {
         case "status": {
-          const gateway = await gatewayHealth();
+          const views = await allGatewayHealth();
+          setStatus(ctx, views);
           notify(
             ctx,
             option === "full"
-              ? `${statusDetail(state, gateway)}\n\n${proxiesReport(await allGatewayHealth())}`
-              : statusReport(state, gateway),
+              ? `${statusDetail(state, views[0]?.state)}\n\n${proxiesReport(views)}`
+              : statusReport(state, views),
           );
           return;
         }
@@ -952,7 +982,9 @@ export default function (pi: ExtensionAPI) {
         }
         case "proxies":
         case "egress": {
-          notify(ctx, proxiesReport(await allGatewayHealth()));
+          const views = await allGatewayHealth();
+          setStatus(ctx, views);
+          notify(ctx, proxiesReport(views));
           return;
         }
         case "apply": {
