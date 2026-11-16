@@ -129,7 +129,15 @@ const ATTEMPT_TIMEOUT_MS = Number(process.env.PI_UNLIMITED_ATTEMPT_TIMEOUT_MS) |
  * addresses). A duplicate block is one budget, so the pool is de-duplicated by
  * observed exit IP before a request is ever spent on it.
  */
-const EXIT_PROBE_HOST = process.env.PI_UNLIMITED_EXIT_PROBE_HOST?.trim() || "api.ipify.org";
+/**
+ * An *IP*, not a hostname, on purpose: the probe must work even when system DNS
+ * does not. A wg-quick VPN points /etc/resolv.conf at its own internal resolver
+ * (Proton uses 10.2.0.1), and when that tunnel is down every lookup fails while
+ * plain IP connectivity is fine — observed here as `getaddrinfo ENOTFOUND
+ * api.ipify.org` with a resolv.conf pointing into a dead VPN.
+ */
+const EXIT_PROBE_HOST = process.env.PI_UNLIMITED_EXIT_PROBE_HOST?.trim() || "1.1.1.1";
+const EXIT_PROBE_PATH = process.env.PI_UNLIMITED_EXIT_PROBE_PATH?.trim() || "/cdn-cgi/trace";
 const EXIT_PROBE_INTERVAL_MS = 10 * 60_000;
 const QUARANTINE_BASE_MS = 90_000;
 const QUARANTINE_MAX_MS = 6 * 3600_000;
@@ -156,8 +164,14 @@ function agentDir() {
 }
 
 function parseEgress(raw) {
-  const spec = String(raw).trim();
-  if (!spec || spec === "direct") return { id: "direct", kind: "direct", url: "direct" };
+  const entry = String(raw).trim();
+  // Optional `#display name`, so the pool can say "us-proton" instead of the
+  // port number it happens to listen on. Split before URL parsing: a fragment
+  // would otherwise be percent-encoded and become part of the id.
+  const hash = entry.indexOf("#");
+  const label = hash === -1 ? "" : entry.slice(hash + 1).trim();
+  const spec = hash === -1 ? entry : entry.slice(0, hash).trim();
+  if (!spec || spec === "direct") return { id: "direct", label, kind: "direct", url: "direct" };
   let u;
   try {
     u = new URL(spec);
@@ -169,7 +183,7 @@ function parseEgress(raw) {
   }
   const kind = u.protocol === "socks5:" ? "socks5" : "http";
   const port = Number(u.port) || (kind === "socks5" ? 1080 : 8080);
-  return { id: spec, kind, host: u.hostname, port, url: spec };
+  return { id: spec, label, kind, host: u.hostname, port, url: spec };
 }
 
 function loadConfig() {
@@ -679,8 +693,11 @@ async function refreshExitIps(config, state) {
       const record = state.egress[egress.id];
       if (!record) return;
       try {
-        const text = await requestText(egress, EXIT_PROBE_HOST, "/", 20_000);
-        const ip = text.trim();
+        const text = await requestText(egress, EXIT_PROBE_HOST, EXIT_PROBE_PATH, 20_000);
+        // Cloudflare's /cdn-cgi/trace answers `key=value` lines including
+        // `ip=…`; api.ipify.org answers the bare address. Accept both.
+        const fromTrace = /^ip=([0-9a-f.:]+)$/im.exec(text)?.[1];
+        const ip = (fromTrace ?? text.trim()).trim();
         if (ip && /^[0-9a-f.:]+$/i.test(ip)) {
           record.exitIp = ip;
           record.exitIpAt = Date.now();
@@ -1243,6 +1260,7 @@ function startServer(config, state) {
         uptimeSeconds: Math.round((Date.now() - state.startedAt) / 1000),
         egress: config.egress.map((e) => ({
           id: e.id,
+          label: e.label || "",
           healthy: healthy(config, state, e.id),
           ...state.egress[e.id],
         })),

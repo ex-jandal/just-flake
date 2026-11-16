@@ -53,26 +53,32 @@ let
     # "http://127.0.0.1:8118"     # Privoxy (Tor)
   ];
 
-  # - WireGuard configs you own — e.g. Proton VPN server exports, one file per
-  #   server (`wg-quick`-style: [Interface] + [Peer]). Each becomes its own
-  #   wireproxy tunnel on its own SOCKS5 port and is tried *before* WARP and
-  #   Tor, because an address nobody else is hammering is the only thing that
-  #   reliably has free-tier budget.
+  # - WireGuard exports you own, one `pi-unlimited-vpn-<n>` unit each, in
+  #   `novpn.slice` so they are not nested inside the system VPN. Each file needs
+  #   a PrivateKey in [Interface] and an Endpoint in [Peer]; a [Socks5] section is
+  #   appended automatically, so do not add one. `~/` is expanded here rather
+  #   than left to systemd, whose ExecStartPre args never see a shell.
   #
-  #   The file needs a PrivateKey in [Interface] and an Endpoint in [Peer]; a
-  #   [Socks5] section is added automatically, so do not add one yourself. The
-  #   tunnels run in novpn.slice so they are not nested inside another VPN.
-  #   /etc/wireguard is 0700 root, so a user service cannot read from it. Copy
-  #   the export out once, e.g.:
-  #     mkdir -p ~/.config/pi-unlimited/vpn
-  #     sudo install -m 600 -o "$USER" /etc/wireguard/us-proton.conf \
-  #       ~/.config/pi-unlimited/vpn/us-proton.conf
-  #   `~/` is expanded here rather than left to systemd: ExecStartPre gets its
-  #   arguments verbatim (no shell), so a literal `~` reaches the script and every
-  #   config looks missing. Same family of trap as %h inside Environment=.
+  #   Empty on purpose. Loading these broke the operator's main VPN: every export
+  #   belongs to the same Proton account as the NetworkManager connection `us-proton`
+  #   (nmcli lists it), and Proton Free allows one connection per account, so the
+  #   extra peers compete with the tunnel that is actually in use. They also share
+  #   Address 10.2.0.2/32 and DNS 10.2.0.1, and wg-quick leaves that resolver in
+  #   /etc/resolv.conf — reachable only through the tunnel — so once the main
+  #   tunnel drops, every hostname lookup on the machine fails while raw IP
+  #   traffic is still fine.
+  #
+  #   Re-enable only with exports from a different account, or a plan that allows
+  #   several devices:
+  #     vpnConfigs = [ "~/.config/pi-unlimited/vpn/other-account.conf" ];
   vpnConfigs = [
-    "~/.config/pi-unlimited/vpn/us-proton.conf"
     "~/.config/pi-unlimited/vpn/nl-proton.conf"
+    "~/.config/pi-unlimited/vpn/ca-21-proton.conf"
+    "~/.config/pi-unlimited/vpn/je-23-proton.conf"
+    "~/.config/pi-unlimited/vpn/mx-17-proton.conf"
+    "~/.config/pi-unlimited/vpn/us-33-proton.conf"
+    "~/.config/pi-unlimited/vpn/us-127-proton.conf"
+    "~/.config/pi-unlimited/vpn/nl-111-proton.conf"
   ];
   vpnConfigsResolved = map (
     entry:
@@ -97,12 +103,16 @@ let
   # - egress pool, highest priority first. The gateway appends `direct` itself
   #   as a final fallback, but listing it keeps the intent visible.
   vpnSocksPort = index: vpnPortBase + index;
-  vpnEgress = map (index: "socks5://127.0.0.1:${toString (vpnSocksPort index)}") (
+  # - the `#name` suffix is carried verbatim into the gateway and shown by
+  #   `/unlimited proxies`. Without it every socks5 entry renders as "warp",
+  #   because the port alone says nothing about what is behind it.
+  vpnLabel = index: lib.removeSuffix ".conf" (baseNameOf (builtins.elemAt vpnConfigsResolved index));
+  vpnEgress = map (index: "socks5://127.0.0.1:${toString (vpnSocksPort index)}#${vpnLabel index}") (
     lib.range 0 (builtins.length vpnConfigsResolved - 1)
   );
-  warpEgress = map (index: "socks5://127.0.0.1:${toString (warpSocksPort index)}") (
-    lib.range 0 (warpCount - 1)
-  );
+  warpEgress = map (
+    index: "socks5://127.0.0.1:${toString (warpSocksPort index)}#warp ${toString index}"
+  ) (lib.range 0 (warpCount - 1));
   egress = vpnEgress ++ warpEgress ++ extraEgress ++ [ "direct" ];
   egressCount = builtins.length egress;
 

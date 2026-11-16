@@ -46,6 +46,7 @@
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { execFileSync } from "node:child_process";
+import { promises as dns } from "node:dns";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -136,6 +137,8 @@ type State = {
 
 type GatewayEgress = {
   id?: string;
+  /** Display name from `#name` in the egress spec; absent on older gateways. */
+  label?: string;
   healthy: boolean;
   requests: number;
   failures: number;
@@ -320,6 +323,58 @@ function bucketSummary(buckets: { egress: string; spentUntil: number }[]): strin
   const next = new Date(buckets[0].spentUntil).toISOString().slice(11, 16);
   const wait = humanDuration((buckets[0].spentUntil - Date.now()) / 1000);
   return `${buckets.length} egress spent · next recovers ~${next} UTC (in ${wait})`;
+}
+
+/**
+ * The two failures that look like "the gateway is broken" but are not:
+ *
+ * - DNS. A wg-quick VPN points /etc/resolv.conf at its own internal resolver
+ *   (Proton: 10.2.0.1), reachable only through the tunnel. If that tunnel drops,
+ *   every hostname lookup fails while raw IP traffic still works, so each
+ *   gateway request dies before it leaves the machine. Asking the resolver
+ *   directly is what tells these apart.
+ * - One WireGuard account. Proton Free allows a single connection per account,
+ *   so several `*-proton` egress entries silently fight the main VPN and knock
+ *   it (and with it DNS) offline.
+ */
+const DOCTOR_DNS_HOST = "opencode.ai";
+
+async function doctorEgressChecks(gateway?: GatewayState): Promise<string[]> {
+  const lines: string[] = [];
+  try {
+    const { address } = await dns.lookup(DOCTOR_DNS_HOST);
+    lines.push(`- dns: ${DOCTOR_DNS_HOST} → ${address}`);
+  } catch (error) {
+    const glue = (() => {
+      try {
+        return (
+          fs
+            .readFileSync("/etc/resolv.conf", "utf8")
+            .split("\n")
+            .filter((line) => line.trim().startsWith("nameserver"))
+            .map((line) => line.replace(/\s*nameserver\s*/, "").trim())
+            .join(" ") || "no nameserver"
+        );
+      } catch {
+        return "unreadable";
+      }
+    })();
+    lines.push(
+      `- dns: BROKEN — cannot resolve ${DOCTOR_DNS_HOST} (${(error as Error).message})`,
+      `  resolv.conf → ${glue}; if that is a VPN-internal resolver, the VPN is down and took DNS with it`,
+    );
+  }
+
+  const names = egressList(gateway)
+    .map((record) => record.label || "")
+    .filter((label) => /proton|wireguard|wg/i.test(label));
+  if (names.length > 1) {
+    lines.push(
+      `- wireguard pool: ${names.length} tunnel(s) — ${names.join(", ")}`,
+      "  a free account allows one connection; extra tunnels can knock your main VPN offline",
+    );
+  }
+  return lines;
 }
 
 // ── Time helpers ───────────────────────────────────────────────────────────
@@ -703,14 +758,18 @@ function egressList(gateway?: GatewayState): GatewayEgress[] {
     : Object.entries(raw).map(([id, record]) => ({ id, healthy: true, ...record }));
 }
 
-/** `socks5://127.0.0.1:25344` → `warp 25344`; `direct` names its class. */
-function egressLabel(id: string | undefined, cls: "vpn" | "novpn"): string {
-  if (!id || id === "direct") return cls === "novpn" ? "isp" : "vpn";
+/**
+ * The gateway names each egress (`#us-proton`, `#warp 0`), because the port says
+ * nothing about what is behind it — assuming "socks5 means WARP" labelled seven
+ * Proton tunnels as warp. Older gateways send no label, so fall back to the id.
+ */
+function egressLabel(record: GatewayEgress, cls: "vpn" | "novpn"): string {
+  if (record.label) return record.label;
+  if (!record.id || record.id === "direct") return cls === "novpn" ? "isp" : "vpn";
   try {
-    const port = new URL(id).port;
-    return port ? `warp ${port}` : id;
+    return new URL(record.id).port || record.id;
   } catch {
-    return id;
+    return record.id;
   }
 }
 
@@ -788,7 +847,7 @@ function proxiesReport(views: PoolView[]): string {
           latencyMs: 0,
           star: false,
         } as Group);
-      group.kinds.add(egressLabel(record.id, view.cls).split(" ")[0]);
+      group.kinds.add(egressLabel(record, view.cls));
       group.exits += 1;
       group.gateways.add(gw);
       group.ok += record.okCount ?? 0;
@@ -820,10 +879,13 @@ function proxiesReport(views: PoolView[]): string {
       const latency = group.latencyMs ? ` ${(group.latencyMs / 1000).toFixed(1)}s` : "";
       state = `ready${latency}`;
     }
-    const kind = [...group.kinds].join("/");
+    // Distinct names, not a count of rows: one address reached by two gateways
+    // and four tunnels is still one name unless the names differ.
+    const names = [...group.kinds];
+    const label = names.length === 1 ? names[0] : `${names[0]} +${names.length - 1}`;
     return {
       star: group.star ? "*" : " ",
-      label: group.exits > 1 ? `${kind} ×${group.exits}` : kind,
+      label,
       ip: group.ip,
       state,
       counters: `${group.ok} ok / ${group.ref} ref`,
@@ -1219,6 +1281,7 @@ export default function (pi: ExtensionAPI) {
             `- provider buckets: ${bucketSummary(spentBuckets()) ?? "none spent"}`,
             `- recorded refusals: ${state.events.length}`,
             `- agent directory writable: ${canWrite(AGENT_DIR) ? "yes" : "no"}`,
+            ...(await doctorEgressChecks(gateway)),
           ];
           notify(ctx, lines.join("\n"));
           return;
