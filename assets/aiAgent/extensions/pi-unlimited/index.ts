@@ -87,6 +87,13 @@ const IN_NOVPN = detectNovpn();
 const EGRESS_CLASS: "vpn" | "novpn" = IN_NOVPN ? "novpn" : "vpn";
 const GATEWAY_URL =
   process.env.PI_UNLIMITED_URL?.trim() || (IN_NOVPN ? GATEWAY_URL_NOVPN : GATEWAY_URL_VPN);
+/**
+ * What goes *into* pi-bansos's relay file. Deliberately not GATEWAY_URL: an env
+ * override exists so a test can point the extension at a scratch gateway, and
+ * writing that into the shared file once left a dev shell relaying to a dead
+ * port. Persisted state only ever names a gateway that systemd actually runs.
+ */
+const RELAY_URL = IN_NOVPN ? GATEWAY_URL_NOVPN : GATEWAY_URL_VPN;
 const GATEWAY_UNIT = GATEWAY_UNITS[EGRESS_CLASS];
 const GATEWAY_STATE_FILE = path.join(
   AGENT_DIR,
@@ -319,6 +326,11 @@ function nextUtcMidnight(now = Date.now()): number {
   return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1);
 }
 
+/** 00:17Z — short, and unambiguous next to a countdown. */
+function utcClock(at: number): string {
+  return `${new Date(at).toISOString().slice(11, 16)}Z`;
+}
+
 function humanDuration(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds <= 0) return "now";
   const total = Math.ceil(seconds);
@@ -469,8 +481,8 @@ function applyRelay(state: State): { ok: boolean; message: string } {
   const others = relay.relays.filter((entry) => !isOurGateway(entry.url));
   const next: RelayFile = {
     enabled: true,
-    url: GATEWAY_URL,
-    relays: [{ url: GATEWAY_URL, label: RELAY_LABEL, addedAt: new Date().toISOString() }, ...others],
+    url: RELAY_URL,
+    relays: [{ url: RELAY_URL, label: RELAY_LABEL, addedAt: new Date().toISOString() }, ...others],
     statusBar: relay.statusBar,
   };
   if (!writeJsonAtomic(RELAY_FILE, next)) {
@@ -478,7 +490,7 @@ function applyRelay(state: State): { ok: boolean; message: string } {
   }
   state.managed = true;
   saveState(state);
-  return { ok: true, message: `pi-bansos relay → ${GATEWAY_URL}` };
+  return { ok: true, message: `pi-bansos relay → ${RELAY_URL}` };
 }
 
 function removeRelay(state: State): { ok: boolean; message: string } {
@@ -507,7 +519,7 @@ function relayStatus(): { active: boolean; url: string; managed: boolean } {
   // "managed" = the file points at one of ours (possibly the other shell's).
   // "active" = it points at the gateway that matches this shell's egress class.
   return {
-    active: relay.enabled && relay.url === GATEWAY_URL,
+    active: relay.enabled && relay.url === RELAY_URL,
     url: relay.url,
     managed: isOurGateway(relay.url),
   };
@@ -522,12 +534,12 @@ function relayStatus(): { active: boolean; url: string; managed: boolean } {
 function alignRelayToShell(): void {
   try {
     const relay = loadRelayFile();
-    if (!relay.enabled || !isOurGateway(relay.url) || relay.url === GATEWAY_URL) return;
+    if (!relay.enabled || !isOurGateway(relay.url) || relay.url === RELAY_URL) return;
     writeJsonAtomic(RELAY_FILE, {
       ...relay,
-      url: GATEWAY_URL,
+      url: RELAY_URL,
       relays: [
-        { url: GATEWAY_URL, label: RELAY_LABEL, addedAt: new Date().toISOString() },
+        { url: RELAY_URL, label: RELAY_LABEL, addedAt: new Date().toISOString() },
         ...relay.relays.filter((entry) => !isOurGateway(entry.url)),
       ],
     });
@@ -561,9 +573,30 @@ function statusText(state: State, gateway?: GatewayState): string {
 
 /** The address that served the most recent request, if it is recent enough. */
 function inUseAddress(gateway?: GatewayState): string | undefined {
-  const used = gateway?.lastUsed;
+  const used = gateway?.lastUsed ?? lastUsedFromLedger(EGRESS_CLASS);
   if (!used || Date.now() - used.at > 30 * 60_000) return undefined;
   return egressList(gateway).find((record) => record.id === used.id)?.exitIp;
+}
+
+/**
+ * Fallback for a gateway that has not written `lastUsed` yet (older build):
+ * its ledger still records every refusal, so the newest event names the exit
+ * that was tried last. Successes are not in the ledger, so this can under-report
+ * but never invents an exit.
+ */
+function lastUsedFromLedger(cls: "vpn" | "novpn"): GatewayState["lastUsed"] {
+  try {
+    const file = path.join(
+      AGENT_DIR,
+      cls === "novpn" ? "pi-unlimited-gateway-novpn.json" : "pi-unlimited-gateway.json",
+    );
+    const events = (JSON.parse(fs.readFileSync(file, "utf8")) as GatewayState).events ?? [];
+    const last = events[events.length - 1];
+    if (!last) return undefined;
+    return { id: last.egress, at: last.at, ok: false, status: last.status, kind: last.kind };
+  } catch {
+    return undefined;
+  }
 }
 
 /** Gateway state reports `egress` as an array over HTTP, as a map on disk. */
@@ -595,12 +628,14 @@ type PoolView = { url: string; cls: "vpn" | "novpn"; state?: GatewayState };
  */
 function proxiesReport(views: PoolView[]): string {
   const now = Date.now();
+  const sessionView = views.find((view) => view.cls === EGRESS_CLASS);
+  const used = sessionView?.state?.lastUsed ?? lastUsedFromLedger(EGRESS_CLASS);
   type Row = { star: string; label: string; ip: string; state: string; counters: string; gw: string };
   const rows: Row[] = [];
   for (const view of views) {
     const entries = egressList(view.state);
     const session = view.cls === EGRESS_CLASS;
-    const usedId = session ? view.state?.lastUsed?.id : undefined;
+    const usedId = session ? used?.id : undefined;
     const gw = `:${new URL(view.url).port}`;
     if (!entries.length) {
       rows.push({ star: " ", label: `${view.cls} gateway`, ip: "—", state: "not reachable", counters: "", gw });
@@ -644,13 +679,38 @@ function proxiesReport(views: PoolView[]): string {
     Math.max(...rows.map((row) => row[key].length));
   const ready = rows.filter((row) => row.state.startsWith("ready")).length;
   const distinct = new Set(rows.map((row) => row.ip).filter((ip) => ip !== "—")).size;
+  const recoveries = views
+    .flatMap((view) => Object.values(view.state?.buckets ?? {}))
+    .map((bucket) => bucket.spentUntil)
+    .filter((at) => at > now);
+  const nextReset = recoveries.length ? Math.min(...recoveries) : undefined;
+
+  const usedRow = used
+    ? rows.find((row) => row.star === "*")
+    : undefined;
+  const usedLine = used
+    ? `in use · ${usedRow?.label ?? used.id} ${usedRow?.ip ?? "?"} · ${humanDuration((now - used.at) / 1000)} ago${
+        used.ok ? "" : " (refused)"
+      }`
+    : "in use · nothing relayed yet";
+
+  const summary = [
+    `${rows.length} exit(s)`,
+    `${distinct} distinct address(es)`,
+    `${ready} ready`,
+    nextReset ? `next reset ${utcClock(nextReset)} in ${humanDuration((nextReset - now) / 1000)}` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return [
     `proxies · session ${EGRESS_CLASS} · relay ${GATEWAY_URL.replace("http://", "")}`,
+    usedLine,
     ...rows.map(
       (row) =>
         `  ${row.star} ${row.label.padEnd(w("label"))}  ${row.ip.padEnd(w("ip"))}  ${row.state.padEnd(w("state"))}  ${row.counters.padEnd(w("counters"))}  ${row.gw}`,
     ),
-    `${rows.length} exit(s) · ${distinct} distinct address(es) · ${ready} ready`,
+    summary,
   ].join("\n");
 }
 
