@@ -97,20 +97,56 @@ that as "spent" would be a lie.
 WARP draws exits from a shared pool, so extra identities are worth it but not
 linear. Measured 2026-11-16:
 
-| Identity | SOCKS5 | Exit address |
+| Identities | SOCKS5 ports | Distinct exit addresses |
 |---|---|---|
-| 0 | `:25344` | `104.28.201.80` |
-| 1 | `:25345` | `104.28.241.89` |
-| 2 | `:25346` | `104.28.241.89` ← duplicate block |
+| 3 | `:25344`–`:25346` | 2 |
+| 4 | `:25344`–`:25347` | 3 |
+| 5 | `:25344`–`:25348` | 3 |
 
-Three tunnels, two distinct blocks. So the gateway probes `api.ipify.org` through
-each egress every 10 minutes, records the public address, and collapses tunnels
-that share one *before* spending a request on them. `/unlimited egress` shows
-the addresses, and the health endpoint reports `distinctBlocks`.
+So the gateway probes `api.ipify.org` through each egress every 10 minutes,
+records the public address, and collapses tunnels that share one *before*
+spending a request on them. `/unlimited egress` shows the addresses and the
+health endpoint reports `distinctBlocks`. Raise `warpCount` only while that
+number grows.
 
-The practical upside is real: with identity 0 spent, identity 1 answered `200`
-and completed a pi turn. The upside is bounded by how many distinct addresses
-WARP will hand you.
+An exit address is also **not stable per identity**: `:25344` moved from
+`104.28.201.80` to `104.28.233.73` within the hour, which is exactly why the
+probe repeats on a timer instead of trusting a one-off reading.
+
+## Adding more proxies — and the honest limit of it
+
+`home/modules/pi-unlimited.nix` has `extraEgress`, a list of any
+`socks5://` or `http://` (CONNECT) proxy you trust, tried after the WARP
+tunnels and before `direct`:
+
+```nix
+extraEgress = [
+  "socks5://127.0.0.1:9050"   # Tor
+  "http://127.0.0.1:8118"     # Privoxy (Tor)
+];
+```
+
+It ships empty. That is a measurement, not an oversight. On 2026-11-16, five
+egress with **five distinct exit addresses** were all refused:
+
+| Egress | Exit address | Result | Latency |
+|---|---|---|---|
+| WARP `:25347` | `104.28.241.89` | `429 quota`, reset ~16.4h | 1.1s |
+| Tor `:9050` | `45.66.35.21` | `429 quota`, reset ~16.4h | 4.8s |
+| Privoxy `:8118` | `193.189.100.204` | `429 quota`, reset ~16.7h | 8.1s |
+| WARP `:25344` | `104.28.233.73` | `429 quota`, reset ~16.4h | 9.7s |
+| `direct` | `89.189.83.90` | `429 quota`, reset ~16.4h | 11.7s |
+
+Five addresses, five refusals, one shared reset. The budget is per address, but
+WARP and Tor addresses are shared with strangers, so a fresh address is a
+lottery ticket, not a new allowance — and once the bucket is spent, extra proxies
+buy latency and nothing else. The upside is real but narrow: `:25344` answered
+`200` in 2.2s while `direct` was mid-cooldown, twenty minutes before the table
+above.
+
+Practical guidance: keep `warpCount` at 4, leave Tor out of the default pool
+(5–8s per attempt against ~1s), and check `/unlimited test` before adding
+anything — it tells you in one command whether the new egress has budget at all.
 
 `wgcf register` is rate-limited by Cloudflare (`429 Too Many Requests` after a
 handful of rapid calls), so the units register lazily, retry every 2 minutes,
@@ -118,8 +154,8 @@ and stop after 10 attempts in an hour. A tunnel that is not up yet is simply
 quarantined; `direct` keeps serving in the meantime. If a unit gave up:
 
 ```bash
-systemctl --user reset-failed pi-unlimited-warp-1
-systemctl --user start pi-unlimited-warp-1
+systemctl --user reset-failed pi-unlimited-warp-3
+systemctl --user start pi-unlimited-warp-3
 ```
 
 ## Verified behaviour (2026-11-15)

@@ -11,14 +11,20 @@
 #   SOCKS5 port; the gateway rotates across them and `direct` on every 429/403.
 #
 #   Why several identities: WARP draws exits from a shared pool, but different
-#   identities do land on different /32s (measured 2026-11-16: three identities
-#   -> two distinct addresses, and one of them still answered 200 while another
-#   was spent). A distinct block is a distinct budget.
+#   identities do land on different /32s. Measured 2026-11-16, three identities
+#   -> two distinct addresses, four -> three. A distinct address is the unit of
+#   budget, so an extra identity is worth it only if it adds an address.
+#
+#   What more egress does NOT buy: measured the same day, five tunnels spanning
+#   five distinct exit addresses (three WARP, Tor, Privoxy-over-Tor) all came
+#   back with the same daily-limit refusal and the same ~16h reset. Once the
+#   bucket is spent, extra proxies add latency and nothing else. They only help
+#   while some addresses still have morning budget, because WARP and Tor exits
+#   are shared with strangers.
 #
 #   Why the gateway de-duplicates: the pool repeats addresses, and two tunnels
 #   behind one /32 are one budget. The gateway learns each exit's public address
-#   and collapses duplicates before spending a request, which is why adding
-#   identities is worth it but not linear.
+#   and collapses duplicates before spending a request.
 #
 #   Registration is rate-limited by Cloudflare (HTTP 429 after a handful of
 #   rapid `wgcf register` calls), so units register lazily, retry on their own
@@ -28,8 +34,19 @@ let
   # - how many WARP identities to run. Each costs one more tunnel and yields a
   #   distinct block only if WARP happens to hand out a new address; the gateway
   #   reports the real distinct count, so raise this only if that number grows.
-  warpCount = 3;
+  warpCount = 4;
   warpPortBase = 25344;
+
+  # - Any extra SOCKS5 or HTTP-CONNECT proxy you trust, tried after the WARP
+  #   tunnels and before `direct`. Left empty on purpose: measured 2026-11-16,
+  #   Tor (socks5://127.0.0.1:9050) and Privoxy over Tor (http://127.0.0.1:8118)
+  #   both reached OpenCode from a fresh address and both were refused, while
+  #   costing 5-8s per attempt instead of ~1s. Add them if you want the extra
+  #   lottery ticket; expect latency.
+  extraEgress = [
+    # "socks5://127.0.0.1:9050"   # Tor
+    # "http://127.0.0.1:8118"     # Privoxy (Tor)
+  ];
 
   gatewayHost = "127.0.0.1";
   gatewayPort = 18790;
@@ -39,6 +56,7 @@ let
   #   as a final fallback, but listing it keeps the intent visible.
   egress =
     map (index: "socks5://127.0.0.1:${toString (warpSocksPort index)}") (lib.range 0 (warpCount - 1))
+    ++ extraEgress
     ++ [ "direct" ];
 
   # - wgcf mints a per-machine WARP identity. The profile holds a device private
