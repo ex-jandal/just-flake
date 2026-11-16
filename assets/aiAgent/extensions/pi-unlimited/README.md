@@ -40,7 +40,8 @@ OpenCode edge keys on (cipher-list order + ALPN).
 | Command | What it does |
 |---|---|
 | `/unlimited` | One line: session class, `wrapped`/`direct`, distinct blocks, and the address that answered last |
-| `/unlimited proxies` | Every proxy in both gateways: exit address, `ready`/`spent`/`dup of …`/`cooling`, ok vs refused counts, which one is in use |
+| `/unlimited proxies` | **One row per exit address** across both gateways: state, ok/refused counts, which gateway reaches it, which one is in use |
+| `/unlimited rotate [n]` | Mint a fresh WARP identity on unit `n` (default: a spent one), wait for it, re-probe both gateways |
 | `/unlimited status full` | The long form: per-egress buckets, last refusal, today's counts, plus the proxy table |
 | `/unlimited test` | Fires **one real request per distinct block** and reports, live, which blocks still have budget and when the spent ones reset |
 | `/unlimited usage` | Today's refusals grouped by status/kind/model |
@@ -187,6 +188,35 @@ number grows.
 An exit address is also **not stable per identity**: `:25344` moved from
 `104.28.201.80` to `104.28.233.73` within the hour, which is exactly why the
 probe repeats on a timer instead of trusting a one-off reading.
+
+## When everything is spent: `/unlimited rotate`
+
+A spent address cannot be cleared — the budget belongs to the address, and WARP
+and Tor addresses are shared with strangers. The only lever is to stop using that
+address. `/unlimited rotate [n]` mints a **new WARP identity** on unit `n`
+(deleting that unit's `wgcf` account, letting its `ExecStartPre` re-register),
+waits for the tunnel to answer, then forces both gateways to re-probe so the table
+shows the new address immediately.
+
+With no argument it picks a tunnel whose address the gateway already knows is
+spent.
+
+Measured, exactly as it behaves — and why it is a gamble, not a fix:
+
+```
+rotating warp 3 — new identity, then waiting for it to come up…
+warp 3 (:25347) 104.28.201.73 → 104.28.233.73
+```
+
+A new address, yes — but one the pool was already handing out to another unit,
+so it carried the same spent budget. `wgcf register` is also rate-limited by
+Cloudflare (HTTP 429 after a handful of rapid calls), which is why this rotates a
+single unit and tells you to wait rather than looping.
+
+What actually adds usable capacity is an address nobody else is hammering, which
+in practice means one you control: put your own VPN servers in `extraEgress`
+(borrow the `wgcf`/`wireproxy` pattern — one WireGuard config per server, each on
+its own SOCKS port). WARP and Tor will keep landing on shared, spent addresses.
 
 ## Adding more proxies — and the honest limit of it
 

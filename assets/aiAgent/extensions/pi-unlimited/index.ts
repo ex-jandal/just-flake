@@ -45,6 +45,7 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -556,6 +557,84 @@ function alignRelayToShell(): void {
   }
 }
 
+// ── Rotating a WARP identity ──────────────────────────────────────────────
+
+/** Must match warpPortBase / the state layout in modules/pi-unlimited.nix. */
+const WARP_PORT_BASE = 25344;
+const WARP_MAX = 4;
+
+function warpStateDir(index: number): string {
+  const base = process.env.XDG_STATE_HOME?.trim() || path.join(os.homedir(), ".local", "state");
+  return path.join(base, "pi-unlimited", "warp", String(index));
+}
+
+function run(command: string, args: string[]): { ok: boolean; out: string } {
+  try {
+    const out = execFileSync(command, args, { encoding: "utf8", timeout: 180_000, stdio: "pipe" });
+    return { ok: true, out: out.trim() };
+  } catch (error) {
+    const detail = (error as { stderr?: string }).stderr ?? String(error);
+    return { ok: false, out: detail.trim().slice(0, 200) };
+  }
+}
+
+/**
+ * Mint a *new* WARP identity on an existing unit. The address a tunnel exits
+ * from is what carries the budget, and that address is shared with strangers, so
+ * a spent tunnel cannot be "cleared" — only replaced. `wgcf register` is
+ * rate-limited by Cloudflare, so this does one identity at a time and says so
+ * when it is throttled.
+ */
+async function rotateWarp(index: number): Promise<string> {
+  const dir = warpStateDir(index);
+  const unit = `pi-unlimited-warp-${index}`;
+  const port = WARP_PORT_BASE + index;
+  const before = run("sh", [
+    "-c",
+    `curl -s -m 15 --proxy socks5h://127.0.0.1:${port} https://api.ipify.org || true`,
+  ]).out;
+
+  run("systemctl", ["--user", "stop", unit]);
+  for (const file of ["wgcf-account.toml", "wgcf-profile.conf"]) {
+    try {
+      fs.rmSync(path.join(dir, file), { force: true });
+    } catch {
+      // A missing profile is the goal here.
+    }
+  }
+  run("systemctl", ["--user", "start", unit]);
+
+  // The unit re-registers in ExecStartPre, so wait for the SOCKS port to answer.
+  for (let attempt = 0; attempt < 30; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    const now = run("sh", [
+      "-c",
+      `curl -s -m 12 --proxy socks5h://127.0.0.1:${port} https://api.ipify.org || true`,
+    ]).out;
+    if (/^[0-9a-f.:]+$/i.test(now)) {
+      const moved = before && before !== now ? `${before} → ${now}` : `${now} (unchanged)`;
+      return `warp ${index} (:${port}) ${moved}`;
+    }
+  }
+  return `warp ${index} (:${port}) did not come back — check: journalctl --user -u ${unit}`;
+}
+
+/** Ask both gateways to re-read their exit addresses now. */
+async function reprobeGateways(): Promise<void> {
+  await Promise.all(
+    [GATEWAY_URL_VPN, GATEWAY_URL_NOVPN].map(async (url) => {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 90_000);
+        await fetch(`${url}/__unlimited/reprobe`, { signal: controller.signal });
+        clearTimeout(timer);
+      } catch {
+        // A gateway that is down simply keeps its old addresses until its sweep.
+      }
+    }),
+  );
+}
+
 // ── Reports ────────────────────────────────────────────────────────────────
 
 /**
@@ -646,69 +725,121 @@ function proxiesReport(views: PoolView[]): string {
   const now = Date.now();
   const sessionView = views.find((view) => view.cls === EGRESS_CLASS);
   const used = sessionView?.state?.lastUsed ?? lastUsedFromLedger(EGRESS_CLASS);
-  type Row = { star: string; label: string; ip: string; state: string; counters: string; gw: string };
-  const rows: Row[] = [];
-  // Dedupe across gateways, not per gateway: one public address is one budget
-  // no matter which tunnel or gateway reached it, so repeating it in the second
-  // block would read like a spare that can be spent.
-  const seenIps = new Map<string, string>();
+
+  /**
+   * One row per public address, not per configured tunnel. Four WARP identities
+   * landing on 104.28.201.80 are four rows of the same budget, which reads as
+   * four chances when it is one; the row says `×4` instead and the counters are
+   * the sum of what every path through that address actually did.
+   */
+  type Group = {
+    key: string;
+    ip: string;
+    kinds: Set<string>;
+    exits: number;
+    gateways: Set<string>;
+    ok: number;
+    ref: number;
+    spentUntil: number;
+    coolingUntil: number;
+    latencyMs: number;
+    lastStatus?: number;
+    star: boolean;
+  };
+  const groups = new Map<string, Group>();
+
   for (const view of views) {
     const entries = egressList(view.state);
     const session = view.cls === EGRESS_CLASS;
     const usedId = session ? used?.id : undefined;
     const gw = `:${new URL(view.url).port}`;
     if (!entries.length) {
-      rows.push({ star: " ", label: `${view.cls} gateway`, ip: "—", state: "not reachable", counters: "", gw });
+      groups.set(`${view.cls}:offline`, {
+        key: `${view.cls}:offline`,
+        ip: `${view.cls} gateway`,
+        kinds: new Set(["not reachable"]),
+        exits: 0,
+        gateways: new Set([gw]),
+        ok: 0,
+        ref: 0,
+        spentUntil: 0,
+        coolingUntil: 0,
+        latencyMs: 0,
+        star: false,
+      });
       continue;
     }
     for (const record of entries) {
       const bucket = view.state?.buckets?.[record.id ?? ""];
-      const cooling = (record.quarantineUntil ?? 0) > now;
-      const latency = record.lastLatencyMs ? `${(record.lastLatencyMs / 1000).toFixed(1)}s` : "";
-      const label = egressLabel(record.id, view.cls);
       const ip = record.exitIp || "—";
-      const dup = ip !== "—" ? seenIps.get(ip) : undefined;
-      let state: string;
+      const key = ip !== "—" ? ip : `${gw}:${record.id}`;
+      const group =
+        groups.get(key) ??
+        ({
+          key,
+          ip,
+          kinds: new Set<string>(),
+          exits: 0,
+          gateways: new Set<string>(),
+          ok: 0,
+          ref: 0,
+          spentUntil: 0,
+          coolingUntil: 0,
+          latencyMs: 0,
+          star: false,
+        } as Group);
+      group.kinds.add(egressLabel(record.id, view.cls).split(" ")[0]);
+      group.exits += 1;
+      group.gateways.add(gw);
+      group.ok += record.okCount ?? 0;
+      group.ref += record.failCount ?? Math.max(0, (record.requests ?? 0) - (record.okCount ?? 0));
       if (bucket && bucket.spentUntil > now) {
-        state = `spent ${humanDuration((bucket.spentUntil - now) / 1000)}`;
-      } else if (cooling) {
-        state = `cooling ${humanDuration((record.quarantineUntil - now) / 1000)}`;
-      } else if (record.lastStatus === 0) {
-        state = "unreachable";
-      } else {
-        state = latency ? `ready ${latency}` : "ready";
+        group.spentUntil = group.spentUntil
+          ? Math.min(group.spentUntil, bucket.spentUntil)
+          : bucket.spentUntil;
       }
-      // The row is still real, it just cannot be spent twice: say so instead of
-      // printing the same address and verdict ten times across two gateways.
-      if (dup) state = `${state} · dup`;
-      else if (ip !== "—") seenIps.set(ip, label);
-      const ok = record.okCount ?? 0;
-      // Not `requests - ok`: older ledgers counted successes before okCount
-      // existed, and that arithmetic invented hundreds of refusals.
-      const refused = record.failCount ?? Math.max(0, (record.requests ?? 0) - ok);
-      rows.push({
-        star: usedId && record.id === usedId ? "*" : " ",
-        label,
-        ip,
-        state,
-        counters: `${ok} ok / ${refused} ref`,
-        gw,
-      });
+      if ((record.quarantineUntil ?? 0) > now) {
+        group.coolingUntil = Math.max(group.coolingUntil, record.quarantineUntil);
+      }
+      if (record.lastLatencyMs) group.latencyMs = Math.max(group.latencyMs, record.lastLatencyMs);
+      if (record.lastStatus !== undefined) group.lastStatus = record.lastStatus;
+      if (usedId && record.id === usedId) group.star = true;
+      groups.set(key, group);
     }
   }
+
+  const rows = [...groups.values()].map((group) => {
+    let state: string;
+    if (group.spentUntil > now) {
+      state = `spent ${humanDuration((group.spentUntil - now) / 1000)}`;
+    } else if (group.coolingUntil > now) {
+      state = `cooling ${humanDuration((group.coolingUntil - now) / 1000)}`;
+    } else if (group.lastStatus === 0) {
+      state = "unreachable";
+    } else {
+      const latency = group.latencyMs ? ` ${(group.latencyMs / 1000).toFixed(1)}s` : "";
+      state = `ready${latency}`;
+    }
+    const kind = [...group.kinds].join("/");
+    return {
+      star: group.star ? "*" : " ",
+      label: group.exits > 1 ? `${kind} ×${group.exits}` : kind,
+      ip: group.ip,
+      state,
+      counters: `${group.ok} ok / ${group.ref} ref`,
+      gw: [...group.gateways].join(" "),
+      ready: state.startsWith("ready"),
+    };
+  });
+
   const w = (key: "label" | "ip" | "state" | "counters") =>
     Math.max(...rows.map((row) => row[key].length));
-  const ready = rows.filter((row) => row.state.startsWith("ready")).length;
-  const distinct = new Set(rows.map((row) => row.ip).filter((ip) => ip !== "—")).size;
-  const recoveries = views
-    .flatMap((view) => Object.values(view.state?.buckets ?? {}))
-    .map((bucket) => bucket.spentUntil)
-    .filter((at) => at > now);
+  const ready = rows.filter((row) => row.ready).length;
+  const recoveries = [...groups.values()].map((g) => g.spentUntil).filter((at) => at > now);
   const nextReset = recoveries.length ? Math.min(...recoveries) : undefined;
+  const exits = [...groups.values()].reduce((sum, g) => sum + g.exits, 0);
 
-  const usedRow = used
-    ? rows.find((row) => row.star === "*")
-    : undefined;
+  const usedRow = used ? rows.find((row) => row.star === "*") : undefined;
   const usedLine = used
     ? `in use · ${usedRow?.label ?? used.id} ${usedRow?.ip ?? "?"} · ${humanDuration((now - used.at) / 1000)} ago${
         used.ok ? "" : " (refused)"
@@ -716,8 +847,8 @@ function proxiesReport(views: PoolView[]): string {
     : "in use · nothing relayed yet";
 
   const summary = [
-    `${rows.length} exit(s)`,
-    `${distinct} distinct address(es)`,
+    `${rows.length} address(es)`,
+    `${exits} exit(s)`,
     `${ready} ready`,
     nextReset ? `next reset ${utcClock(nextReset)} in ${humanDuration((nextReset - now) / 1000)}` : "",
   ]
@@ -936,7 +1067,7 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerCommand("unlimited", {
-    description: "OpenCode free tier: status [full] | proxies | test | usage | apply | off | reload | watch | clear | doctor",
+    description: "OpenCode free tier: status [full] | proxies | rotate [n] | test | usage | apply | off | reload | watch | clear | doctor",
     getArgumentCompletions: (prefix) =>
       [
         "status",
@@ -944,6 +1075,11 @@ export default function (pi: ExtensionAPI) {
         "usage",
         "proxies",
         "egress",
+        "rotate",
+        "rotate 0",
+        "rotate 1",
+        "rotate 2",
+        "rotate 3",
         "test",
         "apply",
         "off",
@@ -973,6 +1109,33 @@ export default function (pi: ExtensionAPI) {
         case "usage":
           notify(ctx, usageReport(state));
           return;
+        case "rotate": {
+          // Default target: a WARP tunnel whose address the gateway already
+          // knows is spent — that is the one worth replacing.
+          let index = Number.parseInt(option ?? "", 10);
+          if (!Number.isInteger(index) || index < 0 || index >= WARP_MAX) {
+            const views = await allGatewayHealth();
+            const now = Date.now();
+            const spent = views
+              .flatMap((view) => egressList(view.state).map((record) => ({ record, state: view.state })))
+              .find(
+                ({ record, state }) =>
+                  record.id?.startsWith("socks5://") &&
+                  (state?.buckets?.[record.id ?? ""]?.spentUntil ?? 0) > now,
+              );
+            index = spent?.record.id ? Number(spent.record.id.split(":").pop()) - WARP_PORT_BASE : 0;
+          }
+          if (!Number.isInteger(index) || index < 0 || index >= WARP_MAX) index = 0;
+          notify(ctx, `rotating warp ${index} — new identity, then waiting for it to come up…`);
+          const outcome = await rotateWarp(index);
+          await reprobeGateways();
+          refreshStatus(ctx);
+          notify(
+            ctx,
+            `${outcome}\nregisters are rate-limited by Cloudflare; if it did not move, wait a couple of minutes and rotate again.\nverify with /unlimited test`,
+          );
+          return;
+        }
         case "test": {
           const model = ctx.model?.id ?? "";
           notify(ctx, `testing egress — one real request per block (${model || "default model"})…`);
@@ -1058,7 +1221,7 @@ export default function (pi: ExtensionAPI) {
           return;
         }
         default:
-          notify(ctx, "usage: /unlimited status [full]|proxies|test|usage|apply|off|reload|watch on|off|clear|doctor", "warning");
+          notify(ctx, "usage: /unlimited status [full]|proxies|rotate [n]|test|usage|apply|off|reload|watch on|off|clear|doctor", "warning");
       }
     },
   });

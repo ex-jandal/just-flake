@@ -1201,6 +1201,23 @@ function startServer(config, state) {
         .catch((error) => reply(res, 500, { error: { message: String(error) } }));
       return;
     }
+    if (url.pathname === "/__unlimited/reprobe") {
+      // Cheap (a GET per egress, no model quota) and used after a tunnel is
+      // re-registered, so the table shows the new address immediately instead of
+      // waiting up to ten minutes for the scheduled sweep.
+      refreshExitIps(config, state)
+        .then(() =>
+          reply(res, 200, {
+            ok: true,
+            distinctBlocks: new Set(
+              config.egress.map((e) => state.egress[e.id]?.exitIp).filter(Boolean),
+            ).size,
+            egress: config.egress.map((e) => ({ id: e.id, exitIp: state.egress[e.id]?.exitIp })),
+          }),
+        )
+        .catch((error) => reply(res, 500, { error: String(error) }));
+      return;
+    }
     if (url.pathname === "/__unlimited/shape") {
       // Headers as last seen upstream, with values that could carry a secret
       // redacted. Diagnosis only.
