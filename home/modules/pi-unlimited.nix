@@ -1,6 +1,7 @@
 {
   pkgs,
   lib,
+  config,
   ...
 }:
 # - pi-unlimited: a local, rotating-egress gateway in front of pi-bansos.
@@ -66,10 +67,20 @@ let
   #     mkdir -p ~/.config/pi-unlimited/vpn
   #     sudo install -m 600 -o "$USER" /etc/wireguard/us-proton.conf \
   #       ~/.config/pi-unlimited/vpn/us-proton.conf
+  #   `~/` is expanded here rather than left to systemd: ExecStartPre gets its
+  #   arguments verbatim (no shell), so a literal `~` reaches the script and every
+  #   config looks missing. Same family of trap as %h inside Environment=.
   vpnConfigs = [
     "~/.config/pi-unlimited/vpn/us-proton.conf"
     "~/.config/pi-unlimited/vpn/nl-proton.conf"
   ];
+  vpnConfigsResolved = map (
+    entry:
+    if lib.hasPrefix "~/" entry then
+      "${config.home.homeDirectory}/${lib.removePrefix "~/" entry}"
+    else
+      entry
+  ) vpnConfigs;
   vpnPortBase = 25360;
 
   gatewayHost = "127.0.0.1";
@@ -87,7 +98,7 @@ let
   #   as a final fallback, but listing it keeps the intent visible.
   vpnSocksPort = index: vpnPortBase + index;
   vpnEgress = map (index: "socks5://127.0.0.1:${toString (vpnSocksPort index)}") (
-    lib.range 0 (builtins.length vpnConfigs - 1)
+    lib.range 0 (builtins.length vpnConfigsResolved - 1)
   );
   warpEgress = map (index: "socks5://127.0.0.1:${toString (warpSocksPort index)}") (
     lib.range 0 (warpCount - 1)
@@ -139,6 +150,9 @@ let
     set -eu
     index="''${1:?vpn tunnel index required}"
     src="''${2:?wireguard config required}"
+    case "$src" in
+      "~/"*) src="$HOME/''${src#\~/}" ;;
+    esac
     dir="''${XDG_STATE_HOME:-$HOME/.local/state}/pi-unlimited/vpn/$index"
     port="$(( ${toString vpnPortBase} + index ))"
 
@@ -228,7 +242,7 @@ in
       map (
         index:
         let
-          src = builtins.elemAt vpnConfigs index;
+          src = builtins.elemAt vpnConfigsResolved index;
         in
         {
           name = "pi-unlimited-vpn-${toString index}";
@@ -254,7 +268,7 @@ in
             Install.WantedBy = [ "default.target" ];
           };
         }
-      ) (lib.range 0 (builtins.length vpnConfigs - 1))
+      ) (lib.range 0 (builtins.length vpnConfigsResolved - 1))
     )
     // lib.listToAttrs (
       map
