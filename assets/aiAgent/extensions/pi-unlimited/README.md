@@ -218,6 +218,19 @@ your WireGuard servers → WARP tunnels → extraEgress → direct
 Your own servers come first because a WARP or Tor attempt costs ~1s and usually
 answers `429`.
 
+**The config must be readable by your user.** Proton and `wg-quick` keep their
+exports in `/etc/wireguard`, which is `0700 root`, so a user service cannot even
+`stat` inside it — that is the failure you hit first. Copy the export out once:
+
+```bash
+mkdir -p ~/.config/pi-unlimited/vpn
+sudo install -m 600 -o "$USER" -g "$(id -gn)" /etc/wireguard/us-proton.conf \
+  ~/.config/pi-unlimited/vpn/us-proton.conf
+```
+
+then point `vpnConfigs` at the copy. The unit says so in the journal, naming the
+file, when it is unreadable rather than missing.
+
 The source config is never modified. A private copy is written to
 `~/.local/state/pi-unlimited/vpn/<n>/profile.conf` (mode 600) with any existing
 `[Socks5]` block stripped, `DNS`/`Address`/`Table`/`Up`/`Down` directives removed

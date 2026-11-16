@@ -61,8 +61,14 @@ let
   #   The file needs a PrivateKey in [Interface] and an Endpoint in [Peer]; a
   #   [Socks5] section is added automatically, so do not add one yourself. The
   #   tunnels run in novpn.slice so they are not nested inside another VPN.
+  #   /etc/wireguard is 0700 root, so a user service cannot read from it. Copy
+  #   the export out once, e.g.:
+  #     mkdir -p ~/.config/pi-unlimited/vpn
+  #     sudo install -m 600 -o "$USER" /etc/wireguard/us-proton.conf \
+  #       ~/.config/pi-unlimited/vpn/us-proton.conf
   vpnConfigs = [
-    # "/home/abu_jandal/.config/pi-unlimited/vpn/proton-nl-01.conf"
+    # "/home/abu_jandal/.config/pi-unlimited/vpn/us-proton.conf"
+    # "/home/abu_jandal/.config/pi-unlimited/vpn/nl-proton.conf"
   ];
   vpnPortBase = 25360;
 
@@ -136,7 +142,20 @@ let
     dir="''${XDG_STATE_HOME:-$HOME/.local/state}/pi-unlimited/vpn/$index"
     port="$(( ${toString vpnPortBase} + index ))"
 
-    [ -f "$src" ] || { echo "pi-unlimited: no such WireGuard config: $src" >&2; exit 1; }
+    if [ ! -e "$src" ]; then
+      echo "pi-unlimited: no such WireGuard config: $src" >&2
+      exit 1
+    fi
+    # /etc/wireguard is root-only by design (0700), and a user service cannot
+    # even stat inside it, so this is the failure people actually hit.
+    if [ ! -r "$src" ]; then
+      echo "pi-unlimited: $src exists but is not readable by $(id -un)." >&2
+      echo "  copy it out of root-only storage once:" >&2
+      echo "    mkdir -p \"$HOME/.config/pi-unlimited/vpn\"" >&2
+      echo "    sudo install -m 600 -o \"$(id -u)\" -g \"$(id -g)\" '$src' \"$HOME/.config/pi-unlimited/vpn/$(basename "$src")\" >&2
+      echo "  then point vpnConfigs at the copy." >&2
+      exit 1
+    fi
     grep -q '^\[Interface\]' "$src" || { echo "pi-unlimited: $src has no [Interface]" >&2; exit 1; }
     grep -q '^\[Peer\]' "$src" || { echo "pi-unlimited: $src has no [Peer]" >&2; exit 1; }
     grep -qi '^PrivateKey' "$src" || { echo "pi-unlimited: $src has no PrivateKey" >&2; exit 1; }
@@ -214,6 +233,10 @@ in
             Unit = {
               Description = "WireGuard egress ${toString index} as userspace SOCKS5 (pi-unlimited)";
               After = [ "network-online.target" ];
+              # - a wrong or unreadable config will not fix itself; stop the
+              #   restart loop after a handful of tries instead of every 30s.
+              StartLimitIntervalSec = 3600;
+              StartLimitBurst = 10;
             };
             Service = {
               ExecStartPre = "${vpnPrepare} ${toString index} ${src}";
