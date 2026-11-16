@@ -5,16 +5,17 @@ A rotating-egress gateway for pi's `bansos` provider
 what OpenCode's free tier actually did.
 
 It is the [opencode-unlimited-proxy](https://github.com/ebouther/opencode-unlimited-proxy)
-idea rebuilt for pi without Docker: Cloudflare WARP runs as a **userspace**
-WireGuard tunnel (`wireproxy` — no TUN, no `CAP_NET_ADMIN`, no root) exposing a
-local SOCKS5 port, and a small Node relay in front of pi-bansos rotates egress
-across that port and `direct` on every `429`/`403`.
+idea rebuilt for pi without Docker: Cloudflare WARP runs as **userspace** WireGuard
+(`wireproxy` — no TUN, no `CAP_NET_ADMIN`, no root), one tunnel per identity,
+each exposing its own SOCKS5 port, and a small Node relay in front of pi-bansos
+rotates egress across those blocks and `direct` on every `429`/`403`.
 
 ```
 pi (provider "bansos")
   └─ pi-bansos local proxy
        └─ relay ──► pi-unlimited-gateway :18790
-                      ├─ egress pool: WARP socks5 → direct
+                      ├─ egress pool: WARP :25344, :25345, :25346 → direct
+                      ├─ de-duplicates exits that share one public address
                       ├─ rotates on 429/403, quarantine + backoff
                       └─ TLS shape (JA4 cipher list + ALPN)
 ```
@@ -47,6 +48,36 @@ OpenCode edge keys on (cipher-list order + ALPN).
 | `/unlimited watch on\|off` | Notifications only (recording is always on) |
 | `/unlimited clear` | Clear local history only |
 | `/unlimited doctor` | Wiring checks |
+
+## Multiple tunnels, and why they are de-duplicated
+
+WARP draws exits from a shared pool, so extra identities are worth it but not
+linear. Measured 2026-11-16:
+
+| Identity | SOCKS5 | Exit address |
+|---|---|---|
+| 0 | `:25344` | `104.28.201.80` |
+| 1 | `:25345` | `104.28.241.89` |
+| 2 | `:25346` | `104.28.241.89` ← duplicate block |
+
+Three tunnels, two distinct blocks. So the gateway probes `api.ipify.org` through
+each egress every 10 minutes, records the public address, and collapses tunnels
+that share one *before* spending a request on them. `/unlimited egress` shows
+the addresses, and the health endpoint reports `distinctBlocks`.
+
+The practical upside is real: with identity 0 spent, identity 1 answered `200`
+and completed a pi turn. The upside is bounded by how many distinct addresses
+WARP will hand you.
+
+`wgcf register` is rate-limited by Cloudflare (`429 Too Many Requests` after a
+handful of rapid calls), so the units register lazily, retry every 2 minutes,
+and stop after 10 attempts in an hour. A tunnel that is not up yet is simply
+quarantined; `direct` keeps serving in the meantime. If a unit gave up:
+
+```bash
+systemctl --user reset-failed pi-unlimited-warp-1
+systemctl --user start pi-unlimited-warp-1
+```
 
 ## Verified behaviour (2026-11-15)
 
@@ -153,24 +184,25 @@ relay state on activation (only when no relay is configured yet, so a
 hand-picked relay is never clobbered):
 
 ```nix
-systemd.user.services.pi-unlimited-warp.Service.ExecStart =
-  "${lib.getExe pkgs.wireproxy} -c %h/.config/warp/wgcf-profile.conf";
+systemd.user.services."pi-unlimited-warp-0".Service.ExecStart =
+  "${lib.getExe pkgs.wireproxy} -c %h/.local/state/pi-unlimited/warp/0/wgcf-profile.conf";
 
 systemd.user.services.pi-unlimited-gateway.Service = {
   ExecStart = "${lib.getExe pkgs.nodejs} ${../../assets/aiAgent/gateway/pi-unlimited-gateway.mjs}";
   Environment = [
-    "PI_UNLIMITED_EGRESS=socks5://127.0.0.1:25344,direct"
-    "PI_UNLIMITED_MAX_EYEBALLS=2"
+    "PI_UNLIMITED_EGRESS=socks5://127.0.0.1:25344,socks5://127.0.0.1:25345,socks5://127.0.0.1:25346,direct"
+    "PI_UNLIMITED_MAX_EYEBALLS=4"
   ];
 };
 ```
 
-The WARP identity is minted per machine on first start into
-`~/.config/warp/wgcf-account.toml` (mode 600) — a device private key, so it
-lives in `$HOME`, never in the Nix store.
+Each WARP identity is minted per machine on first start into
+`~/.local/state/pi-unlimited/warp/<n>/wgcf-account.toml` (mode 600) — a device
+private key, so it lives in `$HOME`, never in the Nix store. Identity 0 adopts
+an existing `~/.config/warp` profile instead of re-registering.
 
 ```bash
-systemctl --user status pi-unlimited-warp pi-unlimited-gateway
+systemctl --user status 'pi-unlimited-warp-*' pi-unlimited-gateway
 node assets/aiAgent/gateway/pi-unlimited-gateway.mjs --probe
 curl -s http://127.0.0.1:18790/__unlimited/health | jq
 ```

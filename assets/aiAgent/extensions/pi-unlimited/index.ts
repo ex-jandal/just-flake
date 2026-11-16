@@ -94,7 +94,7 @@ type State = {
 };
 
 type GatewayEgress = {
-  id: string;
+  id?: string;
   healthy: boolean;
   requests: number;
   failures: number;
@@ -102,16 +102,20 @@ type GatewayEgress = {
   lastLatencyMs: number;
   lastError: string;
   quarantineUntil: number;
+  /** Public address this exit actually leaves from; duplicates share one budget. */
+  exitIp?: string;
 };
 
 type GatewayState = {
   bind?: string;
   startedAt?: number;
   savedAt?: number;
-  egress?: Record<string, Omit<GatewayEgress, "id" | "healthy">>;
+  egress?: GatewayEgress[] | Record<string, Omit<GatewayEgress, "id" | "healthy">>;
   requests?: { total: number; byDay: Record<string, number> };
-  /** The provider's real "spent until", which pi-bansos's 15m cap hides. */
-  bucket?: { spentUntil: number; retryAfterSeconds: number; at: number; egress: string } | null;
+  /** The provider's real "spent until", per egress; pi-bansos's 15m cap hides it. */
+  buckets?: Record<string, { spentUntil: number; retryAfterSeconds: number; at: number }>;
+  /** How many distinct exit addresses the pool actually reaches. */
+  distinctBlocks?: number;
   events?: { at: number; egress: string; status: number; kind: RefusalKind; retryAfterSeconds?: number }[];
 };
 
@@ -220,11 +224,22 @@ function loadGatewayState(): GatewayState | undefined {
  * its own 90s→15min reactive backoff instead, so a spent bucket reaches the TUI
  * as "retry in 8m". The gateway keeps the provider's real hint; prefer it.
  */
-function providerBucket(): { spentUntil: number; retryAfterSeconds: number; egress: string } | undefined {
-  const bucket = loadGatewayState()?.bucket;
-  if (!bucket || typeof bucket.spentUntil !== "number") return undefined;
-  if (bucket.spentUntil <= Date.now()) return undefined;
-  return bucket;
+function spentBuckets(): { egress: string; spentUntil: number }[] {
+  const buckets = loadGatewayState()?.buckets;
+  if (!buckets) return [];
+  const now = Date.now();
+  return Object.entries(buckets)
+    .filter(([, bucket]) => typeof bucket.spentUntil === "number" && bucket.spentUntil > now)
+    .map(([egress, bucket]) => ({ egress, spentUntil: bucket.spentUntil }))
+    .sort((a, b) => a.spentUntil - b.spentUntil);
+}
+
+/** "3 of 4 egress spent · next recovers 14:32 UTC" — the pool-wide view. */
+function bucketSummary(buckets: { egress: string; spentUntil: number }[]): string | undefined {
+  if (!buckets.length) return undefined;
+  const next = new Date(buckets[0].spentUntil).toISOString().slice(11, 16);
+  const wait = humanDuration((buckets[0].spentUntil - Date.now()) / 1000);
+  return `${buckets.length} egress spent · next recovers ~${next} UTC (in ${wait})`;
 }
 
 // ── Time helpers ───────────────────────────────────────────────────────────
@@ -387,11 +402,12 @@ function statusReport(state: State, gateway?: GatewayState): string {
     `refusals today: ${today.length} · notifications ${state.watch ? "ON" : "OFF"}`,
     `UTC midnight (free-tier reset) in ${humanDuration(Math.ceil((nextUtcMidnight(now) - now) / 1000))}`,
   ];
-  const bucket = gateway?.bucket ?? providerBucket();
-  if (bucket && bucket.spentUntil > now) {
-    const clock = new Date(bucket.spentUntil).toISOString().slice(11, 16);
+  const buckets = spentBuckets();
+  const summary = bucketSummary(buckets);
+  if (summary) {
+    lines.push(`provider buckets: ${summary} · distinct blocks: ${gateway?.distinctBlocks ?? "?"}`);
     lines.push(
-      `provider bucket: SPENT until ~${clock} UTC (in ${humanDuration((bucket.spentUntil - now) / 1000)}) · seen on ${bucket.egress}`,
+      `  spent: ${buckets.map((bucket) => bucket.egress).join(", ")}`,
     );
     lines.push(
       "  pi-bansos caps its own 429 backoff at 15m, so a short \"retry in\" is local, not the provider.",
@@ -429,18 +445,27 @@ function usageReport(state: State): string {
 function egressReport(gateway?: GatewayState): string {
   if (!gateway?.egress) return `Gateway not reachable at ${GATEWAY_URL}.`;
   const now = Date.now();
-  const rows = Object.entries(gateway.egress).map(([id, record]) => {
+  const entries: [string, GatewayEgress][] = Array.isArray(gateway.egress)
+    ? gateway.egress.map((record) => [record.id ?? "?", record])
+    : Object.entries(gateway.egress).map(([id, record]) => [id, { id, healthy: true, ...record }]);
+  const rows = entries.map(([id, record]) => {
     const parked =
       record.quarantineUntil && record.quarantineUntil > now
         ? `parked ${humanDuration((record.quarantineUntil - now) / 1000)}`
         : "ready";
     const latency = record.lastLatencyMs ? `${record.lastLatencyMs}ms` : "—";
-    return `- ${id.padEnd(28)} ${parked.padEnd(16)} ok=${record.requests} fail=${record.failures} last=${latency}${
+    return `- ${id.padEnd(28)} ${parked.padEnd(16)} ok=${record.requests} fail=${record.failures} last=${latency} ${record.exitIp ?? "?"}${
       record.lastError ? ` · ${record.lastError}` : ""
     }`;
   });
   const total = gateway.requests?.total ?? 0;
-  return [`Gateway egress (${total} request(s) relayed):`, ...rows].join("\n");
+  const distinct =
+    gateway.distinctBlocks ??
+    new Set(entries.map(([, record]) => record.exitIp).filter(Boolean)).size;
+  return [
+    `Gateway egress (${total} request(s) relayed, ${distinct} distinct block(s)):`,
+    ...rows,
+  ].join("\n");
 }
 
 // ── Free-model failover ladder ─────────────────────────────────────────────
@@ -488,10 +513,9 @@ export default function (pi: ExtensionAPI) {
     // refills at midnight UTC.
     const shortHint =
       event.retryAfterSeconds != null && event.retryAfterSeconds <= LOCAL_BACKOFF_MAX_SECONDS;
-    const bucket = providerBucket();
-    const bucketNote = bucket
-      ? ` Provider bucket (${bucket.egress}) resets ${new Date(bucket.spentUntil).toISOString().slice(11, 16)} UTC, in ${humanDuration((bucket.spentUntil - Date.now()) / 1000)}.`
-      : "";
+    const buckets = spentBuckets();
+    const summary = bucketSummary(buckets);
+    const bucketNote = summary ? ` Provider buckets: ${summary}.` : "";
     notify(
       ctx,
       `OpenCode ${event.status} ${event.kind}.${retry}${wide}${shortHint ? bucketNote : ""}`,
@@ -625,14 +649,12 @@ export default function (pi: ExtensionAPI) {
           // pi-bansos keeps its 429 cooldowns in module state, so a reload is
           // the only way to drop a stale one (e.g. recorded just before the
           // bucket refilled at 00:00 UTC). It does not touch the provider.
-          const bucket = providerBucket();
-          const note = bucket
-            ? ` Provider bucket is still spent until ~${new Date(bucket.spentUntil).toISOString().slice(11, 16)} UTC.`
-            : "";
+          const summary = bucketSummary(spentBuckets());
+          const note = summary ? ` Provider ${summary}.` : "";
           notify(
             ctx,
             `Reloading to clear pi-bansos's in-memory 429 backoff.${note}`,
-            bucket ? "warning" : "info",
+            summary ? "warning" : "info",
           );
           await ctx.reload();
           return;
@@ -662,7 +684,8 @@ export default function (pi: ExtensionAPI) {
             `- relay file: ${RELAY_FILE}`,
             `- gateway: ${gateway ? `up (${gateway.bind})` : `DOWN (${GATEWAY_URL})`}`,
             `- pi-bansos relay: ${relay.active ? "gateway" : relay.url || "direct"}`,
-            `- provider bucket: ${providerBucket() ? `spent until ${new Date(providerBucket()!.spentUntil).toISOString().slice(11, 16)} UTC` : "no long hint recorded"}`,
+            `- distinct egress blocks: ${gateway?.distinctBlocks ?? "unknown"}`,
+            `- provider buckets: ${bucketSummary(spentBuckets()) ?? "none spent"}`,
             `- recorded refusals: ${state.events.length}`,
             `- agent directory writable: ${canWrite(AGENT_DIR) ? "yes" : "no"}`,
           ];

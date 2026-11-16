@@ -118,6 +118,14 @@ const MAX_BODY_BYTES = 64 * 1024 * 1024;
  * ERR_UNHANDLED_ERROR and kills pi. Answering fast keeps that path unreachable.
  */
 const ATTEMPT_TIMEOUT_MS = Number(process.env.PI_UNLIMITED_ATTEMPT_TIMEOUT_MS) || 30_000;
+/**
+ * WARP hands exits out of a shared pool, so two tunnels routinely resolve to
+ * the same /32 (measured 2026-11-16: three identities -> two distinct
+ * addresses). A duplicate block is one budget, so the pool is de-duplicated by
+ * observed exit IP before a request is ever spent on it.
+ */
+const EXIT_PROBE_HOST = process.env.PI_UNLIMITED_EXIT_PROBE_HOST?.trim() || "api.ipify.org";
+const EXIT_PROBE_INTERVAL_MS = 10 * 60_000;
 const QUARANTINE_BASE_MS = 90_000;
 const QUARANTINE_MAX_MS = 6 * 3600_000;
 const MAX_EVENTS = 300;
@@ -185,17 +193,29 @@ function freshState(config) {
     egress: Object.fromEntries(
       config.egress.map((e) => [
         e.id,
-        { requests: 0, failures: 0, lastOkAt: 0, lastError: "", quarantineUntil: 0, lastLatencyMs: 0 },
+        {
+          requests: 0,
+          failures: 0,
+          lastOkAt: 0,
+          lastError: "",
+          quarantineUntil: 0,
+          lastLatencyMs: 0,
+          // Observed public address of this exit; duplicates share one budget.
+          exitIp: "",
+          exitIpAt: 0,
+        },
       ]),
     ),
     requests: { total: 0, byDay: {} },
     /**
-     * The provider's own view of the free budget, as last reported. pi-bansos
+     * The provider's own view of the free budget, per egress. pi-bansos
      * deliberately discards OpenCode Retry-After hints longer than 300s and
-     * substitutes its own 90s→15min reactive backoff, so this is the only
-     * place the real "spent until" is still visible.
+     * substitutes its own 90s→15min reactive backoff, so this is the only place
+     * the real "spent until" survives. Keyed by egress because two exits can
+     * sit in different buckets (measured: a fresh WARP identity answered 200
+     * while another was spent).
      */
-    bucket: { spentUntil: 0, retryAfterSeconds: 0, at: 0, egress: "" },
+    buckets: {},
     events: [],
   };
 }
@@ -264,7 +284,17 @@ function egressOrder(config, state) {
   const rest = ready.filter((e) => e.kind !== "direct");
   // Prefer a real exit while it is healthy — that is the whole point of the
   // pool — but never let `direct` disappear from the tail.
-  return [...rest, ...direct, ...parked];
+  const ordered = [...rest, ...direct, ...parked];
+  // Collapse tunnels that share an exit block: one of them would just spend the
+  // same budget twice. Unknown addresses always pass (not yet probed).
+  const seen = new Set();
+  return ordered.filter((egress) => {
+    const ip = state.egress[egress.id]?.exitIp;
+    if (!ip) return true;
+    if (seen.has(ip)) return false;
+    seen.add(ip);
+    return true;
+  });
 }
 
 function noteSuccess(state, id, latencyMs) {
@@ -276,6 +306,8 @@ function noteSuccess(state, id, latencyMs) {
   record.lastError = "";
   record.lastOkAt = Date.now();
   record.lastLatencyMs = latencyMs;
+  // Proof the block has budget again; drop any stale "spent until".
+  delete state.buckets[id];
 }
 
 function noteRefusal(state, id, status, detail) {
@@ -333,11 +365,10 @@ function noteEvent(state, event) {
   // (OpenCode points at 00:00 UTC). Keep the latest one so the operator sees
   // the real wait instead of pi-bansos's capped local backoff.
   if (event.kind === "quota" && (event.retryAfterSeconds ?? 0) > 300) {
-    state.bucket = {
+    state.buckets[event.egress] = {
       spentUntil: event.at + event.retryAfterSeconds * 1000,
       retryAfterSeconds: event.retryAfterSeconds,
       at: event.at,
-      egress: event.egress,
     };
   }
 }
@@ -576,6 +607,75 @@ async function forward(config, egress, target, { signal, timeoutMs = ATTEMPT_TIM
   });
 }
 
+// ── Exit-IP discovery (block de-duplication) ───────────────────────────────
+
+/** Plain GET through one egress, body as text. Used only for the exit probe. */
+async function requestText(egress, hostname, path, timeoutMs) {
+  const raw = await tunnel(egress, hostname, 443, timeoutMs);
+  const secure = await new Promise((resolve, reject) => {
+    const s = tls.connect(
+      { socket: raw, servername: hostname, ALPNProtocols: ["http/1.1"] },
+      () => {
+        s.removeListener("error", reject);
+        resolve(s);
+      },
+    );
+    s.setTimeout(timeoutMs, () => s.destroy(new Error("probe tls timeout")));
+    s.once("error", reject);
+  });
+  return await new Promise((resolve, reject) => {
+    const request = http.request(
+      {
+        method: "GET",
+        path,
+        host: hostname,
+        headers: { host: hostname, connection: "close", accept: "text/plain" },
+        createConnection: () => secure,
+      },
+      (response) => {
+        const chunks = [];
+        response.on("data", (chunk) => chunks.push(chunk));
+        response.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+        response.on("error", reject);
+      },
+    );
+    request.setTimeout(timeoutMs, () => request.destroy(new Error("probe timeout")));
+    request.on("error", reject);
+    request.end();
+  });
+}
+
+/**
+ * Record the public address each egress actually leaves from. Cheap (one small
+ * request per egress, every 10 minutes) and essential: the pool is only worth
+ * as much as its number of *distinct* blocks.
+ */
+async function refreshExitIps(config, state) {
+  await Promise.all(
+    config.egress.map(async (egress) => {
+      const record = state.egress[egress.id];
+      if (!record) return;
+      try {
+        const text = await requestText(egress, EXIT_PROBE_HOST, "/", 20_000);
+        const ip = text.trim();
+        if (ip && /^[0-9a-f.:]+$/i.test(ip)) {
+          record.exitIp = ip;
+          record.exitIpAt = Date.now();
+        }
+      } catch (error) {
+        log(`exit probe failed for ${egress.id}: ${error}`);
+      }
+    }),
+  );
+  saveState(config, state);
+  if (DEBUG) {
+    const blocks = new Set(
+      config.egress.map((e) => state.egress[e.id]?.exitIp).filter(Boolean),
+    );
+    log(`distinct egress blocks: ${blocks.size} of ${config.egress.length}`);
+  }
+}
+
 // ── Relay handler ─────────────────────────────────────────────────────────
 
 function readBody(request) {
@@ -777,7 +877,12 @@ function startServer(config, state) {
           ...state.egress[e.id],
         })),
         requests: state.requests,
-        bucket: state.bucket?.spentUntil > Date.now() ? state.bucket : null,
+        buckets: Object.fromEntries(
+          Object.entries(state.buckets ?? {}).filter(([, b]) => b.spentUntil > Date.now()),
+        ),
+        distinctBlocks: new Set(
+          config.egress.map((e) => state.egress[e.id]?.exitIp).filter(Boolean),
+        ).size,
       });
       return;
     }
@@ -801,6 +906,13 @@ function startServer(config, state) {
         `(egress: ${config.egress.map((e) => e.id).join(" → ")})\n`,
     );
     saveState(config, state);
+    // Learn which block each exit actually leaves from, so tunnels that share
+    // one WARP /32 are not counted as extra budget. Never blocks serving.
+    void refreshExitIps(config, state).catch((error) => log(`exit probe sweep failed: ${error}`));
+    setInterval(
+      () => void refreshExitIps(config, state).catch((error) => log(`exit probe sweep failed: ${error}`)),
+      EXIT_PROBE_INTERVAL_MS,
+    ).unref();
   });
 
   const shutdown = () => {
