@@ -39,7 +39,8 @@ OpenCode edge keys on (cipher-list order + ALPN).
 
 | Command | What it does |
 |---|---|
-| `/unlimited` | Route, gateway health, last refusal, retry-after, UTC reset clock |
+| `/unlimited` | One line: `wrapped`/`direct`, distinct blocks, and either `DAILY LIMIT <wait>` or `backoff <wait>` or `ok` |
+| `/unlimited status full` | The long form: per-egress buckets, last refusal, today's counts |
 | `/unlimited usage` | Today's refusals grouped by status/kind/model |
 | `/unlimited egress` | Per-egress health from the gateway: ready / parked, latency, errors |
 | `/unlimited apply` | Point pi-bansos at the gateway, then reload |

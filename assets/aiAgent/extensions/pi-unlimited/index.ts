@@ -374,50 +374,70 @@ function relayStatus(): { active: boolean; url: string; managed: boolean } {
 
 // ── Reports ────────────────────────────────────────────────────────────────
 
-function statusText(state: State): string {
-  const latest = state.events[state.events.length - 1];
-  const relay = relayStatus();
-  const route = relay.active ? "gateway" : "direct";
-  if (!latest) return `unlimited: ${route} · no refusal recorded`;
-  const retry = latest.retryAfterSeconds != null ? ` · ${humanDuration(latest.retryAfterSeconds)}` : "";
-  const wide = latest.poolWide ? " · pool-wide" : "";
-  return `unlimited: ${route} · HTTP ${latest.status} ${latest.kind}${retry}${wide}`;
+/**
+ * One line, by design. "wrapped" = the relay hop is live; the suffix answers the
+ * only two questions that matter: is the daily bucket spent, or is this just
+ * pi-bansos's own short backoff.
+ */
+function statusText(state: State, gateway?: GatewayState): string {
+  const bits: string[] = [relayStatus().active ? "wrapped" : "direct"];
+  const blocks = gateway?.distinctBlocks;
+  if (typeof blocks === "number" && blocks > 0) {
+    bits.push(`${blocks} block${blocks === 1 ? "" : "s"}`);
+  }
+  bits.push(limitState(state));
+  return `unlimited: ${bits.join(" · ")}`;
 }
 
+/** "daily limit 8h 12m" | "backoff 4m" | "ok" — never both, never a paragraph. */
+function limitState(state: State): string {
+  const now = Date.now();
+  const buckets = spentBuckets();
+  if (buckets.length) {
+    // The provider's own hint, which pi-bansos hides behind its 15m cap.
+    return `DAILY LIMIT ${humanDuration((buckets[0].spentUntil - now) / 1000)}`;
+  }
+  const latest = state.events[state.events.length - 1];
+  const until =
+    latest?.retryAfterSeconds != null && latest.retryAfterSeconds <= LOCAL_BACKOFF_MAX_SECONDS
+      ? latest.at + latest.retryAfterSeconds * 1000
+      : 0;
+  if (until > now) return `backoff ${humanDuration((until - now) / 1000)}`;
+  return "ok";
+}
+
+/** `/unlimited status` — one line. `/unlimited status full` for the detail. */
 function statusReport(state: State, gateway?: GatewayState): string {
+  const line = statusText(state, gateway);
+  if (!relayStatus().active) {
+    return `${line}\n  relay not applied · /unlimited apply`;
+  }
+  return line;
+}
+
+/** The long form, kept for troubleshooting. */
+function statusDetail(state: State, gateway?: GatewayState): string {
   const now = Date.now();
   const latest = state.events[state.events.length - 1];
   const today = eventsToday(state);
   const relay = relayStatus();
   const lines = [
-    "pi-unlimited — OpenCode free tier",
-    `route: ${relay.active ? `gateway ${GATEWAY_URL}` : `direct (relay: ${relay.url || "none"})`}`,
+    `unlimited: ${relay.active ? `wrapped → ${GATEWAY_URL}` : `direct (relay: ${relay.url || "none"})`}`,
     `gateway: ${gateway ? `up on ${gateway.bind ?? GATEWAY_URL}` : "not reachable"}`,
+    `blocks: ${gateway?.distinctBlocks ?? "?"} distinct · ${gateway?.egress ? (Array.isArray(gateway.egress) ? gateway.egress.length : Object.keys(gateway.egress).length) : "?"} configured`,
     latest
       ? `last refusal: HTTP ${latest.status} (${latest.kind}) at ${new Date(latest.at).toISOString().slice(11, 19)} UTC${latest.model ? ` · ${latest.model}` : ""}`
       : "last refusal: none recorded",
-    latest?.retryAfterSeconds != null
-      ? `last retry-after seen: ${humanDuration(latest.retryAfterSeconds)}${latest.retryAfterSeconds <= LOCAL_BACKOFF_MAX_SECONDS ? " (pi-bansos local backoff)" : " (provider hint)"}`
-      : "last retry-after seen: unavailable",
     `refusals today: ${today.length} · notifications ${state.watch ? "ON" : "OFF"}`,
     `UTC midnight (free-tier reset) in ${humanDuration(Math.ceil((nextUtcMidnight(now) - now) / 1000))}`,
   ];
   const buckets = spentBuckets();
   const summary = bucketSummary(buckets);
   if (summary) {
-    lines.push(`provider buckets: ${summary} · distinct blocks: ${gateway?.distinctBlocks ?? "?"}`);
-    lines.push(
-      `  spent: ${buckets.map((bucket) => bucket.egress).join(", ")}`,
-    );
-    lines.push(
-      "  pi-bansos caps its own 429 backoff at 15m, so a short \"retry in\" is local, not the provider.",
-    );
+    lines.push(`provider buckets: ${summary}`);
+    lines.push(`  spent: ${buckets.map((bucket) => bucket.egress).join(", ")}`);
   }
-  if (latest?.poolWide) {
-    lines.push(
-      "note: every egress in the pool got the same refusal — that bucket is not per-IP.",
-    );
-  }
+  if (latest?.poolWide) lines.push("note: every egress got the same refusal — the bucket is not per-IP.");
   return lines.join("\n");
 }
 
@@ -485,9 +505,12 @@ export default function (pi: ExtensionAPI) {
     }
   };
 
-  const setStatus = (ctx: { ui?: { setStatus?: (key: string, text: string) => void } }) => {
+  const setStatus = (
+    ctx: { ui?: { setStatus?: (key: string, text: string) => void } },
+    gateway?: GatewayState,
+  ) => {
     try {
-      ctx.ui?.setStatus?.("unlimited", statusText(state));
+      ctx.ui?.setStatus?.("unlimited", statusText(state, gateway));
     } catch {
       // Cosmetic only.
     }
@@ -523,9 +546,12 @@ export default function (pi: ExtensionAPI) {
     );
   };
 
-  pi.on("session_start", (_event, ctx) => {
+  pi.on("session_start", async (_event, ctx) => {
     state = loadState();
-    setStatus(ctx);
+    // One short probe so the status bar can say how many distinct blocks the
+    // pool really reaches; a down gateway must not delay session start.
+    const gateway = await gatewayHealth(800);
+    setStatus(ctx, gateway);
   });
 
   pi.on("session_shutdown", () => saveState(state));
@@ -589,10 +615,11 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerCommand("unlimited", {
-    description: "OpenCode free tier: status | usage | egress | apply | off | reload | watch | clear | doctor",
+    description: "OpenCode free tier: status [full] | usage | egress | apply | off | reload | watch | clear | doctor",
     getArgumentCompletions: (prefix) =>
       [
         "status",
+        "status full",
         "usage",
         "egress",
         "apply",
@@ -611,7 +638,7 @@ export default function (pi: ExtensionAPI) {
       switch (command) {
         case "status": {
           const gateway = await gatewayHealth();
-          notify(ctx, statusReport(state, gateway));
+          notify(ctx, option === "full" ? statusDetail(state, gateway) : statusReport(state, gateway));
           return;
         }
         case "usage":
@@ -693,7 +720,7 @@ export default function (pi: ExtensionAPI) {
           return;
         }
         default:
-          notify(ctx, "usage: /unlimited status|usage|egress|apply|off|reload|watch on|off|clear|doctor", "warning");
+          notify(ctx, "usage: /unlimited status [full]|usage|egress|apply|off|reload|watch on|off|clear|doctor", "warning");
       }
     },
   });
