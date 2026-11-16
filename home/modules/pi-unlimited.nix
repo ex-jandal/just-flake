@@ -179,12 +179,15 @@ let
     grep -qi '^Endpoint' "$src" || { echo "pi-unlimited: $src has no Endpoint" >&2; exit 1; }
 
     mkdir -p "$dir"
-    # drop any [Socks5] the operator added, and wg-quick-only directives that
-    # wireproxy does not understand
+    # Copy the config verbatim and change exactly one thing: drop any [Socks5]
+    # block, because ours is appended below. Everything else stays, including
+    # Address and DNS. Stripping those was wrong: wireproxy resolves SOCKS
+    # hostnames through the tunnel's DNS, so without it every request fails with
+    # "SOCKS reply 4" (host unreachable). wg-quick-only keys (Table, PostUp,
+    # SaveConfig) are ignored by wireproxy, so there is nothing to clean up.
     ${lib.getExe pkgs.gawk} '
       /^\[/ { skip = ($0 ~ /^\[Socks5\]/) }
       skip { next }
-      /^[[:space:]]*(DNS|Table|PreUp|PostUp|PreDown|PostDown|SaveConfig|Address)[[:space:]]*=/ { next }
       { print }
     ' "$src" > "$dir/profile.conf"
     printf '\n[Socks5]\nBindAddress = 127.0.0.1:%s\n' "$port" >> "$dir/profile.conf"
