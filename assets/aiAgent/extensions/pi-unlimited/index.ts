@@ -566,16 +566,7 @@ function statusText(state: State, gateway?: GatewayState): string {
   if (typeof blocks === "number" && blocks > 0) {
     bits.push(`${blocks} block${blocks === 1 ? "" : "s"}`);
   }
-  const used = inUseAddress(gateway);
-  if (used) bits.push(used);
   return `unlimited: ${bits.join(" · ")}`;
-}
-
-/** The address that served the most recent request, if it is recent enough. */
-function inUseAddress(gateway?: GatewayState): string | undefined {
-  const used = gateway?.lastUsed ?? lastUsedFromLedger(EGRESS_CLASS);
-  if (!used || Date.now() - used.at > 30 * 60_000) return undefined;
-  return egressList(gateway).find((record) => record.id === used.id)?.exitIp;
 }
 
 /**
