@@ -55,10 +55,43 @@ const AGENT_DIR =
   process.env.PI_CODING_AGENT_DIR?.trim() || path.join(os.homedir(), ".pi", "agent");
 const STATE_FILE = path.join(AGENT_DIR, "pi-unlimited-state.json");
 const RELAY_FILE = path.join(AGENT_DIR, "pi-bansos-relay-state.json");
-const GATEWAY_STATE_FILE = path.join(AGENT_DIR, "pi-unlimited-gateway.json");
+/**
+ * Two gateways, because an egress belongs to the *process*, not to pi: a service
+ * in app.slice leaves through the VPN tunnel, one in novpn.slice leaves through
+ * the physical interface. `novpn` marks packets per cgroup in nftables, so
+ * membership in that slice is the whole bypass — and it is what we detect here,
+ * from our own cgroup, since that is inherited by every child we spawn.
+ *
+ * Keep in sync with gatewayPort / gatewayPortNovpn in modules/pi-unlimited.nix.
+ */
+const GATEWAY_URL_VPN = "http://127.0.0.1:18790";
+const GATEWAY_URL_NOVPN = "http://127.0.0.1:18791";
+const GATEWAY_UNITS: Record<"vpn" | "novpn", string> = {
+  vpn: "pi-unlimited-gateway",
+  novpn: "pi-unlimited-gateway-novpn",
+};
 
-/** Must match PI_UNLIMITED_PORT / PI_UNLIMITED_HOST in the Nix service. */
-const GATEWAY_URL = process.env.PI_UNLIMITED_URL?.trim() || "http://127.0.0.1:18790";
+function detectNovpn(): boolean {
+  if (process.platform !== "linux") return false;
+  try {
+    return fs.readFileSync("/proc/self/cgroup", "utf8").includes("/novpn.slice/");
+  } catch {
+    // No procfs, or an unreadable cgroup: assume the VPN path, which is what a
+    // systemd service and an ordinary login shell both use.
+    return false;
+  }
+}
+
+/** True when *this* pi process was started under `novpn`. */
+const IN_NOVPN = detectNovpn();
+const EGRESS_CLASS: "vpn" | "novpn" = IN_NOVPN ? "novpn" : "vpn";
+const GATEWAY_URL =
+  process.env.PI_UNLIMITED_URL?.trim() || (IN_NOVPN ? GATEWAY_URL_NOVPN : GATEWAY_URL_VPN);
+const GATEWAY_UNIT = GATEWAY_UNITS[EGRESS_CLASS];
+const GATEWAY_STATE_FILE = path.join(
+  AGENT_DIR,
+  IN_NOVPN ? "pi-unlimited-gateway-novpn.json" : "pi-unlimited-gateway.json",
+);
 const RELAY_LABEL = "pi-unlimited gateway";
 /**
  * pi-bansos never forwards an OpenCode hint longer than 300s; it substitutes its
@@ -397,10 +430,15 @@ async function gatewayHealth(timeoutMs = 1500): Promise<GatewayState | undefined
   }
 }
 
+/** Either of this module's gateways — the relay file is shared between shells. */
+function isOurGateway(url: string): boolean {
+  return url === GATEWAY_URL_VPN || url === GATEWAY_URL_NOVPN;
+}
+
 /** Point pi-bansos at the gateway, preserving relays the operator added itself. */
 function applyRelay(state: State): { ok: boolean; message: string } {
   const relay = loadRelayFile();
-  const others = relay.relays.filter((entry) => entry.url !== GATEWAY_URL);
+  const others = relay.relays.filter((entry) => !isOurGateway(entry.url));
   const next: RelayFile = {
     enabled: true,
     url: GATEWAY_URL,
@@ -417,10 +455,10 @@ function applyRelay(state: State): { ok: boolean; message: string } {
 
 function removeRelay(state: State): { ok: boolean; message: string } {
   const relay = loadRelayFile();
-  const others = relay.relays.filter((entry) => entry.url !== GATEWAY_URL);
-  const wasActive = relay.url === GATEWAY_URL;
+  const others = relay.relays.filter((entry) => !isOurGateway(entry.url));
+  const wasActive = isOurGateway(relay.url);
   const next: RelayFile = {
-    enabled: wasActive && others.length > 0 ? relay.enabled : relay.url === GATEWAY_URL ? false : relay.enabled,
+    enabled: wasActive && others.length > 0 ? relay.enabled : wasActive ? false : relay.enabled,
     url: wasActive ? (others[0]?.url ?? "") : relay.url,
     relays: others,
     statusBar: relay.statusBar,
@@ -438,7 +476,36 @@ function removeRelay(state: State): { ok: boolean; message: string } {
 
 function relayStatus(): { active: boolean; url: string; managed: boolean } {
   const relay = loadRelayFile();
-  return { active: relay.enabled && relay.url === GATEWAY_URL, url: relay.url, managed: relay.url === GATEWAY_URL };
+  // "managed" = the file points at one of ours (possibly the other shell's).
+  // "active" = it points at the gateway that matches this shell's egress class.
+  return {
+    active: relay.enabled && relay.url === GATEWAY_URL,
+    url: relay.url,
+    managed: isOurGateway(relay.url),
+  };
+}
+
+/**
+ * The relay file is global but the right gateway is per-shell, so re-point it
+ * whenever it already tracks one of ours. Done at load rather than in a handler:
+ * pi-bansos re-reads the file in its own `session_start`, which runs after every
+ * extension has been imported, so writing here takes effect without a reload.
+ */
+function alignRelayToShell(): void {
+  try {
+    const relay = loadRelayFile();
+    if (!relay.enabled || !isOurGateway(relay.url) || relay.url === GATEWAY_URL) return;
+    writeJsonAtomic(RELAY_FILE, {
+      ...relay,
+      url: GATEWAY_URL,
+      relays: [
+        { url: GATEWAY_URL, label: RELAY_LABEL, addedAt: new Date().toISOString() },
+        ...relay.relays.filter((entry) => !isOurGateway(entry.url)),
+      ],
+    });
+  } catch {
+    // Never let a routing convenience break session start.
+  }
 }
 
 // ── Reports ────────────────────────────────────────────────────────────────
@@ -449,7 +516,11 @@ function relayStatus(): { active: boolean; url: string; managed: boolean } {
  * pi-bansos's own short backoff.
  */
 function statusText(state: State, gateway?: GatewayState): string {
-  const bits: string[] = [relayStatus().active ? "wrapped" : "direct"];
+  const bits: string[] = [];
+  // The session class is worth one word: it is the difference between the ISP
+  // address and the VPN address, and two novpn shells make it obvious.
+  if (IN_NOVPN) bits.push("novpn");
+  bits.push(relayStatus().active ? "wrapped" : "direct");
   const blocks = gateway?.distinctBlocks;
   if (typeof blocks === "number" && blocks > 0) {
     bits.push(`${blocks} block${blocks === 1 ? "" : "s"}`);
@@ -479,7 +550,11 @@ function limitState(state: State): string {
 function statusReport(state: State, gateway?: GatewayState): string {
   const line = statusText(state, gateway);
   if (!relayStatus().active) {
-    return `${line}\n  relay not applied · /unlimited apply`;
+    const relay = relayStatus();
+    const hint = relay.managed
+      ? `/unlimited reload` // points at the other shell's gateway
+      : `/unlimited apply`;
+    return `${line}\n  relay not applied · ${hint}`;
   }
   return line;
 }
@@ -492,6 +567,7 @@ function statusDetail(state: State, gateway?: GatewayState): string {
   const relay = relayStatus();
   const lines = [
     `unlimited: ${relay.active ? `wrapped → ${GATEWAY_URL}` : `direct (relay: ${relay.url || "none"})`}`,
+    `session egress: ${IN_NOVPN ? "novpn — physical interface, VPN bypassed" : "vpn — Proton tunnel"}`,
     `gateway: ${gateway ? `up on ${gateway.bind ?? GATEWAY_URL}` : "not reachable"}`,
     `blocks: ${gateway?.distinctBlocks ?? "?"} distinct · ${gateway?.egress ? (Array.isArray(gateway.egress) ? gateway.egress.length : Object.keys(gateway.egress).length) : "?"} configured`,
     latest
@@ -560,6 +636,10 @@ function egressReport(gateway?: GatewayState): string {
 // ── Free-model failover ladder ─────────────────────────────────────────────
 
 export default function (pi: ExtensionAPI) {
+  // Runs during extension load, i.e. before pi-bansos's own session_start
+  // re-reads the relay file — so `novpn pi` lands on the novpn gateway with no
+  // manual `/unlimited apply`.
+  alignRelayToShell();
   let state = loadState();
 
   const notify = (
@@ -731,7 +811,7 @@ export default function (pi: ExtensionAPI) {
           if (!gateway) {
             notify(
               ctx,
-              `Gateway not reachable at ${GATEWAY_URL}. Start it: systemctl --user start pi-unlimited-gateway`,
+              `Gateway not reachable at ${GATEWAY_URL}. Start it: systemctl --user start ${GATEWAY_UNIT}`,
               "error",
             );
             return;

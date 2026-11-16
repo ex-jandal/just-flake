@@ -13,7 +13,7 @@ rotates egress across those blocks and `direct` on every `429`/`403`.
 ```
 pi (provider "bansos")
   └─ pi-bansos local proxy
-       └─ relay ──► pi-unlimited-gateway :18790
+       └─ relay ──► pi-unlimited-gateway :18790  (vpn) / :18791 (novpn)
                       ├─ egress pool: WARP :25344, :25345, :25346 → direct
                       ├─ de-duplicates exits that share one public address
                       ├─ rotates on 429/403, quarantine + backoff
@@ -50,6 +50,54 @@ OpenCode edge keys on (cipher-list order + ALPN).
 | `/unlimited watch on\|off` | Notifications only (recording is always on) |
 | `/unlimited clear` | Clear local history only |
 | `/unlimited doctor` | Wiring checks |
+
+## Two gateways, because an egress belongs to a process
+
+An address is a property of the process, not of pi. `novpn` works by marking
+packets per cgroup in nftables, so anything running inside `novpn.slice` leaves
+through the physical interface while everything else leaves through the Proton
+tunnel. A systemd service cannot join you in that slice, which is why a single
+gateway in `app.slice` relayed *all* model traffic through the VPN even from a
+`novpn` shell — the extension was printing the VPN address because that really
+was the address on the wire.
+
+So there are two, same code, different slice:
+
+| Service | Port | Slice | `direct` exit (measured) |
+|---|---|---|---|
+| `pi-unlimited-gateway` | `:18790` | `app.slice` | `149.22.84.140` (Proton VPN) |
+| `pi-unlimited-gateway-novpn` | `:18791` | `novpn.slice` | `89.189.83.90` (ISP) |
+
+The extension decides by reading its own `/proc/self/cgroup` — inherited by every
+child, so it is a reliable "am I inside novpn". It then re-points
+`pi-bansos-relay-state.json` at the matching gateway while the file is already
+tracking one of ours, and leaves it alone if you pointed it elsewhere or ran
+`/unlimited off`. That rewrite happens during extension load, not in a handler:
+pi-bansos re-reads the file in its own `session_start`, which runs after every
+extension has been imported, so the switch lands without `/unlimited reload`.
+
+Verified both directions:
+
+```
+# inside novpn.slice
+relay before  : http://127.0.0.1:18790
+relay after   : http://127.0.0.1:18791
+status        : unlimited: novpn · wrapped · ok
+
+# inside app.slice
+relay before  : http://127.0.0.1:18791
+relay after   : http://127.0.0.1:18790
+status        : unlimited: wrapped · 3 blocks · DAILY LIMIT 14h 28m
+```
+
+Two side effects worth knowing:
+
+- **Two ledgers.** Each gateway keeps its own state file
+  (`pi-unlimited-gateway.json`, `pi-unlimited-gateway-novpn.json`), so bucket
+  counts are per egress class — which is accurate, they are different addresses.
+- **`novpn --clean` stops the slice**, and the novpn gateway with it. It comes
+  back on next login (`WantedBy=default.target`) or with
+  `systemctl --user start pi-unlimited-gateway-novpn`.
 
 ## `/unlimited test` — what "how much is left" can honestly mean
 

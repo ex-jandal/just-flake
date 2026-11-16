@@ -47,6 +47,10 @@
  *                         `direct` or `<scheme>://<host>:<port>` where scheme
  *                         is http (CONNECT) or socks5. Default: direct.
  *   PI_UNLIMITED_STATE    state file   (default <agent-dir>/pi-unlimited-gateway.json)
+ *   PI_UNLIMITED_PROFILE  name appended to the default state file, e.g. `novpn`
+ *                         -> <agent-dir>/pi-unlimited-gateway-novpn.json. Use
+ *                         this rather than PI_UNLIMITED_STATE from a unit file:
+ *                         systemd does not expand %h inside Environment=.
  *   PI_UNLIMITED_AUTH     optional x-relay-auth secret to require
  *   PI_UNLIMITED_MAX_EYEBALLS  egresses to try per request (default 3)
  *   PI_UNLIMITED_ATTEMPT_TIMEOUT_MS  hard per-attempt deadline (default 30000)
@@ -138,6 +142,15 @@ const log = (...args) => {
 
 // ── Config ────────────────────────────────────────────────────────────────
 
+/**
+ * `PI_UNLIMITED_PROFILE` only changes the *file name*, never a directory: a
+ * unit file cannot rely on `%h` or `$HOME` expansion inside Environment=.
+ */
+function gatewayStateName(profile) {
+  const safe = (profile || "").replace(/[^A-Za-z0-9._-]/g, "");
+  return safe ? `pi-unlimited-gateway-${safe}.json` : "pi-unlimited-gateway.json";
+}
+
 function agentDir() {
   return process.env.PI_CODING_AGENT_DIR?.trim() || path.join(os.homedir(), ".pi", "agent");
 }
@@ -176,7 +189,7 @@ function loadConfig() {
     port: Number(process.env.PI_UNLIMITED_PORT) || 18790,
     stateFile:
       process.env.PI_UNLIMITED_STATE?.trim() ||
-      path.join(agentDir(), "pi-unlimited-gateway.json"),
+      path.join(agentDir(), gatewayStateName(process.env.PI_UNLIMITED_PROFILE?.trim())),
     auth: process.env.PI_UNLIMITED_AUTH?.trim() || "",
     maxEyeballs: Math.max(1, Math.min(5, Number(process.env.PI_UNLIMITED_MAX_EYEBALLS) || 3)),
     egress: entries,

@@ -49,7 +49,14 @@ let
   ];
 
   gatewayHost = "127.0.0.1";
+  # - one gateway per routing class. They run in different slices, so their
+  #   `direct` egress leaves through different addresses: the VPN one exits via
+  #   the tunnel, the novpn one via the physical interface (the `novpn` command's
+  #   nftables marks apply per cgroup, so *any* process in novpn.slice bypasses).
+  #   Two addresses is two budgets, and it means a novpn shell gets what it
+  #   asked for instead of being quietly relayed through the VPN.
   gatewayPort = 18790;
+  gatewayPortNovpn = 18791;
   warpSocksPort = index: warpPortBase + index;
 
   # - egress pool, highest priority first. The gateway appends `direct` itself
@@ -121,18 +128,19 @@ in
           Unit = {
             Description = "Cloudflare WARP egress ${toString index} as a userspace SOCKS5 (pi-unlimited)";
             After = [ "network-online.target" ];
-            # - Cloudflare 429s bulk registration. Three failures in 15 minutes
-            #   is enough evidence that the address pool wants a longer pause.
-            StartLimitIntervalSec = 900;
-            StartLimitBurst = 3;
+            # - Cloudflare 429s bulk registration. Retry patiently but not
+            #   forever: 10 attempts an hour, then stay failed until an explicit
+            #   `systemctl --user reset-failed` instead of hammering the API.
+            StartLimitIntervalSec = 3600;
+            StartLimitBurst = 10;
           };
           Service = {
             ExecStartPre = "${warpPrepare} ${toString index}";
             ExecStart = "${lib.getExe pkgs.wireproxy} -c %h/.local/state/pi-unlimited/warp/${toString index}/wgcf-profile.conf";
-            # - a registration 429 is transient: wait a full minute before the
-            #   next attempt instead of hammering Cloudflare.
+            # - a registration 429 is transient: back off two minutes so the
+            #   restart itself never trips the start limit above.
             Restart = "on-failure";
-            RestartSec = 60;
+            RestartSec = 120;
           };
           Install.WantedBy = [ "default.target" ];
         };
@@ -140,34 +148,67 @@ in
     )
     # - merged with the line below in one attribute set: Nix rejects the same
     #   attribute path twice in one attrset.
-    // {
-      pi-unlimited-gateway = {
-        Unit = {
-          Description = "pi-unlimited rotating-egress relay for pi-bansos";
-          # - soft ordering only: the gateway handles absent tunnels by quarantining
-          #   them and using the next block.
-          After = map (index: "pi-unlimited-warp-${toString index}.service") (lib.range 0 (warpCount - 1));
-        };
-        Service = {
-          ExecStart = "${lib.getExe pkgs.nodejs} ${../../assets/aiAgent/gateway/pi-unlimited-gateway.mjs}";
-          Environment = [
-            "PI_UNLIMITED_HOST=${gatewayHost}"
-            "PI_UNLIMITED_PORT=${toString gatewayPort}"
-            "PI_UNLIMITED_EGRESS=${lib.concatStringsSep "," egress}"
-            # - one lap per distinct block. The gateway skips tunnels that share an
-            #   exit address, so this is an upper bound, not a request budget.
-            "PI_UNLIMITED_MAX_EYEBALLS=${toString (warpCount + 1)}"
-            # - hard per-attempt deadline, far below any caller timeout. A request
-            #   still in flight when pi gives up makes pi-bansos 0.8.1 fall back to
-            #   opencodeDirectFetch with an already-aborted signal, where it calls
-            #   req.destroy() before attaching its 'error' listener — an unhandled
-            #   error that exits pi. Answering fast keeps that path unreachable.
-            "PI_UNLIMITED_ATTEMPT_TIMEOUT_MS=30000"
-          ];
-          Restart = "on-failure";
-          RestartSec = 3;
-        };
-        Install.WantedBy = [ "default.target" ];
-      };
-    };
+    // lib.listToAttrs (
+      map
+        (
+          spec:
+          let
+            sliceAttrs = if spec.slice == null then { } else { Slice = spec.slice; };
+          in
+          {
+            name = spec.name;
+            value = {
+              Unit = {
+                Description = "pi-unlimited relay (${spec.label} egress) for pi-bansos";
+                # - soft ordering only: the gateway handles absent tunnels by
+                #   quarantining them and using the next block.
+                After = map (index: "pi-unlimited-warp-${toString index}.service") (lib.range 0 (warpCount - 1));
+              };
+              Service = {
+                ExecStart = "${lib.getExe pkgs.nodejs} ${../../assets/aiAgent/gateway/pi-unlimited-gateway.mjs}";
+                Environment = [
+                  "PI_UNLIMITED_HOST=${gatewayHost}"
+                  "PI_UNLIMITED_PORT=${toString spec.port}"
+                  "PI_UNLIMITED_EGRESS=${lib.concatStringsSep "," egress}"
+                  # - one lap per configured egress. The gateway skips tunnels that
+                  #   share an exit address, so this is an upper bound, not a
+                  #   request budget.
+                  "PI_UNLIMITED_MAX_EYEBALLS=${toString (warpCount + builtins.length extraEgress + 1)}"
+                  # - hard per-attempt deadline, far below any caller timeout. A
+                  #   request still in flight when pi gives up makes pi-bansos 0.8.1
+                  #   fall back to opencodeDirectFetch with an already-aborted
+                  #   signal, where it calls req.destroy() before attaching its
+                  #   'error' listener — an unhandled error that exits pi.
+                  "PI_UNLIMITED_ATTEMPT_TIMEOUT_MS=30000"
+                ]
+                # - a file name, not a path: systemd does not expand %h or $HOME
+                #   inside Environment= (verified 2026-11-16), so the gateway
+                #   appends a profile to its own default state path instead. The
+                #   VPN gateway keeps the unprofiled name it already wrote.
+                ++ lib.optional (spec.profile != null) "PI_UNLIMITED_PROFILE=${spec.profile}";
+                Restart = "on-failure";
+                RestartSec = 3;
+              }
+              // sliceAttrs;
+              Install.WantedBy = [ "default.target" ];
+            };
+          }
+        )
+        [
+          {
+            name = "pi-unlimited-gateway";
+            label = "VPN";
+            port = gatewayPort;
+            slice = null;
+            profile = null;
+          }
+          {
+            name = "pi-unlimited-gateway-novpn";
+            label = "novpn";
+            port = gatewayPortNovpn;
+            slice = "novpn.slice";
+            profile = "novpn";
+          }
+        ]
+    );
 }
