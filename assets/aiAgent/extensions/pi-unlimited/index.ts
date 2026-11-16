@@ -561,7 +561,7 @@ function alignRelayToShell(): void {
 
 /** Must match warpPortBase / the state layout in modules/pi-unlimited.nix. */
 const WARP_PORT_BASE = 25344;
-const WARP_MAX = 4;
+const WARP_MAX = 2;
 
 function warpStateDir(index: number): string {
   const base = process.env.XDG_STATE_HOME?.trim() || path.join(os.homedir(), ".local", "state");
@@ -1078,8 +1078,6 @@ export default function (pi: ExtensionAPI) {
         "rotate",
         "rotate 0",
         "rotate 1",
-        "rotate 2",
-        "rotate 3",
         "test",
         "apply",
         "off",
@@ -1119,9 +1117,14 @@ export default function (pi: ExtensionAPI) {
             const spent = views
               .flatMap((view) => egressList(view.state).map((record) => ({ record, state: view.state })))
               .find(
-                ({ record, state }) =>
-                  record.id?.startsWith("socks5://") &&
-                  (state?.buckets?.[record.id ?? ""]?.spentUntil ?? 0) > now,
+                ({ record, state }) => {
+                  // Only WARP tunnels can be re-minted; a tunnel for your own
+                  // WireGuard server (vpnConfigs) has no wgcf identity to rotate.
+                  const port = Number(record.id?.split(":").pop());
+                  if (!Number.isInteger(port)) return false;
+                  if (port < WARP_PORT_BASE || port >= WARP_PORT_BASE + WARP_MAX) return false;
+                  return (state?.buckets?.[record.id ?? ""]?.spentUntil ?? 0) > now;
+                },
               );
             index = spent?.record.id ? Number(spent.record.id.split(":").pop()) - WARP_PORT_BASE : 0;
           }

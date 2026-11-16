@@ -41,7 +41,7 @@ OpenCode edge keys on (cipher-list order + ALPN).
 |---|---|
 | `/unlimited` | One line: session class, `wrapped`/`direct`, distinct blocks, and the address that answered last |
 | `/unlimited proxies` | **One row per exit address** across both gateways: state, ok/refused counts, which gateway reaches it, which one is in use |
-| `/unlimited rotate [n]` | Mint a fresh WARP identity on unit `n` (default: a spent one), wait for it, re-probe both gateways |
+| `/unlimited rotate [n]` | Mint a fresh WARP identity on unit `n` (`0` or `1`; default: a spent one), wait for it, re-probe both gateways |
 | `/unlimited status full` | The long form: per-egress buckets, last refusal, today's counts, plus the proxy table |
 | `/unlimited test` | Fires **one real request per distinct block** and reports, live, which blocks still have budget and when the spent ones reset |
 | `/unlimited usage` | Today's refusals grouped by status/kind/model |
@@ -179,6 +179,10 @@ linear. Measured 2026-11-16:
 | 4 | `:25344`–`:25347` | 3 |
 | 5 | `:25344`–`:25348` | 3 |
 
+`warpCount = 2`, because four identities kept collapsing onto two addresses — the
+extra pair was duplicate budget, duplicate rows and duplicate registration against
+Cloudflare's rate limit. `/unlimited rotate 0|1` is the tool when the two collide.
+
 So the gateway probes `api.ipify.org` through each egress every 10 minutes,
 records the public address, and collapses tunnels that share one *before*
 spending a request on them. `/unlimited egress` shows the addresses and the
@@ -188,6 +192,38 @@ number grows.
 An exit address is also **not stable per identity**: `:25344` moved from
 `104.28.201.80` to `104.28.233.73` within the hour, which is exactly why the
 probe repeats on a timer instead of trusting a one-off reading.
+
+## Your own WireGuard servers: `vpnConfigs`
+
+The only egress that reliably has free-tier budget is an address nobody else is
+hammering, which in practice means one you own. `vpnConfigs` turns `wg-quick`-style
+configs (a Proton VPN server export, or any WireGuard peer) into tunnels:
+
+```nix
+vpnConfigs = [
+  "/home/abu_jandal/.config/pi-unlimited/vpn/proton-nl-01.conf"
+  "/home/abu_jandal/.config/pi-unlimited/vpn/proton-us-03.conf"
+];
+```
+
+Each becomes `pi-unlimited-vpn-<n>.service`: `wireproxy` on port `25360+n`,
+running in `novpn.slice` so your tunnel is not nested inside whichever VPN the
+machine is already on. Loopback stays reachable from both gateways, so they can
+use it. The egress order becomes:
+
+```
+your WireGuard servers → WARP tunnels → extraEgress → direct
+```
+
+Your own servers come first because a WARP or Tor attempt costs ~1s and usually
+answers `429`.
+
+The source config is never modified. A private copy is written to
+`~/.local/state/pi-unlimited/vpn/<n>/profile.conf` (mode 600) with any existing
+`[Socks5]` block stripped, `DNS`/`Address`/`Table`/`Up`/`Down` directives removed
+(wireproxy rejects or ignores them), and our `[Socks5]` section appended. A config
+missing `[Interface]`, `[Peer]`, `PrivateKey` or `Endpoint` fails at start with a
+message naming the file, rather than a tunnel that silently never comes up.
 
 ## When everything is spent: `/unlimited rotate`
 

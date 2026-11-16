@@ -34,7 +34,11 @@ let
   # - how many WARP identities to run. Each costs one more tunnel and yields a
   #   distinct block only if WARP happens to hand out a new address; the gateway
   #   reports the real distinct count, so raise this only if that number grows.
-  warpCount = 4;
+  # - two identities, because more did not buy more: measured 2026-11-16, four
+  #   identities landed on two addresses (201.80 and 233.73), so the extra pair
+  #   was duplicate budget and duplicate rows. `/unlimited rotate N` is the tool
+  #   when the two collide on one address.
+  warpCount = 2;
   warpPortBase = 25344;
 
   # - Any extra SOCKS5 or HTTP-CONNECT proxy you trust, tried after the WARP
@@ -47,6 +51,20 @@ let
     # "socks5://127.0.0.1:9050"   # Tor
     # "http://127.0.0.1:8118"     # Privoxy (Tor)
   ];
+
+  # - WireGuard configs you own — e.g. Proton VPN server exports, one file per
+  #   server (`wg-quick`-style: [Interface] + [Peer]). Each becomes its own
+  #   wireproxy tunnel on its own SOCKS5 port and is tried *before* WARP and
+  #   Tor, because an address nobody else is hammering is the only thing that
+  #   reliably has free-tier budget.
+  #
+  #   The file needs a PrivateKey in [Interface] and an Endpoint in [Peer]; a
+  #   [Socks5] section is added automatically, so do not add one yourself. The
+  #   tunnels run in novpn.slice so they are not nested inside another VPN.
+  vpnConfigs = [
+    # "/home/abu_jandal/.config/pi-unlimited/vpn/proton-nl-01.conf"
+  ];
+  vpnPortBase = 25360;
 
   gatewayHost = "127.0.0.1";
   # - one gateway per routing class. They run in different slices, so their
@@ -61,10 +79,15 @@ let
 
   # - egress pool, highest priority first. The gateway appends `direct` itself
   #   as a final fallback, but listing it keeps the intent visible.
-  egress =
-    map (index: "socks5://127.0.0.1:${toString (warpSocksPort index)}") (lib.range 0 (warpCount - 1))
-    ++ extraEgress
-    ++ [ "direct" ];
+  vpnSocksPort = index: vpnPortBase + index;
+  vpnEgress = map (index: "socks5://127.0.0.1:${toString (vpnSocksPort index)}") (
+    lib.range 0 (builtins.length vpnConfigs - 1)
+  );
+  warpEgress = map (index: "socks5://127.0.0.1:${toString (warpSocksPort index)}") (
+    lib.range 0 (warpCount - 1)
+  );
+  egress = vpnEgress ++ warpEgress ++ extraEgress ++ [ "direct" ];
+  egressCount = builtins.length egress;
 
   # - wgcf mints a per-machine WARP identity. The profile holds a device private
   #   key, so it lives in $XDG_STATE_HOME (mode 600), never in the Nix store.
@@ -99,6 +122,37 @@ let
       printf '\n[Socks5]\nBindAddress = 127.0.0.1:%s\n' "$port" >> wgcf-profile.conf
     fi
     chmod 600 wgcf-profile.conf
+  '';
+
+  # - Turn one of your own WireGuard configs into a wireproxy SOCKS5. The source
+  #   file is never modified: wireproxy needs a [Socks5] section that wg-quick
+  #   would reject, so a private copy is written to the state dir (mode 600) with
+  #   any [Socks5] block stripped and ours appended. Refuses loudly on a config
+  #   that would only fail later, at tunnel start.
+  vpnPrepare = pkgs.writeShellScript "pi-unlimited-vpn-prepare" ''
+    set -eu
+    index="''${1:?vpn tunnel index required}"
+    src="''${2:?wireguard config required}"
+    dir="''${XDG_STATE_HOME:-$HOME/.local/state}/pi-unlimited/vpn/$index"
+    port="$(( ${toString vpnPortBase} + index ))"
+
+    [ -f "$src" ] || { echo "pi-unlimited: no such WireGuard config: $src" >&2; exit 1; }
+    grep -q '^\[Interface\]' "$src" || { echo "pi-unlimited: $src has no [Interface]" >&2; exit 1; }
+    grep -q '^\[Peer\]' "$src" || { echo "pi-unlimited: $src has no [Peer]" >&2; exit 1; }
+    grep -qi '^PrivateKey' "$src" || { echo "pi-unlimited: $src has no PrivateKey" >&2; exit 1; }
+    grep -qi '^Endpoint' "$src" || { echo "pi-unlimited: $src has no Endpoint" >&2; exit 1; }
+
+    mkdir -p "$dir"
+    # drop any [Socks5] the operator added, and wg-quick-only directives that
+    # wireproxy does not understand
+    ${lib.getExe pkgs.gawk} '
+      /^\[/ { skip = ($0 ~ /^\[Socks5\]/) }
+      skip { next }
+      /^[[:space:]]*(DNS|Table|PreUp|PostUp|PreDown|PostDown|SaveConfig|Address)[[:space:]]*=/ { next }
+      { print }
+    ' "$src" > "$dir/profile.conf"
+    printf '\n[Socks5]\nBindAddress = 127.0.0.1:%s\n' "$port" >> "$dir/profile.conf"
+    chmod 600 "$dir/profile.conf"
   '';
 in
 {
@@ -149,6 +203,34 @@ in
     # - merged with the line below in one attribute set: Nix rejects the same
     #   attribute path twice in one attrset.
     // lib.listToAttrs (
+      map (
+        index:
+        let
+          src = builtins.elemAt vpnConfigs index;
+        in
+        {
+          name = "pi-unlimited-vpn-${toString index}";
+          value = {
+            Unit = {
+              Description = "WireGuard egress ${toString index} as userspace SOCKS5 (pi-unlimited)";
+              After = [ "network-online.target" ];
+            };
+            Service = {
+              ExecStartPre = "${vpnPrepare} ${toString index} ${src}";
+              ExecStart = "${lib.getExe pkgs.wireproxy} -c %h/.local/state/pi-unlimited/vpn/${toString index}/profile.conf";
+              # - novpn.slice so your own tunnel is not nested inside whichever
+              #   VPN the machine is already on. Loopback stays reachable from
+              #   the gateways in app.slice, so both can still use it.
+              Slice = "novpn.slice";
+              Restart = "on-failure";
+              RestartSec = 30;
+            };
+            Install.WantedBy = [ "default.target" ];
+          };
+        }
+      ) (lib.range 0 (builtins.length vpnConfigs - 1))
+    )
+    // lib.listToAttrs (
       map
         (
           spec:
@@ -173,7 +255,7 @@ in
                   # - one lap per configured egress. The gateway skips tunnels that
                   #   share an exit address, so this is an upper bound, not a
                   #   request budget.
-                  "PI_UNLIMITED_MAX_EYEBALLS=${toString (warpCount + builtins.length extraEgress + 1)}"
+                  "PI_UNLIMITED_MAX_EYEBALLS=${toString egressCount}"
                   # - hard per-attempt deadline, far below any caller timeout. A
                   #   request still in flight when pi gives up makes pi-bansos 0.8.1
                   #   fall back to opencodeDirectFetch with an already-aborted
