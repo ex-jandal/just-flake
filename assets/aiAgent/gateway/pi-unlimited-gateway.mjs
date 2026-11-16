@@ -124,6 +124,13 @@ const MAX_BODY_BYTES = 64 * 1024 * 1024;
  */
 const ATTEMPT_TIMEOUT_MS = Number(process.env.PI_UNLIMITED_ATTEMPT_TIMEOUT_MS) || 30_000;
 /**
+ * Budget for the whole rotation, not per attempt. With a per-attempt deadline
+ * the worst case is ATTEMPT_TIMEOUT_MS × eyeballs — 5 minutes with ten egresses
+ * — and pi-bansos gives up long before that, which lands on its abort path.
+ * Answer first with an honest refusal; a slow answer is not worth a dead turn.
+ */
+const TOTAL_BUDGET_MS = Number(process.env.PI_UNLIMITED_TOTAL_BUDGET_MS) || 25_000;
+/**
  * WARP hands exits out of a shared pool, so two tunnels routinely resolve to
  * the same /32 (measured 2026-11-16: three identities -> two distinct
  * addresses). A duplicate block is one budget, so the pool is de-duplicated by
@@ -1112,7 +1119,7 @@ async function handleRelay(config, state, request, res) {
   res.on("close", () => {
     if (!finished) controller.abort();
   });
-  const deadline = Date.now() + ATTEMPT_TIMEOUT_MS * attempts.length;
+  const deadline = Date.now() + Math.min(ATTEMPT_TIMEOUT_MS * attempts.length, TOTAL_BUDGET_MS);
 
   for (const egress of attempts) {
     if (controller.signal.aborted) break;

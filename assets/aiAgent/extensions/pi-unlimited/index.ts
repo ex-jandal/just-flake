@@ -831,7 +831,11 @@ function proxiesReport(views: PoolView[]): string {
     for (const record of entries) {
       const bucket = view.state?.buckets?.[record.id ?? ""];
       const ip = record.exitIp || "—";
-      const key = ip !== "—" ? ip : `${gw}:${record.id}`;
+      // Key on the address when it is known: one budget per public address.
+      // When it is not, key on the tunnel — the same tunnel is one proxy even
+      // when two gateways report it, and keying per gateway printed the same
+      // `us-33-proton` twice (`unreachable` from one, `ready` from the other).
+      const key = ip !== "—" ? ip : `id:${record.id}`;
       const group =
         groups.get(key) ??
         ({

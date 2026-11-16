@@ -59,18 +59,15 @@ let
   #   appended automatically, so do not add one. `~/` is expanded here rather
   #   than left to systemd, whose ExecStartPre args never see a shell.
   #
-  #   Empty on purpose. Loading these broke the operator's main VPN: every export
-  #   belongs to the same Proton account as the NetworkManager connection `us-proton`
-  #   (nmcli lists it), and Proton Free allows one connection per account, so the
-  #   extra peers compete with the tunnel that is actually in use. They also share
-  #   Address 10.2.0.2/32 and DNS 10.2.0.1, and wg-quick leaves that resolver in
-  #   /etc/resolv.conf — reachable only through the tunnel — so once the main
-  #   tunnel drops, every hostname lookup on the machine fails while raw IP
-  #   traffic is still fine.
-  #
-  #   Re-enable only with exports from a different account, or a plan that allows
-  #   several devices:
-  #     vpnConfigs = [ "~/.config/pi-unlimited/vpn/other-account.conf" ];
+  #   Kept enabled by operator decision. Know the cost, because it is invisible
+  #   from inside the pool: all seven exports belong to the same Proton account as
+  #   the NetworkManager connection `us-proton`, and a free Proton account allows
+  #   one connection, so every extra peer competes with the tunnel the machine is
+  #   actually using. They also share Address 10.2.0.2/32 and DNS 10.2.0.1, and
+  #   wg-quick leaves that resolver in /etc/resolv.conf where it is only reachable
+  #   through the tunnel — so a dropped main tunnel takes DNS down with it.
+  #   If the main VPN starts dropping, cut this list down before blaming the
+  #   gateway; `/unlimited doctor` reports the resolver and the pool size.
   vpnConfigs = [
     "~/.config/pi-unlimited/vpn/nl-proton.conf"
     "~/.config/pi-unlimited/vpn/ca-21-proton.conf"
@@ -111,10 +108,21 @@ let
     lib.range 0 (builtins.length vpnConfigsResolved - 1)
   );
   warpEgress = map (
-    index: "socks5://127.0.0.1:${toString (warpSocksPort index)}#warp ${toString index}"
+    index: "socks5://127.0.0.1:${toString (warpSocksPort index)}#warp-${toString index}"
   ) (lib.range 0 (warpCount - 1));
-  egress = vpnEgress ++ warpEgress ++ extraEgress ++ [ "direct" ];
+  egressBase = vpnEgress ++ warpEgress ++ extraEgress ++ [ "direct" ];
+  egressSpaces = builtins.filter (entry: builtins.match ".*[[:space:]].*" entry != null) egressBase;
+  egress =
+    if egressSpaces == [ ] then
+      egressBase
+    else
+      throw "pi-unlimited: these egress entries contain whitespace, which systemd's Environment= splits, silently truncating the pool: ${builtins.toJSON egressSpaces}";
   egressCount = builtins.length egress;
+  # A space anywhere in an entry silently truncates the whole pool: home-manager
+  # writes Environment=KEY=a,b,c unquoted, systemd splits it on whitespace, and
+  # everything after the space becomes a stray assignment nobody reads. That is
+  # how `#warp 0` cost this pool its second tunnel. Fail the build instead.
+  egressHasSpace = builtins.filter (entry: builtins.match ".*[[:space:]].*" entry != null) egress;
 
   # - wgcf mints a per-machine WARP identity. The profile holds a device private
   #   key, so it lives in $XDG_STATE_HOME (mode 600), never in the Nix store.
@@ -315,6 +323,7 @@ in
                   #   signal, where it calls req.destroy() before attaching its
                   #   'error' listener — an unhandled error that exits pi.
                   "PI_UNLIMITED_ATTEMPT_TIMEOUT_MS=30000"
+                  "PI_UNLIMITED_TOTAL_BUDGET_MS=25000"
                 ]
                 # - a file name, not a path: systemd does not expand %h or $HOME
                 #   inside Environment= (verified 2026-11-16), so the gateway
