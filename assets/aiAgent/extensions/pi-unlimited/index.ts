@@ -17,10 +17,11 @@
  * `read`+`shell` tools, `<env>` prompt block) — that fingerprint is pi-bansos's
  * job and is deliberately not duplicated here.
  *
- * The extension also registers `bansos/auto`, a virtual model that fails a
- * 429/403 retry over to the next free model instead of replaying the refusal.
- * That is the one axis that still has headroom when the bucket being spent is
- * per model rather than global.
+ * The extension also reports the provider's *real* reset time. pi-bansos
+ * deliberately discards OpenCode `Retry-After` hints longer than 300s and
+ * substitutes its own 90s→15min reactive backoff, so a bucket that refills at
+ * midnight UTC reaches the TUI looking like "retry in 8m". The gateway keeps
+ * the hint; this extension surfaces it and labels the short one for what it is.
  *
  * Honest limits
  * -------------
@@ -37,7 +38,7 @@
  *   /unlimited egress         gateway egress health
  *   /unlimited apply          point pi-bansos at the gateway (+ reload)
  *   /unlimited off            remove the gateway relay (+ reload)
- *   /unlimited auto on|off    select the bansos/auto failover model
+ *   /unlimited reload         clear pi-bansos's in-memory 429 backoff
  *   /unlimited watch on|off   notifications only
  *   /unlimited clear          clear local history only
  *   /unlimited doctor         wiring checks
@@ -59,6 +60,12 @@ const GATEWAY_STATE_FILE = path.join(AGENT_DIR, "pi-unlimited-gateway.json");
 /** Must match PI_UNLIMITED_PORT / PI_UNLIMITED_HOST in the Nix service. */
 const GATEWAY_URL = process.env.PI_UNLIMITED_URL?.trim() || "http://127.0.0.1:18790";
 const RELAY_LABEL = "pi-unlimited gateway";
+/**
+ * pi-bansos never forwards an OpenCode hint longer than 300s; it substitutes its
+ * own backoff, which caps at 15 minutes. So any `retry-after` up to 900s is
+ * pi-bansos talking about itself, and anything much larger is the provider.
+ */
+const LOCAL_BACKOFF_MAX_SECONDS = 900;
 const MAX_EVENTS = 300;
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -103,6 +110,8 @@ type GatewayState = {
   savedAt?: number;
   egress?: Record<string, Omit<GatewayEgress, "id" | "healthy">>;
   requests?: { total: number; byDay: Record<string, number> };
+  /** The provider's real "spent until", which pi-bansos's 15m cap hides. */
+  bucket?: { spentUntil: number; retryAfterSeconds: number; at: number; egress: string } | null;
   events?: { at: number; egress: string; status: number; kind: RefusalKind; retryAfterSeconds?: number }[];
 };
 
@@ -204,6 +213,18 @@ function loadGatewayState(): GatewayState | undefined {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * pi-bansos discards OpenCode `Retry-After` hints longer than 300s and applies
+ * its own 90s→15min reactive backoff instead, so a spent bucket reaches the TUI
+ * as "retry in 8m". The gateway keeps the provider's real hint; prefer it.
+ */
+function providerBucket(): { spentUntil: number; retryAfterSeconds: number; egress: string } | undefined {
+  const bucket = loadGatewayState()?.bucket;
+  if (!bucket || typeof bucket.spentUntil !== "number") return undefined;
+  if (bucket.spentUntil <= Date.now()) return undefined;
+  return bucket;
 }
 
 // ── Time helpers ───────────────────────────────────────────────────────────
@@ -361,11 +382,21 @@ function statusReport(state: State, gateway?: GatewayState): string {
       ? `last refusal: HTTP ${latest.status} (${latest.kind}) at ${new Date(latest.at).toISOString().slice(11, 19)} UTC${latest.model ? ` · ${latest.model}` : ""}`
       : "last refusal: none recorded",
     latest?.retryAfterSeconds != null
-      ? `provider retry-after: ${humanDuration(latest.retryAfterSeconds)}`
-      : "provider retry-after: unavailable",
+      ? `last retry-after seen: ${humanDuration(latest.retryAfterSeconds)}${latest.retryAfterSeconds <= LOCAL_BACKOFF_MAX_SECONDS ? " (pi-bansos local backoff)" : " (provider hint)"}`
+      : "last retry-after seen: unavailable",
     `refusals today: ${today.length} · notifications ${state.watch ? "ON" : "OFF"}`,
     `UTC midnight (free-tier reset) in ${humanDuration(Math.ceil((nextUtcMidnight(now) - now) / 1000))}`,
   ];
+  const bucket = gateway?.bucket ?? providerBucket();
+  if (bucket && bucket.spentUntil > now) {
+    const clock = new Date(bucket.spentUntil).toISOString().slice(11, 16);
+    lines.push(
+      `provider bucket: SPENT until ~${clock} UTC (in ${humanDuration((bucket.spentUntil - now) / 1000)}) · seen on ${bucket.egress}`,
+    );
+    lines.push(
+      "  pi-bansos caps its own 429 backoff at 15m, so a short \"retry in\" is local, not the provider.",
+    );
+  }
   if (latest?.poolWide) {
     lines.push(
       "note: every egress in the pool got the same refusal — that bucket is not per-IP.",
@@ -414,61 +445,6 @@ function egressReport(gateway?: GatewayState): string {
 
 // ── Free-model failover ladder ─────────────────────────────────────────────
 
-/**
- * Preferred order when several free models have headroom. Deliberately a
- * stable hand-written ladder: quality order is an operator decision, and the
- * catalog changes without notice. Anything alive that is not listed still gets
- * used, appended after these.
- */
-const PREFERRED_FREE_MODELS = [
-  "deepseek-v4.1-flash-free",
-  "big-pickle",
-  "glm-5.3-flash-free",
-  "mimo-v2.6-flash-free",
-  "minimax-m3.1-flash-free",
-  "qwen3.8-flash",
-  "iceman-free",
-  "beam-free",
-  "flint-40b-free",
-  "longcat-2.5-free",
-  "inkling-2-small-free",
-  "nemotron-3.5-lightning-free",
-  "nemotron-3.5-super-vl-free",
-];
-
-/** model id → epoch ms until which it is considered spent. */
-const modelCooldown = new Map<string, number>();
-
-function coolingDown(id: string): boolean {
-  const until = modelCooldown.get(id);
-  if (!until) return false;
-  if (until <= Date.now()) {
-    modelCooldown.delete(id);
-    return false;
-  }
-  return true;
-}
-
-function coolModel(id: string, seconds?: number): void {
-  // OpenCode's synthetic Retry-After points at the UTC reset. Use it when it
-  // looks like a real rest, otherwise a short reactive cooldown so one wave
-  // does not lock a model out for the day (same rule pi-bansos applies).
-  const window = seconds != null && seconds > 0 && seconds <= 3600 ? seconds : 90;
-  modelCooldown.set(id, Date.now() + window * 1000);
-}
-
-type AvailableModel = { provider: string; id: string };
-
-function freeModelLadder(ctx: { modelRegistry?: { getAvailable?: () => AvailableModel[] } }): string[] {
-  const available = (ctx.modelRegistry?.getAvailable?.() ?? []).filter(
-    (model) => model.provider === "bansos",
-  );
-  const ids = available.map((model) => model.id);
-  const preferred = PREFERRED_FREE_MODELS.filter((id) => ids.includes(id));
-  const rest = ids.filter((id) => !preferred.includes(id)).sort();
-  return [...preferred, ...rest];
-}
-
 export default function (pi: ExtensionAPI) {
   let state = loadState();
 
@@ -502,17 +478,23 @@ export default function (pi: ExtensionAPI) {
     },
     event: LimitEvent,
   ) => {
-    if (event.model?.startsWith("bansos/") && event.status === 429) {
-      coolModel(event.model.slice("bansos/".length), event.retryAfterSeconds);
-    }
     if (!appendEvent(state, event)) return;
     setStatus(ctx);
     if (!state.watch) return;
     const retry = event.retryAfterSeconds != null ? ` Retry in ${humanDuration(event.retryAfterSeconds)}.` : "";
     const wide = event.poolWide ? " Every egress was refused, so rotating cannot help." : "";
+    // A short hint is pi-bansos's own backoff (90s→15min cap), not the
+    // provider's. Say which, so nobody waits 15 minutes for a bucket that
+    // refills at midnight UTC.
+    const shortHint =
+      event.retryAfterSeconds != null && event.retryAfterSeconds <= LOCAL_BACKOFF_MAX_SECONDS;
+    const bucket = providerBucket();
+    const bucketNote = bucket
+      ? ` Provider bucket (${bucket.egress}) resets ${new Date(bucket.spentUntil).toISOString().slice(11, 16)} UTC, in ${humanDuration((bucket.spentUntil - Date.now()) / 1000)}.`
+      : "";
     notify(
       ctx,
-      `OpenCode ${event.status} ${event.kind}.${retry}${wide}`,
+      `OpenCode ${event.status} ${event.kind}.${retry}${wide}${shortHint ? bucketNote : ""}`,
       event.kind === "quota" ? "warning" : "error",
     );
   };
@@ -582,55 +564,8 @@ export default function (pi: ExtensionAPI) {
     });
   });
 
-  // ── Virtual model: fail a refusal over to the next healthy free model ────
-  // Registered defensively: virtual models are optional, and an older runtime
-  // must keep the ledger working rather than fail to load the extension.
-  const register = (pi as unknown as { registerVirtualModel?: (definition: unknown) => void })
-    .registerVirtualModel;
-  if (typeof register === "function") {
-    register.call(pi, {
-      provider: "bansos",
-      id: "auto",
-      name: "Auto (free-tier failover)",
-      thinkingLevels: ["off", "low", "medium", "high"],
-      contextWindow: 128_000,
-      maxTokens: 16_384,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      route(request: any, ctx: any) {
-        const ladder = freeModelLadder(ctx);
-        const usable = ladder.filter((id) => !coolingDown(id));
-        const pick = (id: string) => ctx.modelRegistry.find("bansos", id);
-
-        const previousId = request.previous?.model?.id as string | undefined;
-        const failedId = request.failed?.model?.id as string | undefined;
-        const failureText = String(request.failed?.message?.errorMessage ?? "");
-        const failureStatus = Number((failureText.match(/\b(429|403)\b/) ?? [])[1] || 0);
-        const refused =
-          failureStatus === 429 ||
-          failureStatus === 403 ||
-          /free usage limit|rate limit|abusive traffic|freetiererror/i.test(failureText);
-
-        // A refusal is the one case where leaving the previous model is correct.
-        if (request.reason === "retry" && refused && failedId) {
-          coolModel(failedId, retryFromMessage(failureText));
-          const next = usable.find((id) => id !== failedId) ?? usable[0];
-          const model = next ? pick(next) : undefined;
-          if (model) return { model, thinkingLevel: request.thinkingLevel };
-        }
-
-        // Otherwise stay on whatever already answered: switching mid-turn
-        // throws away the prompt cache and the thinking signature.
-        const sticky = previousId && ladder.includes(previousId) ? previousId : undefined;
-        const target = sticky ?? usable[0] ?? ladder[0];
-        const model = target ? pick(target) : undefined;
-        if (!model) throw new Error("no bansos free model available");
-        return { model, thinkingLevel: request.thinkingLevel };
-      },
-    });
-  }
-
   pi.registerCommand("unlimited", {
-    description: "OpenCode free tier: status | usage | egress | apply | off | auto | watch | clear | doctor",
+    description: "OpenCode free tier: status | usage | egress | apply | off | reload | watch | clear | doctor",
     getArgumentCompletions: (prefix) =>
       [
         "status",
@@ -638,8 +573,7 @@ export default function (pi: ExtensionAPI) {
         "egress",
         "apply",
         "off",
-        "auto on",
-        "auto off",
+        "reload",
         "watch on",
         "watch off",
         "clear",
@@ -687,19 +621,20 @@ export default function (pi: ExtensionAPI) {
           if (result.ok) await ctx.reload();
           return;
         }
-        case "auto": {
-          if (option === "on" || option === "off") {
-            const id = option === "on" ? "auto" : "deepseek-v4.1-flash-free";
-            const model = ctx.modelRegistry.find("bansos", id);
-            if (!model) {
-              notify(ctx, `bansos/${id} is not in the catalog`, "error");
-              return;
-            }
-            const ok = await pi.setModel(model);
-            notify(ctx, ok ? `Model → bansos/${id}` : `No credentials for bansos/${id}`, ok ? "info" : "error");
-          } else {
-            notify(ctx, "usage: /unlimited auto on|off");
-          }
+        case "reload": {
+          // pi-bansos keeps its 429 cooldowns in module state, so a reload is
+          // the only way to drop a stale one (e.g. recorded just before the
+          // bucket refilled at 00:00 UTC). It does not touch the provider.
+          const bucket = providerBucket();
+          const note = bucket
+            ? ` Provider bucket is still spent until ~${new Date(bucket.spentUntil).toISOString().slice(11, 16)} UTC.`
+            : "";
+          notify(
+            ctx,
+            `Reloading to clear pi-bansos's in-memory 429 backoff.${note}`,
+            bucket ? "warning" : "info",
+          );
+          await ctx.reload();
           return;
         }
         case "watch":
@@ -714,7 +649,6 @@ export default function (pi: ExtensionAPI) {
           return;
         case "clear":
           state.events = [];
-          modelCooldown.clear();
           saveState(state);
           setStatus(ctx);
           notify(ctx, "Cleared local history only; the provider quota is unchanged.");
@@ -728,7 +662,7 @@ export default function (pi: ExtensionAPI) {
             `- relay file: ${RELAY_FILE}`,
             `- gateway: ${gateway ? `up (${gateway.bind})` : `DOWN (${GATEWAY_URL})`}`,
             `- pi-bansos relay: ${relay.active ? "gateway" : relay.url || "direct"}`,
-            `- virtual model bansos/auto: ${typeof register === "function" ? "registered" : "unsupported runtime"}`,
+            `- provider bucket: ${providerBucket() ? `spent until ${new Date(providerBucket()!.spentUntil).toISOString().slice(11, 16)} UTC` : "no long hint recorded"}`,
             `- recorded refusals: ${state.events.length}`,
             `- agent directory writable: ${canWrite(AGENT_DIR) ? "yes" : "no"}`,
           ];
@@ -736,7 +670,7 @@ export default function (pi: ExtensionAPI) {
           return;
         }
         default:
-          notify(ctx, "usage: /unlimited status|usage|egress|apply|off|auto on|off|watch on|off|clear|doctor", "warning");
+          notify(ctx, "usage: /unlimited status|usage|egress|apply|off|reload|watch on|off|clear|doctor", "warning");
       }
     },
   });

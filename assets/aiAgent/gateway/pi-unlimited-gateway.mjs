@@ -189,6 +189,13 @@ function freshState(config) {
       ]),
     ),
     requests: { total: 0, byDay: {} },
+    /**
+     * The provider's own view of the free budget, as last reported. pi-bansos
+     * deliberately discards OpenCode Retry-After hints longer than 300s and
+     * substitutes its own 90s→15min reactive backoff, so this is the only
+     * place the real "spent until" is still visible.
+     */
+    bucket: { spentUntil: 0, retryAfterSeconds: 0, at: 0, egress: "" },
     events: [],
   };
 }
@@ -322,6 +329,17 @@ function classifyRefusal(bodyText) {
 function noteEvent(state, event) {
   state.events.push(event);
   if (state.events.length > MAX_EVENTS) state.events = state.events.slice(-MAX_EVENTS);
+  // A long quota hint is the provider telling us when the bucket refills
+  // (OpenCode points at 00:00 UTC). Keep the latest one so the operator sees
+  // the real wait instead of pi-bansos's capped local backoff.
+  if (event.kind === "quota" && (event.retryAfterSeconds ?? 0) > 300) {
+    state.bucket = {
+      spentUntil: event.at + event.retryAfterSeconds * 1000,
+      retryAfterSeconds: event.retryAfterSeconds,
+      at: event.at,
+      egress: event.egress,
+    };
+  }
 }
 
 // ── Transports ────────────────────────────────────────────────────────────
@@ -759,6 +777,7 @@ function startServer(config, state) {
           ...state.egress[e.id],
         })),
         requests: state.requests,
+        bucket: state.bucket?.spentUntil > Date.now() ? state.bucket : null,
       });
       return;
     }

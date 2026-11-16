@@ -43,19 +43,10 @@ OpenCode edge keys on (cipher-list order + ALPN).
 | `/unlimited egress` | Per-egress health from the gateway: ready / parked, latency, errors |
 | `/unlimited apply` | Point pi-bansos at the gateway, then reload |
 | `/unlimited off` | Remove the gateway relay, then reload |
-| `/unlimited auto on\|off` | Select `bansos/auto`, the free-model failover model |
+| `/unlimited reload` | Reload to drop pi-bansos's in-memory 429 backoff |
 | `/unlimited watch on\|off` | Notifications only (recording is always on) |
 | `/unlimited clear` | Clear local history only |
 | `/unlimited doctor` | Wiring checks |
-
-## Model failover
-
-`/unlimited auto on` selects `bansos/auto`, a virtual model that routes each
-request to a healthy free model. It stays on whatever already answered
-(`continuation` keeps the prompt cache), and only leaves the previous model on
-a refusal — a `429`/`403` retry moves to the next free model instead of
-replaying the same refusal. The ladder is `PREFERRED_FREE_MODELS`, with any
-other live `bansos` model appended.
 
 ## Verified behaviour (2026-11-15)
 
@@ -105,6 +96,39 @@ request past the caller's timeout (WARP stalls, and the old upstream timeout was
 
 The underlying bug is upstream and worth reporting: the `aborted` branch must
 attach the error handler before `req.destroy()`.
+
+## The "retry in 8m / 15m" trap
+
+When a free model is spent, pi-bansos records its own reactive backoff, not the
+provider's wait. In `extensions/upstream-health.ts`:
+
+```ts
+const QUOTA_BASE_MS = 90_000;
+const QUOTA_CAP_MS = 15 * 60_000;
+```
+
+and in `extensions/index.ts` any OpenCode `Retry-After` longer than 300s is
+discarded:
+
+```ts
+const hint = upstream === "opencode" && parsed != null && parsed > 300 ? null : parsed;
+```
+
+So a bucket that actually refills at midnight UTC surfaces as
+`Retry in 8m 22s`, then `14m 59s` (the cap) on each manual retry. That number is
+pi-bansos's own ladder — 90s → 180s → 360s → 720s → 900s — and it short-circuits
+**before** the relay, so the gateway never gets a chance to rotate while it is
+active.
+
+What follows from that:
+
+- The gateway records the provider's real hint (`bucket.spentUntil`, typically
+  `00:00Z`), and `/unlimited status` prints it, labelled separately from the
+  15-minute local backoff.
+- `/unlimited reload` is the only way to drop the in-memory backoff without
+  switching models, because it lives in pi-bansos module state.
+- Rotating egress cannot lift the cooldown while it is active — pi-bansos does
+  not call out at all. `/unlimited reload` first, then the gateway retries.
 
 ## Honest limits
 
