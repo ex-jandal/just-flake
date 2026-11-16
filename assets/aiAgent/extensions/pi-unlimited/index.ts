@@ -144,6 +144,8 @@ type GatewayEgress = {
   quarantineUntil: number;
   /** Successful relays through this exit since the ledger was created. */
   okCount?: number;
+  /** Refusals/transport failures seen on this exit. */
+  failCount?: number;
   /** Last HTTP status seen on this exit; 0 means transport failure. */
   lastStatus?: number;
   lastAt?: number;
@@ -177,6 +179,8 @@ type GatewayState = {
 /** Reply of `/__unlimited/test`: one real request per distinct block. */
 type EgressTest = {
   model: string;
+  /** "captured" = replayed pi-bansos's own client shape; "builtin" = guessed. */
+  shape?: "captured" | "builtin";
   at: number;
   elapsedMs: number;
   tested: number;
@@ -433,10 +437,14 @@ function formatTest(result: EgressTest): string {
     }
     return `  ${name}  ${ip}  ${row.verdict}${row.note ? ` · ${row.note}` : ""}`;
   });
+  const caveat =
+    result.shape === "builtin"
+      ? "\n  shape: builtin — no real request captured yet, so a refusal may be the client gate, not quota"
+      : "";
   return [
     `egress test · ${result.model} · ${result.tested} request(s) in ${humanDuration(result.elapsedMs / 1000)}`,
     ...rows,
-    `${result.available}/${result.tested} block(s) have budget · remaining usage ${result.remaining}`,
+    `${result.available}/${result.tested} block(s) have budget · remaining usage ${result.remaining}${caveat}`,
   ].join("\n");
 }
 
@@ -655,7 +663,9 @@ function proxiesReport(views: PoolView[]): string {
       }
       if (ip !== "—" && !seenIps.has(ip)) seenIps.set(ip, label);
       const ok = record.okCount ?? 0;
-      const refused = Math.max(0, (record.requests ?? 0) - ok);
+      // Not `requests - ok`: older ledgers counted successes before okCount
+      // existed, and that arithmetic invented hundreds of refusals.
+      const refused = record.failCount ?? Math.max(0, (record.requests ?? 0) - ok);
       rows.push({
         star: usedId && record.id === usedId ? "*" : " ",
         label,

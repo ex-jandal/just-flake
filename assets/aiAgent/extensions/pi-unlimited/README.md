@@ -135,11 +135,37 @@ Two things to know before running it:
   minutes total. It is sequential and de-duplicated by exit address, so a
   duplicate tunnel is never charged twice.
 
-If the fingerprint ever drifts, the test degrades to `gate · fingerprint
-rejected — cannot judge quota` instead of falsely reporting a spent block. That
-is the whole reason the probe carries the client shape: OpenCode answers a
-mis-shaped request with the *same* `429` as a real quota refusal, and reporting
-that as "spent" would be a lie.
+### Why the probe replays instead of inventing
+
+OpenCode meters the free tier per **client identity** and answers a client it
+does not recognise with the *same* `FreeUsageLimitError` as a genuinely spent
+bucket. An invented request therefore cannot tell the two apart, and an earlier
+version of this test reported `spent` for a block that was answering `pi` at
+that moment — measured, interleaved, three times in a row:
+
+| Request | Result |
+|---|---|
+| real `pi` turn | `200` (×11, one after another) |
+| gateway replay with captured body + headers | `429 quota` |
+| probe with **invented** `x-opencode-project` / `x-session-id` | `429 quota` |
+| probe with those headers **captured from real traffic** | `200` (×3) |
+
+The gateway sits on the wire and sees every real request, so it stores the last
+one's upstream headers, tool schemas, system prompt and body
+(`GET /__unlimited/shape` shows what it has) and the probe replays that client
+identity. Until a real request has passed through since the gateway started, the
+probe has only its built-in shape, and then it *says so*:
+
+```
+egress test · deepseek-v4.1-flash-free · 1 request(s) in 2s
+  direct  89.189.83.90  SPENT · resets 00:00Z in 13h 26m
+0/1 block(s) have budget · remaining usage not published by upstream
+  shape: builtin — no real request captured yet, so a refusal may be the client
+  gate, not quota
+```
+
+A `builtin` verdict never writes to the ledger, so an untrustworthy probe can no
+longer poison `/unlimited proxies`.
 
 ## Multiple tunnels, and why they are de-duplicated
 

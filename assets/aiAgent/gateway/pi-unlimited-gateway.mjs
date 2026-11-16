@@ -333,6 +333,7 @@ function noteRefusal(state, id, status, detail) {
   record.requests += 1;
   record.lastStatus = status;
   record.lastAt = Date.now();
+  record.failCount = (record.failCount ?? 0) + 1;
   record.failures += 1;
   record.lastError = `${status} ${detail}`.trim().slice(0, 200);
   // Exponential backoff per consecutive refusal, same shape pi-bansos uses for
@@ -348,6 +349,7 @@ function noteTransportFailure(state, id, error) {
   record.requests += 1;
   record.lastStatus = 0;
   record.lastAt = Date.now();
+  record.failCount = (record.failCount ?? 0) + 1;
   record.failures += 1;
   record.lastError = `transport: ${String(error).slice(0, 180)}`;
   const wait = Math.min(30_000 * 2 ** (record.failures - 1), 15 * 60_000);
@@ -757,6 +759,69 @@ const PROBE_TOOLS = [
   },
 ];
 
+/**
+ * Replaying our own invented request is how /__unlimited/test lied: OpenCode
+ * answers a shape it does not recognise with the *same* 429 as a real quota
+ * refusal, so a hand-built probe reported "spent" for a block that was serving
+ * pi at that very moment (measured: 10 real successes against a "spent" verdict
+ * from the same address). The gateway sees every real request go past, so the
+ * probe reuses the last one instead of guessing.
+ *
+ * Only headers that describe the client are kept, and never an Authorization
+ * that is not already the public one, so a private token cannot leak into a
+ * state file.
+ */
+const SHAPE_HEADERS = new Set([
+  "user-agent",
+  "x-opencode-client",
+  "accept",
+  "content-type",
+  "b3",
+  "traceparent",
+  "prompt_cache_key",
+]);
+
+function rememberShape(state, upstream) {
+  if (upstream.hostname !== "opencode.ai") return;
+  try {
+    const parsed = JSON.parse(upstream.body.toString("utf8"));
+    if (!parsed || typeof parsed !== "object") return;
+    const system = Array.isArray(parsed.messages)
+      ? parsed.messages.find((message) => message?.role === "system")
+      : undefined;
+    // Keep EVERY header the client sent upstream: a quota gate is allowed to
+    // look at any of them, and reconstructing a subset is how this probe ended
+    // up disagreeing with live traffic. Only credentials are redacted, so the
+    // state file stays safe to read.
+    const headers = {};
+    for (const [key, value] of Object.entries(upstream.headers ?? {})) {
+      const name = key.toLowerCase();
+      if (name === "authorization" || name === "cookie") {
+        const text = String(value);
+        headers[name] = /^bearer\s+(public|anonymous)$/i.test(text) ? text : "<redacted>";
+        continue;
+      }
+      headers[name] = value;
+    }
+    state.shape = {
+      at: Date.now(),
+      hostname: upstream.hostname,
+      path: upstream.path,
+      headers,
+      tools: parsed.tools,
+      system: typeof system?.content === "string" ? system.content : undefined,
+      // No ids: they are per-request anyway, and a replay must not look like a
+      // duplicate of live traffic.
+      model: typeof parsed.model === "string" ? parsed.model : undefined,
+      // Kept verbatim for diagnosis (`/__unlimited/shape`); the probe itself
+      // only needs the fields above.
+      fullBody: upstream.body.toString("utf8").slice(0, 262_144),
+    };
+  } catch {
+    // Not a JSON body; keep whatever shape we had.
+  }
+}
+
 function probeEnvBlock() {
   return [
     "Here is some useful information about the environment you are running in:",
@@ -770,7 +835,7 @@ function probeEnvBlock() {
   ].join("\n");
 }
 
-function probeRequest(model) {
+function probeRequest(model, shape) {
   const session = `ses_${crypto.randomBytes(6).toString("hex")}${randomBase62(14)}`;
   const traceId = crypto.randomBytes(16).toString("hex");
   const spanId = crypto.randomBytes(8).toString("hex");
@@ -779,10 +844,13 @@ function probeRequest(model) {
     stream: true,
     max_tokens: 8,
     messages: [
-      { role: "system", content: "You are a helpful assistant.\n\n" + probeEnvBlock() },
+      {
+        role: "system",
+        content: shape?.system ?? "You are a helpful assistant.\n\n" + probeEnvBlock(),
+      },
       { role: "user", content: "hi" },
     ],
-    tools: structuredClone(PROBE_TOOLS),
+    tools: shape?.tools ? structuredClone(shape.tools) : structuredClone(PROBE_TOOLS),
     prompt_cache_key: session,
   };
   return {
@@ -792,14 +860,20 @@ function probeRequest(model) {
     protocol: "https:",
     path: "/inference/v1/chat/completions",
     headers: {
-      "user-agent": "opencode/dev/1.19.5/opencode",
-      authorization: "Bearer public",
+      ...(shape?.headers ?? {}),
+      "user-agent": shape?.headers?.["user-agent"] ?? "opencode/dev/1.19.5/opencode",
+      authorization: shape?.headers?.authorization ?? "Bearer public",
       "x-opencode-client": "opencode",
-      "x-opencode-project": crypto.randomBytes(20).toString("hex"),
-      "x-opencode-session": session,
-      "x-opencode-session-id": session,
-      "x-session-affinity": session,
-      "x-session-id": session,
+      // Identity headers must come from the captured request. Inventing them is
+      // what made the probe report "spent" against a block that was serving pi:
+      // OpenCode meters the free tier per project/session, and an unknown one is
+      // refused with the very same FreeUsageLimitError as a real spent bucket.
+      "x-opencode-project":
+        shape?.headers?.["x-opencode-project"] ?? crypto.randomBytes(20).toString("hex"),
+      "x-opencode-session": shape?.headers?.["x-opencode-session"] ?? session,
+      "x-opencode-session-id": shape?.headers?.["x-opencode-session-id"] ?? session,
+      "x-session-affinity": shape?.headers?.["x-session-affinity"] ?? session,
+      "x-session-id": shape?.headers?.["x-session-id"] ?? session,
       "x-opencode-request": `msg_${crypto.randomBytes(6).toString("hex")}${randomBase62(14)}`,
       b3: `${traceId}-${spanId}-1-${spanId}`,
       traceparent: `00-${traceId}-${spanId}-01`,
@@ -839,6 +913,11 @@ function drainBriefly(stream, ms = 4000) {
  */
 async function runEgressTest(config, state, model) {
   const started = Date.now();
+  // Captured from real traffic, or undefined until the first relay. A built-in
+  // shape is still worth trying, but its verdict may not be trusted enough to
+  // rewrite the ledger — see the quota branch below.
+  const shape = state.shape;
+  const faithful = Boolean(shape);
   const order = egressOrder(config, state);
   const rows = [];
   for (const egress of order) {
@@ -849,7 +928,7 @@ async function runEgressTest(config, state, model) {
     const record = state.egress[egress.id];
     const row = { id: egress.id, exitIp: record?.exitIp || "", status: 0, verdict: "error", note: "" };
     try {
-      const result = await forward(config, egress, probeRequest(model), { timeoutMs: 45_000 });
+      const result = await forward(config, egress, probeRequest(model, shape), { timeoutMs: 45_000 });
       const latency = Date.now() - started;
       row.status = result.status;
       if (result.status === 429 || result.status === 403) {
@@ -860,8 +939,9 @@ async function runEgressTest(config, state, model) {
         row.latencyMs = latency;
         if (kind === "quota") {
           row.verdict = "spent";
-          // This IS authoritative: record it for the status line.
-          if (ra != null && ra > 300) {
+          // Only a faithful probe may move the ledger: an invented shape can
+          // draw the same 429 and would poison /unlimited proxies.
+          if (faithful && ra != null && ra > 300) {
             state.buckets[egress.id] = {
               spentUntil: Date.now() + ra * 1000,
               retryAfterSeconds: ra,
@@ -895,6 +975,7 @@ async function runEgressTest(config, state, model) {
   const available = rows.filter((row) => row.verdict === "ok").length;
   return {
     model,
+    shape: faithful ? "captured" : "builtin",
     at: Date.now(),
     elapsedMs: Date.now() - started,
     rows,
@@ -992,6 +1073,10 @@ async function handleRelay(config, state, request, res) {
     headers: sanitize(request.headers),
     body,
   };
+
+  // Cheap (a bounded JSON parse) and it is the only way a later /__unlimited/test
+  // can speak with the client shape OpenCode actually accepts.
+  rememberShape(state, upstream);
 
   state.requests.total += 1;
   const day = utcDay();
@@ -1114,6 +1199,24 @@ function startServer(config, state) {
       runEgressTest(config, state, model)
         .then((result) => reply(res, 200, result))
         .catch((error) => reply(res, 500, { error: { message: String(error) } }));
+      return;
+    }
+    if (url.pathname === "/__unlimited/shape") {
+      // Headers as last seen upstream, with values that could carry a secret
+      // redacted. Diagnosis only.
+      reply(res, 200, {
+        shape: state.shape
+          ? {
+              at: state.shape.at,
+              hostname: state.shape.hostname,
+              path: state.shape.path,
+              headers: state.shape.headers,
+              model: state.shape.model,
+              toolCount: (state.shape.tools ?? []).length,
+              bodyBytes: (state.shape.fullBody ?? "").length,
+            }
+          : null,
+      });
       return;
     }
     if (request.url === "/__unlimited/health") {
