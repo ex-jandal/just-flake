@@ -69,13 +69,13 @@ let
   #   If the main VPN starts dropping, cut this list down before blaming the
   #   gateway; `/unlimited doctor` reports the resolver and the pool size.
   vpnConfigs = [
-    "~/.config/pi-unlimited/vpn/nl-proton.conf"
-    "~/.config/pi-unlimited/vpn/ca-21-proton.conf"
-    "~/.config/pi-unlimited/vpn/je-23-proton.conf"
-    "~/.config/pi-unlimited/vpn/mx-17-proton.conf"
-    "~/.config/pi-unlimited/vpn/us-33-proton.conf"
-    "~/.config/pi-unlimited/vpn/us-127-proton.conf"
-    "~/.config/pi-unlimited/vpn/nl-111-proton.conf"
+    # "~/.config/pi-unlimited/vpn/mx-17-proton.conf"
+    # "~/.config/pi-unlimited/vpn/nl-111-proton.conf"
+    # "~/.config/pi-unlimited/vpn/je-23-proton.conf"
+    # "~/.config/pi-unlimited/vpn/ca-21-proton.conf"
+    # "~/.config/pi-unlimited/vpn/nl-proton.conf"
+    # "~/.config/pi-unlimited/vpn/us-33-proton.conf"
+    # "~/.config/pi-unlimited/vpn/us-127-proton.conf"
   ];
   vpnConfigsResolved = map (
     entry:
