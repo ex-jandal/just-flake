@@ -339,10 +339,15 @@ session_position = "center"
 grid = true
 
 [theme]
+# - Melange (savq/melange-nvim) ships as a custom palette from
+#   home/modules/noctalia.nix, so it is selectable in Settings -> Color scheme
+#   too. `builtin` is the fallback Noctalia uses if the custom JSON fails to
+#   parse; `community_palette` is kept so switching `source` back is one line.
 builtin = "Nord"
 community_palette = "Hexa34C"
+custom_palette = "Melange"
 mode = "dark"
-source = "community"
+source = "custom"
 wallpaper_scheme = "m3-fruit-salad"
 
 [theme.templates]

@@ -17,6 +17,12 @@
     package = inputs.noctalia.packages.${system}.default;
     # - settings: attrset, TOML string, or path to a .toml file.
     settings = ../../assets/noctalia/settings.toml;
+
+    # - palettes Noctalia can load with `[theme] source = "custom"`; each key
+    #   is written to ~/.config/noctalia/palettes/<name>.json.
+    # - Melange is a port of savq/melange-nvim (roles + terminal colors).
+    #   Selected in assets/noctalia/settings.toml via custom_palette.
+    customPalettes.Melange = ../../assets/noctalia/palettes/Melange.json;
   };
 
   # - the Noctalia service wires into home-manager's wayland systemd target,
