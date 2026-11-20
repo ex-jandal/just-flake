@@ -124,7 +124,8 @@ in
 
     linuxPackages.usbip
 
-    llama-cpp
+    vulkan-tools
+    llama-cpp-vulkan
   ];
 
   programs.appimage = {
