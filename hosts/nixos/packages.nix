@@ -61,7 +61,14 @@ in
 {
   imports = [
     inputs.helium-flake.nixosModules.default
+    inputs.franken-llama.nixosModules.default
   ];
+
+  services.franken-llama = {
+    enable = true;
+    acceleration = "cpu"; # cpu, cuda, rocm, vulkan, dual
+    nativeCpu = true;
+  };
 
   # - Provide a Wayland session entry so the greeter can offer Niri (pkgs.niri
   #   ships its own niri.desktop; adding it to environment.systemPackages links
@@ -116,6 +123,8 @@ in
     wireguard-tools
 
     linuxPackages.usbip
+
+    llama-cpp
   ];
 
   programs.appimage = {

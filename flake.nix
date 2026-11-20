@@ -64,6 +64,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    franken-llama = {
+      url = "github:bowmanjd/franken-llama";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # - Doom Emacs, prebuilt from nixpkgs/emacs-overlay instead of straight.el.
     #   Do NOT follow nixpkgs: Unstraightened pins its own nixpkgs for the
     #   elisp package set, and following ours breaks that pinning (its binary

@@ -146,6 +146,24 @@
         "type": "github"
       }
     },
+    "flake-parts": {
+      "inputs": {
+        "nixpkgs-lib": "nixpkgs-lib"
+      },
+      "locked": {
+        "lastModified": 1793576659,
+        "narHash": "sha256-V1h85lUaJBQoHFrB2vpXZOE0Ju1MYSnIpsehoVZYlDo=",
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "rev": "ea2630b7470978622c7689a1ff75d2b389175399",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "type": "github"
+      }
+    },
     "flake-utils": {
       "inputs": {
         "systems": "systems"
@@ -179,6 +197,27 @@
       "original": {
         "owner": "numtide",
         "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "franken-llama": {
+      "inputs": {
+        "llama-cpp": "llama-cpp",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1794052533,
+        "narHash": "sha256-Qw4P6K9CgZUj1ThMZZlCnrD/b1kuqpDJ1fLE8G1pCfE=",
+        "owner": "bowmanjd",
+        "repo": "franken-llama",
+        "rev": "7654a590232ca9f65a9987e9720ce1f9360dc754",
+        "type": "github"
+      },
+      "original": {
+        "owner": "bowmanjd",
+        "repo": "franken-llama",
         "type": "github"
       }
     },
@@ -243,6 +282,29 @@
         "type": "github"
       }
     },
+    "llama-cpp": {
+      "inputs": {
+        "flake-parts": "flake-parts",
+        "nixpkgs": [
+          "franken-llama",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1793793986,
+        "narHash": "sha256-6LqtpfqTAbYUr/wPPBAM/dXHv3LDTg+1A81k/cFcAjY=",
+        "owner": "ggml-org",
+        "repo": "llama.cpp",
+        "rev": "cd959bae99ff4bed22bef2604f45241c09bbb8c8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ggml-org",
+        "ref": "v0.9.0",
+        "repo": "llama.cpp",
+        "type": "github"
+      }
+    },
     "mimo_manager": {
       "inputs": {
         "nixpkgs": [
@@ -296,6 +358,21 @@
         "owner": "NixOS",
         "ref": "nixpkgs-unstable",
         "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs-lib": {
+      "locked": {
+        "lastModified": 1793504054,
+        "narHash": "sha256-ThkfL3D/FhCiZFc9+3BtxwuMmpuK+/bGtXCSo1+yVew=",
+        "owner": "nix-community",
+        "repo": "nixpkgs.lib",
+        "rev": "7851ba61fd862b277cb6a9cef37394bc18bb94e4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "nixpkgs.lib",
         "type": "github"
       }
     },
@@ -406,6 +483,7 @@
         "arabic-poem": "arabic-poem",
         "artcraft-launcher": "artcraft-launcher",
         "doom-emacs": "doom-emacs",
+        "franken-llama": "franken-llama",
         "helium-flake": "helium-flake",
         "home-manager": "home-manager",
         "mimo_manager": "mimo_manager",
