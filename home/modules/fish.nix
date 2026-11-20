@@ -27,6 +27,7 @@ in
     ANDROID_EMULATOR_HOME = "$HOME/.android";
     ANDROID_AVD_HOME = "$ANDROID_EMULATOR_HOME/avd";
     ANDROID_EMU_OPTIONS = "-gpu host -no-snapshot -accel on -qemu -enable-kvm";
+    CHROME_EXECUTABLE = "chromium";
     PNPM_HOME = "$HOME/.local/share/pnpm";
     fish_lsp_server_path = "${pkgs.fish-lsp}/bin/fish-lsp";
     # - Java AWT/Swing GUI apps (Ghidra, etc.) render a blank window under niri
