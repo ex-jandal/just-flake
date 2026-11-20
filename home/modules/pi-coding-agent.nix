@@ -131,11 +131,11 @@ in
 
               models = [
                 {
-                  id = "LFM3-1.7B-CPU";
+                  id = "LFM3-1.7B";
                   name = "LFM3 1.7B (local)";
                   reasoning = true;
                   input = [ "text" ];
-                  contextWindow = 204800;
+                  contextWindow = 262144;
                   # maxTokens = 8192;
                 }
               ];
