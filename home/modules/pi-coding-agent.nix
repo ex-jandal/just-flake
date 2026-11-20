@@ -115,6 +115,34 @@ in
           };
         };
       };
+
+      models = {
+        value = {
+          providers = {
+            "llama-cpp" = {
+              baseUrl = "http://127.0.0.1:8087/v1";
+              api = "openai-completions";
+              apiKey = "llama";
+
+              compat = {
+                supportsDeveloperRole = false;
+                supportsReasoningEffort = false;
+              };
+
+              models = [
+                {
+                  id = "LFM3-1.7B-CPU";
+                  name = "LFM3 1.7B (local)";
+                  reasoning = true;
+                  input = [ "text" ];
+                  contextWindow = 204800;
+                  # maxTokens = 8192;
+                }
+              ];
+            };
+          };
+        };
+      };
     };
   };
 
