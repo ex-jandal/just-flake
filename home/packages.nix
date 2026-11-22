@@ -191,6 +191,7 @@
         fuzzel
         mpd
         localsend
+        croc
         sioyek
         super-productivity
         anki
@@ -251,7 +252,16 @@
         dioxus-cli
         jdk
         gradle
-        python3
+        (python3.withPackages (
+          ps: with ps; [
+            # for AI
+            pandas
+            numpy
+            matplotlib
+
+            requests
+          ]
+        ))
         uv
         # - qemu_full listed in the lab block (QEMU for GNS3/VMs)
         gdb
