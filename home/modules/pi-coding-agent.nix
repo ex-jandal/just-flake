@@ -160,15 +160,6 @@ in
     source = ../../assets/aiAgent/extensions/visual-tools;
     recursive = true;
   };
-  # - pi-unlimited: points pi-bansos at the local rotating-egress gateway,
-  #   keeps the refusal ledger, and registers the `bansos/auto` failover model.
-  #   The gateway itself (and Cloudflare WARP) is a systemd user service — see
-  #   home/modules/pi-unlimited.nix.
-  home.file.".pi/agent/extensions/pi-unlimited" = {
-    source = ../../assets/aiAgent/extensions/pi-unlimited;
-    recursive = true;
-  };
-
   home.file.".pi/agent/agents/researcher.md".source = ../../assets/aiAgent/agents/researcher.md;
   home.file.".pi/agent/agents/mermaid-maker.md".source = ../../assets/aiAgent/agents/mermaid-maker.md;
   home.file.".pi/agent/agents/svg-maker.md".source = ../../assets/aiAgent/agents/svg-maker.md;
