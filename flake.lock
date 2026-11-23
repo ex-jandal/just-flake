@@ -465,11 +465,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1794357695,
-        "narHash": "sha256-GrrSjWjZpj5yaj5WcBVcBm4kiYpmGfF6HtsnXzGB2+M=",
+        "lastModified": 1795189611,
+        "narHash": "sha256-v4VJJfOtYK6CJVt1zKpUav6F/7AX9vqAUBOuqwBLaQk=",
         "owner": "ChauDucToan",
         "repo": "pi-flake",
-        "rev": "1653f6f2f86624dbd92d6035fc8d5846816de1ad",
+        "rev": "f1687e9d88f2d7ea22094c06cf10f1337ab691f5",
         "type": "github"
       },
       "original": {
