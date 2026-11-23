@@ -215,7 +215,7 @@
         traceroute
         netcat-openbsd
         nethogs
-        haguichi
+        # haguichi
         bmon
         cpufetch
       ];
