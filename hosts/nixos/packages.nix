@@ -120,6 +120,12 @@ in
     llama-cpp-vulkan
   ];
 
+  services.franken-llama = {
+    enable = true;
+    acceleration = "vulkan"; # cpu, cuda, rocm, vulkan, dual
+    nativeCpu = true;
+  };
+
   programs.appimage = {
     enable = true;
     binfmt = true;
