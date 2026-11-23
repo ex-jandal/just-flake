@@ -20,7 +20,7 @@
 
   services.tailscale.enable = true;
 
-  programs.wireshark.enable = true;
+  # programs.wireshark.enable = true;
   users.groups.wireshark.members = [ "abu_jandal" ];
 
   services.gns3-server = {
@@ -31,7 +31,7 @@
   };
 
   programs.java.enable = true;
-  services.logmein-hamachi.enable = true;
+  # services.logmein-hamachi.enable = true;
 
   services.redis.servers."".enable = false;
   # - mpd installed but disabled by default
