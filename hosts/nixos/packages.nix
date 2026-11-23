@@ -64,12 +64,6 @@ in
     inputs.franken-llama.nixosModules.default
   ];
 
-  services.franken-llama = {
-    enable = true;
-    acceleration = "cpu"; # cpu, cuda, rocm, vulkan, dual
-    nativeCpu = true;
-  };
-
   # - Provide a Wayland session entry so the greeter can offer Niri (pkgs.niri
   #   ships its own niri.desktop; adding it to environment.systemPackages links
   #   it into /run/current-system/sw/share).
@@ -97,7 +91,6 @@ in
     clang-tools
     clang
     pkg-config
-    direnv
 
     # - MTP kioslave + kmtpd so Dolphin can open phones via Solid (the worker
     #   ships in kio-extras; it must be a profile entry so plugins land on
@@ -119,7 +112,6 @@ in
     gns3-server
 
     networkmanagerapplet
-    proton-vpn
     wireguard-tools
 
     linuxPackages.usbip

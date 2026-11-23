@@ -49,7 +49,7 @@
         curl
         file
         nix-your-shell
-        nix-search-tv
+        # nix-search-tv
         ghostscript
         tesseract
         pdfminer
@@ -63,10 +63,10 @@
         kdePackages.ffmpegthumbs
         kdePackages.kimageformats
         kdePackages.ark
-        kdePackages.systemsettings
+        # kdePackages.systemsettings
         # - ranger: file selector for qutebrowser fileselect.*
         #   (choosefile/choosedir)
-        ranger
+        # ranger
         baobab
         nautilus
         eog
@@ -154,8 +154,8 @@
         imagemagick
         kdePackages.kdenlive
         inputs.artcraft-launcher.packages.${pkgs.stdenv.hostPlatform.system}.default
-        inkscape
-        audacity
+        # inkscape
+        # audacity
         easyeffects
         pavucontrol
         gpu-screen-recorder
@@ -176,25 +176,25 @@
         # - signal-desktop: override forces the gnome-libsecret keyring
         #   (Electron password store) so it unlocks on non-GNOME desktops
         #   instead of always asking for a nonexistent master password.
-        signal-desktop
-        fluffychat
+        # signal-desktop
+        # fluffychat
         legcord
-        zapzap
-        signal-cli
+        # zapzap
+        # signal-cli
       ];
 
       extras = with pkgs; [
         # - apps from the Arch inventory delta (see ARCH-INVENTORY.md §8)
         obsidian
-        waybar
+        # waybar
         swaylock
         fuzzel
         mpd
         localsend
         croc
-        sioyek
-        super-productivity
-        anki
+        # sioyek
+        # super-productivity
+        # anki
         freerdp
       ];
 
@@ -202,15 +202,15 @@
         # - unfree, newer than nixpkgs's cisco-packet-tracer_9 (9.0.0). Build
         #   needs the deb registered once: nix-store --add-fixed sha256
         #   ~/Downloads/CiscoPacketTracer_901_Ubuntu_64bit.deb
-        (pkgs.callPackage ./packages/packet-tracer-901.nix { })
+        # (pkgs.callPackage ./packages/packet-tracer-901.nix { })
         # - gns3-gui: spawns gns3-server locally
-        gns3-gui
-        dynamips
-        vpcs
-        ubridge
-        inetutils
+        # gns3-gui
+        # dynamips
+        # vpcs
+        # ubridge
+        # inetutils
         # - qemu_full: QEMU for GNS3/VMs (dev block uses qemu_full too)
-        wireshark
+        # wireshark
         tcpdump
         traceroute
         netcat-openbsd
@@ -244,6 +244,7 @@
 
       dev = with pkgs; [
         devenv
+        direnv
         nodejs
         bun
         pnpm
@@ -272,15 +273,15 @@
         # ))
         nasm
         neovide
-        odin
+        # odin
         calc
-        zigPackages."0.16"
+        # zigPackages."0.16"
       ];
 
       security = with pkgs; [
         proxychains-ng
         # - r2ghidra not in this snapshot — re-add if available
-        burpsuite
+        # burpsuite
         yersinia
         # - anonymous overlay network + tooling (Tor config in hosts/nixos)
         torsocks

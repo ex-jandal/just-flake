@@ -44,16 +44,17 @@
   services.postgresql.enable = false;
   # - ollama has no NixOS module in this snapshot — provide a (disabled)
   #   systemd unit so `systemctl start ollama` works
-  systemd.services.ollama = {
-    description = "Ollama local LLM server";
-    wantedBy = [ ];
-    after = [ "network.target" ];
-    serviceConfig = {
-      Type = "simple";
-      ExecStart = "${pkgs.ollama}/bin/ollama serve";
-      Restart = "on-failure";
-    };
-  };
+  # systemd.services.ollama = {
+  #   description = "Ollama local LLM server";
+  #   wantedBy = [ ];
+  #   after = [ "network.target" ];
+  #   serviceConfig = {
+  #     Type = "simple";
+  #     ExecStart = "${pkgs.ollama}/bin/ollama serve";
+  #     Restart = "on-failure";
+  #   };
+  # };
+
   # - avahi-daemon (Arch had this enabled, mDNS/DNS-SD). Kept enabled; revisit
   #   once systemd-resolved (Avahi) integration is decided.
   services.avahi.enable = true;

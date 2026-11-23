@@ -41,7 +41,6 @@
     ./modules/zathura.nix
     ./modules/mpv.nix
     ./modules/cava.nix
-    ./modules/zellij.nix
     ./modules/proxychains.nix
     ./modules/xmcl.nix
     ./modules/lspmux.nix
@@ -51,7 +50,6 @@
     ./modules/opencode.nix
     ./modules/codex.nix
     ./modules/android.nix
-    ./modules/librewolf.nix
     ./modules/pi-coding-agent.nix
     # ./modules/qutebrowser.nix
   ];
