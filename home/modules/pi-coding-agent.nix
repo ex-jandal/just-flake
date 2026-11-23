@@ -109,6 +109,7 @@ in
               env = {
                 AGENTMEMORY_TOOLS = "all";
                 AGENTMEMORY_FORCE_PROXY = "1";
+                AGENTMEMORY_URL = "http://localhost:3111";
               };
               exposure = "direct";
             };
