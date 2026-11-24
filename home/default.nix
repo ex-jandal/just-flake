@@ -51,6 +51,7 @@
     ./modules/codex.nix
     ./modules/android.nix
     ./modules/pi-coding-agent.nix
+    ./modules/omp.nix
     # ./modules/qutebrowser.nix
   ];
 

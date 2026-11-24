@@ -54,6 +54,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    omp = {
+      url = "github:nklmilojevic/omp-flake";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     zapfast = {
       url = "github:crmne/zapfast";
       inputs.nixpkgs.follows = "nixpkgs";
