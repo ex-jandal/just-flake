@@ -149,6 +149,8 @@ in
       lua-language-server
       marksman
 
+      vulkan-loader
+
       glibc
       glibc_multi
       harfbuzz
