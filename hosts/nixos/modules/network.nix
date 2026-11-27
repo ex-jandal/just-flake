@@ -128,6 +128,31 @@
   };
 
   networking.wireguard.enable = true;
+  # - openresolv lets the WireGuard service add/remove Proton's DNS server
+  #   without touching the system-wide resolver while the tunnel is down.
+  networking.resolvconf.enable = true;
+  # - openresolv lists dynamic interfaces before DHCP ones. "us-proton" is not
+  #   in its default wg*/tun* patterns, so add it explicitly to rank Proton DNS
+  #   ahead of the physical link's nameservers.
+  networking.resolvconf.extraConfig = ''
+    dynamic_order="$dynamic_order us-proton"
+  '';
+
+  # - us-proton via wg-quick. Config file must exist at /etc/wireguard/us-proton.conf
+  #   (root:root, mode 0600). The private key lives there, not in the Nix store.
+  systemd.services.wg-quick-us-proton = {
+    description = "WireGuard via wg-quick (us-proton)";
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+    wantedBy = [ "multi-user.target" ];
+    path = [ pkgs.openresolv pkgs.wireguard-tools ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "${pkgs.wireguard-tools}/bin/wg-quick up us-proton";
+      ExecStop = "${pkgs.wireguard-tools}/bin/wg-quick down us-proton";
+    };
+  };
 
   # - client-only Tor (no relay/exit/bridge): 9050 is the slow SOCKS (new
   #   circuit per destination), which proxychains and torsocks use. Privoxy
